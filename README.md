@@ -14,3 +14,7 @@ con tempi a piacere
 ## CMSIS.RTOS
 
 Interfaccia cmsis-rtos per freertos
+
+## UART
+
+Gestione seriale con dma circolare
