@@ -1,0 +1,93 @@
+// DISLOCAZIONE ********************************************
+
+if (isdefinedsymbol(ALLOCA_UL)) {
+	place at start of REGIONE_UL {
+		block CODICE
+	} ;	       
+    place at start of REGIONE_CLD_ELE {
+		block CLD_ELE        
+	} ;
+	place at start of REGIONE_CLD_FUNZ {
+		block CLD_FUNZ        
+	} ;               
+    place at start of REGIONE_APP {
+		block APP        
+	} ;
+}
+else {
+	if (isdefinedsymbol(ALLOCA_CLD_ELE)) {
+		place at start of REGIONE_UL {
+			block UL
+		} ;		
+		place at start of REGIONE_CLD_ELE {
+			block CODICE        
+		} ;
+		place at start of REGIONE_CLD_FUNZ {
+		block CLD_FUNZ        
+		} ;               					
+		place at start of REGIONE_APP {
+			block APP        
+		} ;
+	}
+	else  {
+		if (isdefinedsymbol(ALLOCA_CLD_FUNZ)) {
+			place at start of REGIONE_UL {
+			block UL
+			} ;		
+			place at start of REGIONE_CLD_ELE {
+			block CLD_ELE        
+			} ;
+			place at start of REGIONE_CLD_FUNZ {
+			block CODICE        
+			} ;               					
+			place at start of REGIONE_APP {
+			block APP        
+			} ;
+		}
+		else  {
+			place at start of REGIONE_UL {
+			block UL
+			} ;
+			place at start of REGIONE_CLD_ELE {
+			block CLD_ELE        
+			} ;
+			place at start of REGIONE_CLD_FUNZ {
+			block CLD_FUNZ        
+			} ;
+			place at start of REGIONE_APP {
+			block CODICE        
+			} ;  
+		}
+	}
+}
+
+place at start of REGIONE_DUMMY1 {
+	block DUMMY1
+} ;
+
+place at start of REGIONE_PRM_CLD {
+	block PRM_CLD        
+} ;
+
+place at start of REGIONE_PRM_APP {
+	block PRM_APP        
+} ;        
+
+place at start of REGIONE_DUMMY2 {
+	block DUMMY2        
+} ;
+
+place at start of REG_RAM {
+    block RAM_COMUNE,
+    block VARIABILI,
+    block HEAP
+} ;
+
+place at end of REG_RAM {
+    block CSTACK	
+} ;
+
+place at start of REG_CCM {
+    block RAM_CCM
+} ;
+
