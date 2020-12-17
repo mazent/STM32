@@ -18,3 +18,7 @@ Interfaccia cmsis-rtos per freertos
 ## UART
 
 Gestione seriale con dma circolare
+
+## SDRAM
+
+Inizializza ram esterna
