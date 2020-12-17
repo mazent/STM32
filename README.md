@@ -10,3 +10,7 @@ File per il linker
 
 Usa il window watchdog per creare un watchdog per ogni task
 con tempi a piacere
+
+## CMSIS.RTOS
+
+Interfaccia cmsis-rtos per freertos
