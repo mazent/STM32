@@ -1,6 +1,4 @@
-//#define STAMPA_DBG
-#include "includimi.h"
-
+#include <stdbool.h>
 #include "tram.h"
 
 /*
@@ -32,7 +30,7 @@ static SDRAM_HandleTypeDef hsdram1 = {
     .State = HAL_SDRAM_STATE_RESET
 } ;
 
-static const DWORD ramBase = 0xC0000000 ;
+static const uint32_t ramBase = 0xC0000000 ;
                          //  64        Mb     / in byte
 static const size_t ramDim = 64 * 1024 * 1024 / 8  ;
 
@@ -41,6 +39,9 @@ static void SDRAM_Initialization_Sequence(void)
     FMC_SDRAM_CommandTypeDef command = {
         .CommandTarget = FMC_SDRAM_CMD_TARGET_BANK1
     } ;
+	
+	do {
+	
 
     /* Step 3:  Configure a clock configuration enable command */
     command.CommandMode = FMC_SDRAM_CMD_CLK_ENABLE ;
@@ -48,7 +49,7 @@ static void SDRAM_Initialization_Sequence(void)
 
     /* Send the command */
     if (HAL_OK != HAL_SDRAM_SendCommand(&hsdram1, &command, 0x1000)) {
-        DBG_ERR ;
+        break ;
     }
 
     /* Step 4: Insert 100 ms delay */
@@ -61,7 +62,7 @@ static void SDRAM_Initialization_Sequence(void)
 
     /* Send the command */
     if (HAL_OK != HAL_SDRAM_SendCommand(&hsdram1, &command, 0x1000)) {
-        DBG_ERR ;
+        break ;
     }
 
     /* Step 6 : Configure a Auto-Refresh command */
@@ -70,7 +71,7 @@ static void SDRAM_Initialization_Sequence(void)
 
     /* Send the command */
     if (HAL_OK != HAL_SDRAM_SendCommand(&hsdram1, &command, 0x1000)) {
-        DBG_ERR ;
+        break ;
     }
 
     /* Step 7: Program the external memory mode register */
@@ -88,7 +89,7 @@ static void SDRAM_Initialization_Sequence(void)
 
     /* Send the command */
     if (HAL_OK != HAL_SDRAM_SendCommand(&hsdram1, &command, 0x1000)) {
-        DBG_ERR ;
+        break ;
     }
 
     /* Step 8: Set the refresh rate counter */
@@ -96,6 +97,8 @@ static void SDRAM_Initialization_Sequence(void)
     // The refresh rate must be increased by 20 SDRAM clock cycles to obtain a safe margin
     // Ne tolgo 100
     HAL_SDRAM_ProgramRefreshRate(&hsdram1, 1308) ;
+	
+	} while (false) ;
 }
 
 
@@ -143,17 +146,17 @@ void RAM_Iniz(void)
     SDRAM_Initialization_Sequence() ;
 }
 
-DWORD RAM_AddrWalk1(void)
+uint32_t RAM_AddrWalk1(void)
 {
     return TRAM_AddrWalk1(ramBase, ramDim) ;
 }
 
-DWORD RAM_AddrWalk0(void)
+uint32_t RAM_AddrWalk0(void)
 {
     return TRAM_AddrWalk0(ramBase, ramDim) ;
 }
 
-DWORD RAM_DataWalk1e0(void)
+uint32_t RAM_DataWalk1e0(void)
 {
     return TRAM_DataWalk1e0_16bit(ramBase) ;
 }

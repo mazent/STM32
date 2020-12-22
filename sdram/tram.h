@@ -7,13 +7,15 @@
 
 ******************************************/
 
+#include <stdint.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-DWORD TRAM_AddrWalk1(DWORD Base, DWORD numByte) ;
-DWORD TRAM_AddrWalk0(DWORD Base, DWORD numByte) ;
-DWORD TRAM_DataWalk1e0_16bit(DWORD Base) ;
+uint32_t TRAM_AddrWalk1(uint32_t Base, uint32_t numByte) ;
+uint32_t TRAM_AddrWalk0(uint32_t Base, uint32_t numByte) ;
+uint32_t TRAM_DataWalk1e0_16bit(uint32_t Base) ;
 
 #ifdef __cplusplus
 }

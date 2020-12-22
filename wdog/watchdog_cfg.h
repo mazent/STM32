@@ -1,5 +1,5 @@
-#ifndef WATCHDOG_CGG_H_
-#define WATCHDOG_CGG_H_
+#ifndef WATCHDOG_CFG_H_
+#define WATCHDOG_CFG_H_
 
 #define WDOG_SUONO		0
 #define WDOG_TBUS 		1

@@ -7,12 +7,12 @@
 
 ******************************************/
 
-#define SPIA		((BYTE) 0x55)
+#define SPIA		((uint8_t) 0x55)
 
-DWORD TRAM_AddrWalk1(DWORD Base, DWORD numByte)
+uint32_t TRAM_AddrWalk1(uint32_t Base, uint32_t numByte)
 {
-	volatile BYTE * pRam = (BYTE *) Base ;
-	DWORD uno = 1 ;
+	volatile uint8_t * pRam = (uint8_t *) Base ;
+	uint32_t uno = 1 ;
 
 	// Segnalino
 	pRam[0] = SPIA ;
@@ -33,17 +33,17 @@ DWORD TRAM_AddrWalk1(DWORD Base, DWORD numByte)
 	return uno ;
 }
 
-DWORD TRAM_AddrWalk0(DWORD Base, DWORD numByte)
+uint32_t TRAM_AddrWalk0(uint32_t Base, uint32_t numByte)
 {
-	volatile BYTE * pRam = (BYTE *) Base ;
-	DWORD uno = 1 ;    
+	volatile uint8_t * pRam = (uint8_t *) Base ;
+	uint32_t uno = 1 ;
 
 	// Segnalino
 	pRam[numByte-1] = SPIA ;
 
 	// Ciclo sugli indirizzi
 	while (uno != numByte) {
-		DWORD zero = ~uno ;
+		uint32_t zero = ~uno ;
 		zero &= numByte - 1 ;
 
 		pRam[zero] = ~SPIA ;
@@ -60,11 +60,11 @@ DWORD TRAM_AddrWalk0(DWORD Base, DWORD numByte)
 	return uno ;
 }
 
-DWORD TRAM_DataWalk1e0_16bit(DWORD Base)
+uint32_t TRAM_DataWalk1e0_16bit(uint32_t Base)
 {
-	volatile WORD * pRam = (WORD *) Base ;
-	WORD uno = 1 ;
-	WORD zero = ~uno ;
+	volatile uint16_t * pRam = (uint16_t *) Base ;
+	uint16_t uno = 1 ;
+	uint16_t zero = ~uno ;
 	int i ;
 
 	// Ciclo sui dati
