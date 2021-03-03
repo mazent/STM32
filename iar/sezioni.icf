@@ -1,0 +1,88 @@
+/*
+    Struttura
+
+	| Pagina | KiB | Regione  |
+	+--------+-----+----------+
+    |     0  |  58 | BL       |
+    |--------+-----+----------+
+    |    29  |   2 | PRM CLD  |
+	|--------+-----+----------+
+    |    30  |   2 | PRM APP  |
+    |    31  |   2 |          |
+	|--------+-----+----------+
+    |    32  |  64 | APP      |
+    +--------+-----+----------+
+
+    All'inizio della ram c'e' l'area in comune fra microloader e applicazione
+*/
+
+define symbol DIM_BL         =  58K ;
+define symbol DIM_PRM_CLD    =   2K ;
+define symbol DIM_PRM_APP    =   4K ;
+define symbol DIM_APP        =  64K ;
+
+/******************* REGIONI **************************************************/
+
+define symbol INIZIO_BL       = ROM_INIZIO ;
+define symbol INIZIO_PRM_CLD  = INIZIO_BL + DIM_BL;
+define symbol INIZIO_PRM_APP  = INIZIO_PRM_CLD + DIM_PRM_CLD ;
+define symbol INIZIO_APP      = INIZIO_PRM_APP + DIM_PRM_APP;
+
+define region REGIONE_BL   	  = mem:[from INIZIO_BL       size DIM_BL] ;
+define region REGIONE_PRM_CLD = mem:[from INIZIO_PRM_CLD  size DIM_PRM_CLD] ;
+define region REGIONE_PRM_APP = mem:[from INIZIO_PRM_APP  size DIM_PRM_APP] ;
+define region REGIONE_APP     = mem:[from INIZIO_APP      size DIM_APP] ;
+
+define region REG_RAM = mem:[from RAM_INIZIO to RAM_FINE] ;
+
+/******************* BLOCCHI **************************************************/
+
+define block CODICE with fixed order {        
+    readonly section .intvec,
+    readonly section DESCRITTORE,
+    readonly,
+    readonly section ALLINEAMENTO
+} ;
+
+// ----------------------------------------------
+// BL 
+// ----------------------------------------------
+if (!isdefinedsymbol (ALLOCA_BL))
+{
+	define block BL with size = DIM_BL {} ;
+	keep { block BL } ;
+}
+
+// ----------------------------------------------
+// Parametri 
+// ----------------------------------------------
+define block PRM_CLD with size = DIM_PRM_CLD {} ;
+keep { block PRM_CLD } ;
+
+define block PRM_APP with size = DIM_PRM_APP {} ;
+keep { block PRM_APP } ;
+
+// ----------------------------------------------
+// APP 
+// ----------------------------------------------
+if (!isdefinedsymbol (ALLOCA_APP))
+{
+	define block APP with size = DIM_APP {} ;
+	keep { block APP } ;
+}
+
+// ----------------------------------------------
+// Variabili 
+// ----------------------------------------------
+define block VARIABILI with fixed order {
+	readwrite
+} ;
+
+// ----------------------------------------------
+// Scambio informazioni bootloader/applicativo
+// ----------------------------------------------
+
+define symbol DIMENSIONE_RAM_COMUNE = 0x20 ;
+
+define block RAM_COMUNE with size = DIMENSIONE_RAM_COMUNE {} ;
+keep { block RAM_COMUNE } ;

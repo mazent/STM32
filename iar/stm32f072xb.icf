@@ -1,0 +1,86 @@
+/*
+	128 KiB flash (64 pagine da 2 KiB)
+	 16 KiB ram
+*/
+
+define memory mem with size = 4G;
+
+define symbol ROM_INIZIO = 0x08000000 ;
+define symbol ROM_FINE   = 0x0801FFFF ;
+
+define symbol RAM_INIZIO = 0x20000000 ;
+define symbol RAM_FINE   = 0x20003FFF ;
+
+
+// Questi ci sono sempre
+
+define block CSTACK with alignment = 8, size = STACK_DIM { } ;
+define block HEAP   with alignment = 8, size = HEAP_DIM  { } ;
+
+initialize by copy { readwrite };
+do not initialize  { section .noinit } ;
+
+
+/*  promemoria
+	define memory [ name ] with size = size_expr [ ,unit-size ];
+		Definisce uno spazio di indirizzi
+
+	define region name = region-expr;
+		Definisce uno spazio fisico, cioe' disponibile
+
+		[ memory-name: ][from expr { to expr | size expr } [repeat expr [ displacement expr ]]]
+
+	define block name [ with param, param... ]
+	    Raggruppa sezioni, nel codice: __section_begin, __section_end, __section_size (in asm: SFB, SFE, SIZEOF)
+	    
+		param	size = expr
+				maximum size = expr
+				alignment = expr
+				fixed order
+	{
+		extended-selectors
+	}
+	[except
+	{
+		section_selectors
+	}];
+
+	[ "name": ] place at { address [ memory: ] expr | start of region_expr | end of region_expr }
+	{
+		extended-selectors
+	}
+	[except
+	{
+		section-selectors
+	}];
+
+	Espressioni
+		expression binop expression
+			binop +, -, *, /, %, <<, >>, <, >, ==, !=, &, ^, |, &&, ||
+		unop expression
+			unop +, -, !, ~
+		expression ? expression : expression
+		(expression)
+		number
+			nr [K|M|G|T|P]
+		symbol
+			define [ exported ] symbol name = expr;
+		func-operator
+			minimum(expr,expr)  Returns the smallest of the two parameters.
+			maximum(expr,expr)  Returns the largest of the two parameters.
+			isempty(r)  		Returns True if the region is empty, otherwise False.
+			isdefinedsymbol(expr-symbol)
+								Returns True if the expression symbol is defined, otherwise False.
+			start(r)  			Returns the lowest address in the region.
+			end(r)  			Returns the highest address in the region.
+			size(r)  			Returns the size of the complete region.
+
+			
+    Per l'analisi dello stack:
+        nel file .suc:
+            call graph root [task] : nome-funzione ;
+        se e' static non funziona, occorre usare:
+            #pragma call_graph_root="task"
+        subito prima della funzione
+*/
+

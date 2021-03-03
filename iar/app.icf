@@ -1,0 +1,9 @@
+define symbol STACK_DIM = 2K ;
+define symbol HEAP_DIM  = 2K ;
+
+include "stm32f072xb.icf" ;
+
+define symbol ALLOCA_APP = 1 ;
+
+include "sezioni.icf" ;
+include "alloca.icf" ;

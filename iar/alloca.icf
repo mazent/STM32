@@ -1,0 +1,38 @@
+/* DISLOCAZIONE *********************************************/
+
+if (isdefinedsymbol(ALLOCA_BL)) {
+	place at start of REGIONE_BL {
+		block CODICE
+	} ;
+	
+	place at start of REGIONE_APP {
+		block APP
+	} ;
+}
+else {
+	place at start of REGIONE_BL {
+		block BL
+	} ;
+	
+	place at start of REGIONE_APP {
+		block CODICE
+	} ;        
+}
+
+place in REGIONE_PRM_CLD {
+    block PRM_CLD
+} ;
+
+place in REGIONE_PRM_APP {
+    block PRM_APP
+} ;
+
+place at start of REG_RAM {
+    block RAM_COMUNE,
+    block VARIABILI,
+    block HEAP
+} ;
+
+place at end of REG_RAM {
+    block CSTACK	
+} ;
