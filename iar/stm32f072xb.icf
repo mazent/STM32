@@ -20,6 +20,52 @@ define block HEAP   with alignment = 8, size = HEAP_DIM  { } ;
 initialize by copy { readwrite };
 do not initialize  { section .noinit } ;
 
+/*
+	Esempio: area di ram aggiuntiva
+	
+		1) limiti (processore.icf)
+			define symbol SRAM4_INIZIO = 0x38000000 ;
+			define symbol SRAM4_FINE   = 0x38003FFF ;
+			
+		2) regione e blocchi (sezioni.icf)
+			define region REG_SRAM4 = mem:[from SRAM4_INIZIO to SRAM4_FINE] ;
+			
+			...
+			
+			define block SRAM4 { 
+				section .sram4
+			} ;
+			do not initialize  { section .sram4 } ;
+
+		3) posizionamento (alloca.icf)
+			place at start of REG_SRAM4 {
+				block SRAM4
+			} ;
+
+		4) codice
+			#pragma location=".sram4"
+			static union {
+				uint16_t val[ADC3_NBROFCONVERSION] ;
+				uint32_t x ;
+			} u3 ;
+	
+	Esempio: descrittore del fw
+	
+		1) regione e blocchi (sezioni.icf): aggiungo al codice		
+			define block CODICE with fixed order {        
+				readonly section .intvec,
+				readonly section DESCRITTORE,
+				readonly,
+				readonly section ALLINEAMENTO
+			} ;
+		
+		2) codice
+			__root const S_DESCRITTORE  Descrittore @ "DESCRITTORE" = {...}
+			
+			__root const uint32_t Allinea @ "ALLINEAMENTO" = 0xEFBEADDE ;
+	
+*/
+
 
 /*  promemoria
 	define memory [ name ] with size = size_expr [ ,unit-size ];
