@@ -64,6 +64,12 @@ do not initialize  { section .noinit } ;
 			
 			__root const uint32_t Allinea @ "ALLINEAMENTO" = 0xEFBEADDE ;
 	
+	Esempio: indirizzo
+	
+		#pragma segment=".sram12"
+		static uint8_t * INDIRIZZO_RAM_FPGA = __section_begin(".sram12") ;
+	
+	
 */
 
 
@@ -78,6 +84,9 @@ do not initialize  { section .noinit } ;
 
 	define block name [ with param, param... ]
 	    Raggruppa sezioni, nel codice: __section_begin, __section_end, __section_size (in asm: SFB, SFE, SIZEOF)
+		ma prima occorre dichiararle:
+			#pragma section=".intvec"
+			#pragma segment="APP"
 	    
 		param	size = expr
 				maximum size = expr
