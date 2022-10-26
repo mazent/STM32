@@ -49,6 +49,11 @@ do not initialize  { section .noinit } ;
 				uint32_t x ;
 			} u3 ;
 	
+           oppure
+            int pippo
+            __attribute__( ( section(".sram4") ) ) ;
+
+
 	Esempio: descrittore del fw
 	
 		1) regione e blocchi (sezioni.icf): aggiungo al codice		
@@ -99,6 +104,18 @@ do not initialize  { section .noinit } ;
 	{
 		section_selectors
 	}];
+
+    define overlay name [ with param, param... ]
+        Come block, ma condividono il name
+        Usare anche:
+            initialize manually { section dentro-overlay };
+    {
+        extended-selectors;
+    }
+    [except
+    {
+        section-selectors
+    } ];
 
 	[ "name": ] place at { address [ memory: ] expr | start of region_expr | end of region_expr }
 	{
