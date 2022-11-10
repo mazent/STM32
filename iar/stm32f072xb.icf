@@ -53,6 +53,12 @@ do not initialize  { section .noinit } ;
             int pippo
             __attribute__( ( section(".sram4") ) ) ;
 
+		   oppure
+		    __attribute__( ( section(".sram4") ) ) 
+            int pippo ;
+            
+		   
+
 
 	Esempio: descrittore del fw
 	
@@ -65,10 +71,21 @@ do not initialize  { section .noinit } ;
 			} ;
 		
 		2) codice
-			__root const S_DESCRITTORE  Descrittore @ "DESCRITTORE" = {...}
+            __root const S_DESCRITTORE  Descrittore @ "DESCRITTORE" = { ...
 			
 			__root const uint32_t Allinea @ "ALLINEAMENTO" = 0xEFBEADDE ;
 	
+		   oppure
+			__root
+			__attribute__( ( section("DESCRITTORE") ) )
+			const S_DESCRITTORE Descrittore = { ... 
+			
+			__root
+			__attribute__( ( section("ALLINEAMENTO") ) )
+			const uint32_t Allinea = 0xEFBEADDE ;
+			
+		   
+
 	Esempio: indirizzo
 	
 		#pragma segment=".sram12"
