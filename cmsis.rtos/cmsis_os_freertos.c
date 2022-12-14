@@ -28,7 +28,7 @@ static TickType_t ms_in_tick(uint32_t millisec)
 {
     TickType_t ticks ;
 
-    assert(portTICK_PERIOD_MS) ;
+    static_assert(portTICK_PERIOD_MS, "OKKIO") ;
 
     if (millisec == osWaitForever) {
         ticks = portMAX_DELAY ;
@@ -287,19 +287,18 @@ osTimerId osTimerCreate(const osTimerDef_t *timer_def,
     os_timer_id * tid = NULL ;
     bool esito = false ;
 
-    assert( !xPortInIsrContext() ) ;
-    assert( timer_def ) ;
-    assert( timer_def->ptimer ) ;
-
     do {
+        ASSERT( !xPortInIsrContext() ) ;
         if (xPortInIsrContext()) {
             break ;
         }
 
+        ASSERT(timer_def) ;
         if (NULL == timer_def) {
             break ;
         }
 
+        ASSERT(timer_def->ptimer) ;
         if (NULL == timer_def->ptimer) {
             break ;
         }
@@ -424,13 +423,12 @@ osEvent osSignalWait(int32_t signals, uint32_t millisec)
     } ;
     TickType_t ticks = ms_in_tick(millisec) ;
 
-    assert(signals >= 0) ;
-    assert( !xPortInIsrContext() ) ;
-
+    ASSERT( !xPortInIsrContext() ) ;
     if ( xPortInIsrContext() ) {
         evn.status = osErrorISR ;
     }
     else {
+        ASSERT(signals >= 0) ;
         if (0 == signals) {
             signals = NOT(0x80000000) ;
         }
@@ -1026,4 +1024,83 @@ osEvent osMailGet(osMailQId queue_id, uint32_t millisec)
 
 #endif  // Mail Queues available
 
+/*********************************************
+    Non fanno parte dell'interfaccia
+    ma dipendono da freertos
+*********************************************/
 
+extern void xPortSysTickHandler(void) ;
+
+void SysTick_Handler(void)
+{
+    HAL_IncTick() ;
+
+#if INCLUDE_xTaskGetSchedulerState == 1
+    if ( xTaskGetSchedulerState() != taskSCHEDULER_NOT_STARTED ) {
+        xPortSysTickHandler() ;
+    }
+#else
+#   error INCLUDE_xTaskGetSchedulerState deve valere 1
+#endif
+}
+
+#if configCHECK_FOR_STACK_OVERFLOW > 0
+
+void vApplicationStackOverflowHook(
+    TaskHandle_t xTask,
+    char * pcTaskName)
+{
+    INUTILE(xTask) ;
+
+    DBG_PRINTF("STACK OVERFLOW HOOK: %s \r\n", pcTaskName) ;
+
+    BPOINT ;
+}
+
+#endif
+
+#if configUSE_MALLOC_FAILED_HOOK == 1
+
+void vApplicationMallocFailedHook(void)
+{
+    DBG_PUTS("MALLOC FAILED HOOK") ;
+
+    BPOINT ;
+}
+
+#endif
+
+#if configUSE_TICK_HOOK == 1
+
+void vApplicationTickHook(void)
+{}
+
+#endif
+
+#ifndef NDEBUG
+
+#   ifdef traceMALLOC
+void trace_malloc(
+    void * p,
+    size_t dim)
+{
+    ASSERT(p) ;
+
+    DBG_PRINTF("%p = malloc(%zu)\n", p, dim) ;
+}
+
+#   endif
+
+#   ifdef traceFREE
+void trace_free(
+    void * p,
+    size_t dim)
+{
+    INUTILE(dim) ;
+
+    DBG_PRINTF("free(%p)\n", p) ;
+}
+
+#   endif
+
+#endif
