@@ -20,6 +20,13 @@ define block HEAP   with alignment = 8, size = HEAP_DIM  { } ;
 initialize by copy { readwrite };
 do not initialize  { section .noinit } ;
 
+// Se si usano heap_[1|2|4] mettere qui ucHeap
+define block HEAP_X { 
+	section .heap_x
+} ;
+do not initialize  { section .heap_x } ;
+
+
 /*
 	Esempio: area di ram aggiuntiva
 	

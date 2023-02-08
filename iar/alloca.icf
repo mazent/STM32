@@ -30,7 +30,8 @@ place in REGIONE_PRM_APP {
 place at start of REG_RAM {
     block RAM_COMUNE,
     block VARIABILI,
-    block HEAP
+    block HEAP,
+	block HEAP_X,
 } ;
 
 place at end of REG_RAM {
