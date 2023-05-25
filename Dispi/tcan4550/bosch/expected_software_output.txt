@@ -1,0 +1,212 @@
+= main started ======================
+M_CAN_0: RAM check starting
+ RAM address:         0x01004000
+ RAM size    in byte: 0x00004000 (16384)
+ RAM size    in word: 0x00001000 (4096) (4 bytes/word)
+ Expected init-value: 0x00000000
+ => Status: Passed (No errors)
+
+M_CAN_1: RAM check starting
+ RAM address:         0x0100c000
+ RAM size    in byte: 0x00004000 (16384)
+ RAM size    in word: 0x00001000 (4096) (4 bytes/word)
+ Expected init-value: 0x00000000
+ => Status: Passed (No errors)
+
+M_CAN_2: RAM check starting
+ RAM address:         0x01014000
+ RAM size    in byte: 0x00004000 (16384)
+ RAM size    in word: 0x00001000 (4096) (4 bytes/word)
+ Expected init-value: 0x00000000
+ => Status: Passed (No errors)
+
+M_CAN_3: RAM check starting
+ RAM address:         0x0101c000
+ RAM size    in byte: 0x00004000 (16384)
+ RAM size    in word: 0x00001000 (4096) (4 bytes/word)
+ Expected init-value: 0x00000000
+ => Status: Passed (No errors)
+
+M_CAN_0 version: 3.2.3 from 08.06.2018
+M_CAN_1 version: 3.2.3 from 08.06.2018
+M_CAN_2 version: 3.2.3 from 08.06.2018
+M_CAN_3 version: 3.2.3 from 08.06.2018
+
+CAN IO wiring mode: internal (FPGA internal CAN bus, no external RX/TX connection)
+
+M_CAN_0 Register Test (test for reset-values)
+ M_CAN Version 3.2.x Register Test
+ M_CAN Base_Addr: 0x01000000
+ => Reset value Test: PASS
+ => Normal writable Bits Test: PASS
+ => Protected writable Bits Test: PASS
+ => Number of registers checked: 46
+
+M_CAN_1 Register Test (test for reset-values)
+ M_CAN Version 3.2.x Register Test
+ M_CAN Base_Addr: 0x01008000
+ => Reset value Test: PASS
+ => Normal writable Bits Test: PASS
+ => Protected writable Bits Test: PASS
+ => Number of registers checked: 46
+
+M_CAN_2 Register Test (test for reset-values)
+ M_CAN Version 3.2.x Register Test
+ M_CAN Base_Addr: 0x01010000
+ => Reset value Test: PASS
+ => Normal writable Bits Test: PASS
+ => Protected writable Bits Test: PASS
+ => Number of registers checked: 46
+
+M_CAN_3 Register Test (test for reset-values)
+ M_CAN Version 3.2.x Register Test
+ M_CAN Base_Addr: 0x01018000
+ => Reset value Test: PASS
+ => Normal writable Bits Test: PASS
+ => Protected writable Bits Test: PASS
+ => Number of registers checked: 46
+
+
+
+=== Entered function m_can_an001_receive_messages_simple() ===
+
+[M_CAN_0] Number of messages transmitted: 19
+
+[M_CAN_1] Received messages:
+[Message  1] RX Msg: via FIFO 0   Index=  0  IDTYPE= STD  ID= 0x120       REMOTE= 0  FDF= 1  BRS= 1  ESI= 0  DLC=  1  DataBytes[0.. 1]= 0x 11
+[Message  2] RX Msg: via FIFO 0   Index=  1  IDTYPE= STD  ID= 0x121       REMOTE= 0  FDF= 1  BRS= 1  ESI= 0  DLC=  2  DataBytes[0.. 2]= 0x 11 22
+[Message  3] RX Msg: via FIFO 0   Index=  2  IDTYPE= STD  ID= 0x122       REMOTE= 0  FDF= 1  BRS= 1  ESI= 0  DLC=  3  DataBytes[0.. 3]= 0x 11 22 33
+[Message  4] RX Msg: via FIFO 0   Index=  3  IDTYPE= STD  ID= 0x123       REMOTE= 0  FDF= 1  BRS= 1  ESI= 0  DLC=  4  DataBytes[0.. 4]= 0x 11 22 33 44
+[Message  5] RX Msg: via FIFO 0   Index=  4  IDTYPE= STD  ID= 0x124       REMOTE= 0  FDF= 1  BRS= 1  ESI= 0  DLC=  5  DataBytes[0.. 5]= 0x 11 22 33 44 55
+[Message  6] RX Msg: via FIFO 0   Index=  5  IDTYPE= STD  ID= 0x125       REMOTE= 0  FDF= 1  BRS= 1  ESI= 0  DLC=  6  DataBytes[0.. 6]= 0x 11 22 33 44 55 66
+[Message  7] RX Msg: via FIFO 0   Index=  6  IDTYPE= STD  ID= 0x126       REMOTE= 0  FDF= 1  BRS= 1  ESI= 0  DLC=  7  DataBytes[0.. 7]= 0x 11 22 33 44 55 66 77
+[Message  8] RX Msg: via FIFO 0   Index=  7  IDTYPE= STD  ID= 0x127       REMOTE= 0  FDF= 1  BRS= 1  ESI= 0  DLC=  8  DataBytes[0.. 8]= 0x 11 22 33 44 55 66 77 88
+[Message  9] RX Msg: via FIFO 0   Index=  8  IDTYPE= STD  ID= 0x128       REMOTE= 0  FDF= 1  BRS= 1  ESI= 0  DLC=  9  DataBytes[0..12]= 0x 11 22 33 44 55 66 77 88 99 1a 1b 1c
+[Message 10] RX Msg: via FIFO 0   Index=  9  IDTYPE= STD  ID= 0x129       REMOTE= 0  FDF= 1  BRS= 1  ESI= 0  DLC= 10  DataBytes[0..16]= 0x 11 22 33 44 55 66 77 88 99 1a 1b 1c 1d 1e 1f 20
+[Message 11] RX Msg: via FIFO 0   Index= 10  IDTYPE= STD  ID= 0x12a       REMOTE= 0  FDF= 1  BRS= 1  ESI= 0  DLC=  9  DataBytes[0..12]= 0x 11 22 33 44 55 66 77 88 99 1a 1b 1c
+[Message 12] RX Msg: via FIFO 0   Index= 11  IDTYPE= STD  ID= 0x12b       REMOTE= 0  FDF= 1  BRS= 1  ESI= 0  DLC=  8  DataBytes[0.. 8]= 0x 11 22 33 44 55 66 77 88
+[Message 13] RX Msg: via FIFO 0   Index= 12  IDTYPE= STD  ID= 0x12c       REMOTE= 0  FDF= 1  BRS= 1  ESI= 0  DLC=  7  DataBytes[0.. 7]= 0x 11 22 33 44 55 66 77
+[Message 14] RX Msg: via FIFO 0   Index= 13  IDTYPE= STD  ID= 0x12d       REMOTE= 0  FDF= 1  BRS= 1  ESI= 0  DLC=  6  DataBytes[0.. 6]= 0x 11 22 33 44 55 66
+[Message 15] RX Msg: via FIFO 0   Index= 14  IDTYPE= EXT  ID= 0x1111ffff  REMOTE= 0  FDF= 1  BRS= 1  ESI= 0  DLC=  5  DataBytes[0.. 5]= 0x 11 22 33 44 55
+[Message 16] RX Msg: via FIFO 0   Index= 15  IDTYPE= EXT  ID= 0x1abcdecf  REMOTE= 0  FDF= 1  BRS= 1  ESI= 0  DLC=  4  DataBytes[0.. 4]= 0x 11 22 33 44
+[Message 17] RX Msg: via FIFO 0   Index= 16  IDTYPE= EXT  ID= 0x12345678  REMOTE= 0  FDF= 1  BRS= 1  ESI= 0  DLC=  3  DataBytes[0.. 3]= 0x 11 22 33
+[Message 18] RX Msg: via FIFO 0   Index= 17  IDTYPE= EXT  ID= 0x12abba21  REMOTE= 0  FDF= 1  BRS= 1  ESI= 0  DLC=  2  DataBytes[0.. 2]= 0x 11 22
+[Message 19] RX Msg: via FIFO 0   Index= 18  IDTYPE= EXT  ID= 0x1fffffff  REMOTE= 0  FDF= 1  BRS= 1  ESI= 0  DLC=  1  DataBytes[0.. 1]= 0x 11
+
+
+=== Entered function m_can_an001_receive_messages_with_filtering() ===
+
+[M_CAN_0] Number of messages transmitted: 25
+
+[M_CAN_1] Received messages:
+[Message  1] RX Msg: via FIFO 0   Index=  0  IDTYPE= STD  ID= 0x014       REMOTE= 0  FDF= 1  BRS= 1  ESI= 0  DLC=  1  DataBytes[0.. 1]= 0x 11
+[Message  2] RX Msg: via FIFO 0   Index=  1  IDTYPE= STD  ID= 0x015       REMOTE= 0  FDF= 1  BRS= 1  ESI= 0  DLC=  2  DataBytes[0.. 2]= 0x 11 22
+[Message  3] RX Msg: via FIFO 0   Index=  2  IDTYPE= STD  ID= 0x016       REMOTE= 0  FDF= 1  BRS= 1  ESI= 0  DLC=  3  DataBytes[0.. 3]= 0x 11 22 33
+[Message  4] RX Msg: via FIFO 0   Index=  3  IDTYPE= STD  ID= 0x01a       REMOTE= 0  FDF= 1  BRS= 1  ESI= 0  DLC=  7  DataBytes[0.. 7]= 0x 11 22 33 44 55 66 77
+[Message  5] RX Msg: via FIFO 1   Index=  0  IDTYPE= STD  ID= 0x184       REMOTE= 0  FDF= 1  BRS= 1  ESI= 0  DLC=  8  DataBytes[0.. 8]= 0x 11 22 33 44 55 66 77 88
+[Message  6] RX Msg: via FIFO 1   Index=  1  IDTYPE= STD  ID= 0x187       REMOTE= 0  FDF= 1  BRS= 1  ESI= 0  DLC=  9  DataBytes[0..12]= 0x 11 22 33 44 55 66 77 88 99 1a 1b 1c
+[Message  7] RX Msg: via FIFO 0   Index=  4  IDTYPE= STD  ID= 0x189       REMOTE= 0  FDF= 1  BRS= 1  ESI= 0  DLC= 10  DataBytes[0..16]= 0x 11 22 33 44 55 66 77 88 99 1a 1b 1c 1d 1e 1f 20
+[Message  8] RX Msg: via FIFO 0   Index=  5  IDTYPE= STD  ID= 0x200       REMOTE= 0  FDF= 1  BRS= 1  ESI= 0  DLC=  8  DataBytes[0.. 8]= 0x 11 22 33 44 55 66 77 88
+[Message  9] RX Msg: via FIFO 0   Index=  6  IDTYPE= STD  ID= 0x220       REMOTE= 0  FDF= 1  BRS= 1  ESI= 0  DLC=  6  DataBytes[0.. 6]= 0x 11 22 33 44 55 66
+[Message 10] RX Msg: via FIFO 0   Index=  7  IDTYPE= STD  ID= 0x240       REMOTE= 0  FDF= 1  BRS= 1  ESI= 0  DLC=  4  DataBytes[0.. 4]= 0x 11 22 33 44
+[Message 11] RX Msg: via FIFO 0   Index=  8  IDTYPE= STD  ID= 0x260       REMOTE= 0  FDF= 1  BRS= 1  ESI= 0  DLC=  4  DataBytes[0.. 4]= 0x 11 22 33 44
+[Message 12] RX Msg: via Ded buff Index=  2  IDTYPE= STD  ID= 0x325       REMOTE= 0  FDF= 1  BRS= 1  ESI= 0  DLC=  5  DataBytes[0.. 5]= 0x 11 22 33 44 55
+[Message 13] RX Msg: via Ded buff Index=  5  IDTYPE= STD  ID= 0x326       REMOTE= 0  FDF= 1  BRS= 1  ESI= 0  DLC=  6  DataBytes[0.. 6]= 0x 11 22 33 44 55 66
+[Message 14] RX Msg: via FIFO 1   Index=  2  IDTYPE= STD  ID= 0x327       REMOTE= 0  FDF= 1  BRS= 1  ESI= 0  DLC=  6  DataBytes[0.. 6]= 0x 11 22 33 44 55 66
+[Message 15] RX Msg: via Ded buff Index= 62  IDTYPE= EXT  ID= 0x12222222  REMOTE= 0  FDF= 1  BRS= 1  ESI= 0  DLC=  5  DataBytes[0.. 5]= 0x 11 22 33 44 55
+[Message 16] RX Msg: via FIFO 1   Index=  3  IDTYPE= EXT  ID= 0x19999999  REMOTE= 0  FDF= 1  BRS= 1  ESI= 0  DLC=  4  DataBytes[0.. 4]= 0x 11 22 33 44
+[Message 17] RX Msg: via FIFO 0   Index=  9  IDTYPE= EXT  ID= 0x1ffabcde  REMOTE= 0  FDF= 1  BRS= 1  ESI= 0  DLC=  3  DataBytes[0.. 3]= 0x 11 22 33
+[Message 18] RX Msg: via FIFO 1   Index=  4  IDTYPE= EXT  ID= 0x16666666  REMOTE= 0  FDF= 1  BRS= 1  ESI= 0  DLC=  2  DataBytes[0.. 2]= 0x 11 22
+
+
+=== Entered function m_can_an001_high_priority_message_handling() ===
+
+[M_CAN_0] Number of messages transmitted: 17
+
+[M_CAN_1] Received messages:
+[Message  1] RX Msg: via FIFO 0   Index=  0  IDTYPE= STD  ID= 0x015       REMOTE= 0  FDF= 1  BRS= 1  ESI= 0  DLC=  2  DataBytes[0.. 2]= 0x 11 22
+[Message  2] RX Msg: via FIFO 0   Index=  1  IDTYPE= STD  ID= 0x016       REMOTE= 0  FDF= 1  BRS= 1  ESI= 0  DLC=  3  DataBytes[0.. 3]= 0x 11 22 33
+[Message  3] RX Msg: via FIFO 0   Index=  2  IDTYPE= STD  ID= 0x017       REMOTE= 0  FDF= 1  BRS= 1  ESI= 0  DLC=  4  DataBytes[0.. 4]= 0x 11 22 33 44
+[Message  4] RX Msg: via FIFO 0   Index=  3  IDTYPE= STD  ID= 0x018       REMOTE= 0  FDF= 1  BRS= 1  ESI= 0  DLC=  5  DataBytes[0.. 5]= 0x 11 22 33 44 55
+[Message  5] RX Msg: via FIFO 0   Index=  4  IDTYPE= STD  ID= 0x020       REMOTE= 0  FDF= 1  BRS= 1  ESI= 0  DLC=  6  DataBytes[0.. 6]= 0x 11 22 33 44 55 66
+[Message  6] RX Msg: via FIFO 0   Index=  5  IDTYPE= STD  ID= 0x01a       REMOTE= 0  FDF= 1  BRS= 1  ESI= 0  DLC=  7  DataBytes[0.. 7]= 0x 11 22 33 44 55 66 77
+[Message  7] RX Msg: via FIFO 0   Index=  6  IDTYPE= STD  ID= 0x184       REMOTE= 0  FDF= 1  BRS= 1  ESI= 0  DLC=  8  DataBytes[0.. 8]= 0x 11 22 33 44 55 66 77 88
+[Message  8] RX Msg: via FIFO 0   Index=  7  IDTYPE= STD  ID= 0x185       REMOTE= 0  FDF= 1  BRS= 1  ESI= 0  DLC=  9  DataBytes[0..12]= 0x 11 22 33 44 55 66 77 88 99 1a 1b 1c
+[Message  9] RX Msg: via FIFO 0   Index=  8  IDTYPE= STD  ID= 0x186       REMOTE= 0  FDF= 1  BRS= 1  ESI= 0  DLC= 10  DataBytes[0..16]= 0x 11 22 33 44 55 66 77 88 99 1a 1b 1c 1d 1e 1f 20
+[Message 10] RX Msg: via FIFO 0   Index=  9  IDTYPE= STD  ID= 0x187       REMOTE= 0  FDF= 1  BRS= 1  ESI= 0  DLC=  9  DataBytes[0..12]= 0x 11 22 33 44 55 66 77 88 99 1a 1b 1c
+[Message 11] RX Msg: via FIFO 0   Index= 10  IDTYPE= STD  ID= 0x189       REMOTE= 0  FDF= 1  BRS= 1  ESI= 0  DLC=  8  DataBytes[0.. 8]= 0x 11 22 33 44 55 66 77 88
+[Message 12] RX Msg: via FIFO 0   Index= 11  IDTYPE= STD  ID= 0x200       REMOTE= 0  FDF= 1  BRS= 1  ESI= 0  DLC=  7  DataBytes[0.. 7]= 0x 11 22 33 44 55 66 77
+[Message 13] RX Msg: via FIFO 0   Index= 12  IDTYPE= STD  ID= 0x201       REMOTE= 0  FDF= 1  BRS= 1  ESI= 0  DLC=  6  DataBytes[0.. 6]= 0x 11 22 33 44 55 66
+[Message 14] RX Msg: via FIFO 0   Index= 13  IDTYPE= STD  ID= 0x202       REMOTE= 0  FDF= 1  BRS= 1  ESI= 0  DLC=  5  DataBytes[0.. 5]= 0x 11 22 33 44 55
+[Message 15] RX Msg: via FIFO 0   Index= 14  IDTYPE= STD  ID= 0x203       REMOTE= 0  FDF= 1  BRS= 1  ESI= 0  DLC=  4  DataBytes[0.. 4]= 0x 11 22 33 44
+[Message 16] RX Msg: via FIFO 0   Index= 15  IDTYPE= STD  ID= 0x204       REMOTE= 0  FDF= 1  BRS= 1  ESI= 0  DLC=  3  DataBytes[0.. 3]= 0x 11 22 33
+[Message 17] RX Msg: via FIFO 0   Index= 16  IDTYPE= STD  ID= 0x019       REMOTE= 0  FDF= 1  BRS= 1  ESI= 0  DLC=  2  DataBytes[0.. 2]= 0x 11 22
+
+
+=== Entered function m_can_an001_timeoutcounter_usage_with_rx_fifo() ===
+
+[M_CAN_0] Number of messages transmitted: 3
+Waiting for TimeOut Interrupt (IR.TOO) to occur...
+IR.TOO occurred :-)
+
+[M_CAN_1] Received messages:
+[Message  1] RX Msg: via FIFO 0   Index=  0  IDTYPE= STD  ID= 0x120       REMOTE= 0  FDF= 1  BRS= 0  ESI= 0  DLC=  1  DataBytes[0.. 1]= 0x 11
+[Message  2] RX Msg: via FIFO 0   Index=  1  IDTYPE= STD  ID= 0x121       REMOTE= 0  FDF= 0  BRS= 0  ESI= 0  DLC=  2  DataBytes[0.. 2]= 0x 11 22
+[Message  3] RX Msg: via FIFO 0   Index=  2  IDTYPE= EXT  ID= 0x1ffabcde  REMOTE= 0  FDF= 1  BRS= 0  ESI= 0  DLC= 10  DataBytes[0..16]= 0x 11 22 33 44 55 66 77 88 99 1a 1b 1c 1d 1e 1f 20
+
+
+=== Entered function m_can_an002_transmit_messages_tx_fifo() ===
+
+[M_CAN_0] Number of messages transmitted : 8 
+
+[M_CAN_1] Received messages:
+[Message  1] RX Msg: via FIFO 0   Index=  0  IDTYPE= STD  ID= 0x400       REMOTE= 0  FDF= 1  BRS= 1  ESI= 0  DLC=  1  DataBytes[0.. 1]= 0x 11
+[Message  2] RX Msg: via FIFO 0   Index=  1  IDTYPE= STD  ID= 0x200       REMOTE= 0  FDF= 1  BRS= 1  ESI= 0  DLC=  2  DataBytes[0.. 2]= 0x 11 22
+[Message  3] RX Msg: via FIFO 0   Index=  2  IDTYPE= STD  ID= 0x100       REMOTE= 0  FDF= 1  BRS= 1  ESI= 0  DLC=  3  DataBytes[0.. 3]= 0x 11 22 33
+[Message  4] RX Msg: via FIFO 0   Index=  3  IDTYPE= STD  ID= 0x080       REMOTE= 0  FDF= 1  BRS= 1  ESI= 0  DLC=  4  DataBytes[0.. 4]= 0x 11 22 33 44
+[Message  5] RX Msg: via FIFO 0   Index=  4  IDTYPE= STD  ID= 0x040       REMOTE= 0  FDF= 1  BRS= 1  ESI= 0  DLC=  5  DataBytes[0.. 5]= 0x 11 22 33 44 55
+[Message  6] RX Msg: via FIFO 0   Index=  5  IDTYPE= STD  ID= 0x020       REMOTE= 0  FDF= 1  BRS= 1  ESI= 0  DLC=  6  DataBytes[0.. 6]= 0x 11 22 33 44 55 66
+[Message  7] RX Msg: via FIFO 0   Index=  6  IDTYPE= STD  ID= 0x010       REMOTE= 0  FDF= 1  BRS= 1  ESI= 0  DLC=  7  DataBytes[0.. 7]= 0x 11 22 33 44 55 66 77
+[Message  8] RX Msg: via FIFO 0   Index=  7  IDTYPE= STD  ID= 0x008       REMOTE= 0  FDF= 1  BRS= 1  ESI= 0  DLC=  8  DataBytes[0.. 8]= 0x 11 22 33 44 55 66 77 88
+
+
+=== Entered function m_can_an002_transmit_messages_tx_queue_and_ded_tx_buffers() ===
+
+[M_CAN_0] Number of messages transmitted : 11 
+
+[M_CAN_1] Received messages:
+[Message  1] RX Msg: via FIFO 0   Index=  0  IDTYPE= STD  ID= 0x400       REMOTE= 0  FDF= 1  BRS= 1  ESI= 0  DLC=  1  DataBytes[0.. 1]= 0x 11
+[Message  2] RX Msg: via FIFO 0   Index=  1  IDTYPE= STD  ID= 0x010       REMOTE= 0  FDF= 1  BRS= 1  ESI= 0  DLC=  8  DataBytes[0.. 8]= 0x 11 22 33 44 55 66 77 88
+[Message  3] RX Msg: via FIFO 0   Index=  2  IDTYPE= STD  ID= 0x002       REMOTE= 0  FDF= 1  BRS= 1  ESI= 0  DLC= 11  DataBytes[0..20]= 0x 11 22 33 44 55 66 77 88 99 1a 1b 1c 1d 1e 1f 2a 2b 2c 2d 2e
+[Message  4] RX Msg: via FIFO 0   Index=  3  IDTYPE= STD  ID= 0x004       REMOTE= 0  FDF= 1  BRS= 1  ESI= 0  DLC= 10  DataBytes[0..16]= 0x 11 22 33 44 55 66 77 88 99 1a 1b 1c 1d 1e 1f 2a
+[Message  5] RX Msg: via FIFO 0   Index=  4  IDTYPE= STD  ID= 0x008       REMOTE= 0  FDF= 1  BRS= 1  ESI= 0  DLC=  9  DataBytes[0..12]= 0x 11 22 33 44 55 66 77 88 99 1a 1b 1c
+[Message  6] RX Msg: via FIFO 0   Index=  5  IDTYPE= STD  ID= 0x020       REMOTE= 0  FDF= 1  BRS= 1  ESI= 0  DLC=  7  DataBytes[0.. 7]= 0x 11 22 33 44 55 66 77
+[Message  7] RX Msg: via FIFO 0   Index=  6  IDTYPE= STD  ID= 0x040       REMOTE= 0  FDF= 1  BRS= 1  ESI= 0  DLC=  6  DataBytes[0.. 6]= 0x 11 22 33 44 55 66
+[Message  8] RX Msg: via FIFO 0   Index=  7  IDTYPE= STD  ID= 0x060       REMOTE= 0  FDF= 1  BRS= 1  ESI= 0  DLC=  5  DataBytes[0.. 5]= 0x 11 22 33 44 55
+[Message  9] RX Msg: via FIFO 0   Index=  8  IDTYPE= STD  ID= 0x080       REMOTE= 0  FDF= 1  BRS= 1  ESI= 0  DLC=  4  DataBytes[0.. 4]= 0x 11 22 33 44
+[Message 10] RX Msg: via FIFO 0   Index=  9  IDTYPE= STD  ID= 0x100       REMOTE= 0  FDF= 1  BRS= 1  ESI= 0  DLC=  3  DataBytes[0.. 3]= 0x 11 22 33
+[Message 11] RX Msg: via FIFO 0   Index= 10  IDTYPE= STD  ID= 0x200       REMOTE= 0  FDF= 1  BRS= 1  ESI= 0  DLC=  2  DataBytes[0.. 2]= 0x 11 22
+
+
+=== Entered function m_can_an002_tx_event_fifo_handling() ===
+[M_CAN_0] Number of messages transmitted: 12 
+[M_CAN_0] TX Event FIFO Entry requested for this Number of Messages: 6 
+
+ Messages stored in the Tx Event FIFO:
+[Tx Event FIFO Element 1]  Message Marker= 0x01  Time Stamp= 0x0001  IDTYPE= STD  ID= 0x00000400  ET= 0x1  REMOTE= 0  FDF= 1  BRS= 1  ESI= 0  DLC=  1 
+[Tx Event FIFO Element 2]  Message Marker= 0x02  Time Stamp= 0x0009  IDTYPE= STD  ID= 0x00000200  ET= 0x1  REMOTE= 0  FDF= 1  BRS= 1  ESI= 0  DLC=  2 
+[Tx Event FIFO Element 3]  Message Marker= 0x20  Time Stamp= 0x003e  IDTYPE= STD  ID= 0x00000020  ET= 0x1  REMOTE= 0  FDF= 1  BRS= 1  ESI= 0  DLC=  7 
+[Tx Event FIFO Element 4]  Message Marker= 0x30  Time Stamp= 0x004c  IDTYPE= STD  ID= 0x00000010  ET= 0x1  REMOTE= 0  FDF= 1  BRS= 1  ESI= 0  DLC=  8 
+[Tx Event FIFO Element 5]  Message Marker= 0x40  Time Stamp= 0x005a  IDTYPE= STD  ID= 0x00000008  ET= 0x1  REMOTE= 0  FDF= 1  BRS= 1  ESI= 0  DLC=  9 
+[Tx Event FIFO Element 6]  Message Marker= 0x60  Time Stamp= 0x0081  IDTYPE= EXT  ID= 0x1abcbdef  ET= 0x1  REMOTE= 0  FDF= 1  BRS= 1  ESI= 0  DLC= 11 
+
+
+=== Entered function m_can_an002_tx_buffer_cancellation() ===
+[M_CAN_0] Number of messages transmitted: 32
+mask for TXBCR (Cancel Transmission)  : 0xffffffff
+
+Cancellation Finished for Tx buffer indices : 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 
+Transmission Occurred in spite of cancellation request for Tx buffer indices : 18 
+
+[M_CAN_1] Messages received:
+[Message  1] RX Msg: via FIFO 0   Index=  0  IDTYPE= STD  ID= 0x001       REMOTE= 0  FDF= 1  BRS= 1  ESI= 0  DLC=  3  DataBytes[0.. 3]= 0x 11 22 33

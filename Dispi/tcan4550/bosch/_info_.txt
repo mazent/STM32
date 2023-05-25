@@ -1,0 +1,48 @@
+Example Software for the M_CAN V3.2.x and M_TTCAN V3.2.x
+========================================================
+
+Purpose of the Software
+  Show how to operate the M_CAN/M_TTCAN.
+
+Background
+  This is a part of a software that demonstrates the usage of the M_CAN/M_TTCAN.
+
+Hints
+  This software covers only a subset of the M_CAN features
+  This software is just an example and gives no guarantee for completeness or correctness.
+
+Description of the files’ contents
+----------------------------------
+_info_.txt                this file
+application.c             contains main(); calls test cases on button press
+global_definitions.h      collection of definitions that are used all accross this software
+global_includes.h         collection of includes in one file
+global_settings.h         setups to select Endianes of CPU and Target System (Altera or Xilinx)
+m_can_info.h              Defnition of a structure to describe HW Properties of the M_CAN instances
+peripherals.c/h           Drivers for Board Peripherals - Xilinx and Altera
+types.h                   type definitions
+
+M_CAN driver files
+------------------
+m_can/m_can.c                   functions to control/configure the M_CAN
+m_can/m_can.h                   type definitions/defines for the M_CAN
+m_can/m_can_irq_handling.c/h    Interrupt Service Routines for M_CAN and M_TTCAN
+m_can/m_can_regdef.h            M_CAN, M_TTCAN register definitions, type definitions
+m_can/m_can_helper_func.c/h     Help-functions used in the examples
+
+Application Note files
+----------------------
+app_notes/app_note_001_rx_handling.c/h     examples to demonstrate Rx handling
+app_notes/app_note_002_tx_handling.c/h     examples to demonstrate Tx handling
+
+CAN IO Wiring driver files (= on-chip CAN Bus emulation)
+----------------------
+can_io_wiring/can_io_wiring.c/h   functions to control an onchip CAN bus emulation
+
+Xilinx specific files
+---------------------
+xilinx/xilinx_gpio.c/h            Xilinx GPIO driver
+xilinx/xilinx_specific.h          Xilinx specific redefines of functions (important) 
+xilinx/xilinx_intcontroller.c/h   Xilinx IR-Controller driver
+xilinx/xilinx_tmrctr.c/h          Xilinx Counter/Timer driver
+
