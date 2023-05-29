@@ -4,6 +4,8 @@
 
 /*
  * Xilinx XC7S6
+ *
+ * SPI Mode 0,0 senza SS#
  */
 
 #define SIZE_BLOCK_BIN_FPGA         10240
@@ -13,8 +15,6 @@
 extern void fpga_program_b(bool) ;
 extern bool fpga_init_b(void) ;
 extern bool fpga_done(void) ;
-
-static bool iniz = false ;
 
 static bool prog_blocco(
     const uint8_t * dati,
@@ -33,10 +33,11 @@ static bool prog_blocco(
 }
 
 // UG470, Figure 2-3: Serial Configuration Clocking Sequence
-static bool programma(
+bool FPGA_config2(
     const uint8_t * dati,
     uint32_t dim)
 {
+    bool esito = false ;
 #ifdef DBG_ABIL
     uint32_t durata = HAL_GetTick() ;
 #endif
@@ -45,104 +46,68 @@ static bool programma(
     HAL_Delay(1 + 1) ;
     fpga_program_b(true) ;
 
-    // Attesa che INIT_B vada alto (TPL = 5.00 ms)
-    for ( int i = 0 ; i < TIMEOUT_MS ; i++ ) {
-        HAL_Delay(1) ;
-        if ( fpga_init_b() ) {
-            break ;
-        }
-    }
-
-    if ( !fpga_init_b() ) {
-        DBG_ERR ;
-        return false ;
-    }
-
-    // Sample Mode Pins (Step 3): ora fpga e' in ascolto
-
-    // Synchronization (Step 4): inutile con slave serial
-
-    // Check Device ID (Step 5): nel binario?
-
-    // Load Configuration Data Frames (Step 6)
     do {
-        uint32_t dim_corr = MINI(dim, SIZE_BLOCK_BIN_FPGA) ;
-        if ( !prog_blocco(dati, dim_corr) ) {
+        // Attesa che INIT_B vada alto (TPL = 5.00 ms)
+        for ( int i = 0 ; i < TIMEOUT_MS ; i++ ) {
+            HAL_Delay(1) ;
+            if ( fpga_init_b() ) {
+                break ;
+            }
+        }
+
+        // Ancora una volta
+        if ( !fpga_init_b() ) {
+            DBG_ERR ;
             break ;
         }
 
-        dati += dim_corr ;
-        dim -= dim_corr ;
-    } while ( dim ) ;
+        // Sample Mode Pins (Step 3): ora fpga e' in ascolto
 
-    // Startup (Step 8) + attendo DONE alto
-    for ( int i = 0 ; i < TIMEOUT_MS ; i++ ) {
-        uint8_t clk ;
-        fpga_spi_tx( &clk, sizeof(clk) ) ;
-        if ( fpga_done() ) {
+        // Synchronization (Step 4): inutile con slave serial
+
+        // Check Device ID (Step 5): nel binario?
+
+        // Load Configuration Data Frames (Step 6)
+        do {
+            uint32_t dim_corr = MINI(dim, SIZE_BLOCK_BIN_FPGA) ;
+            if ( !prog_blocco(dati, dim_corr) ) {
+                break ;
+            }
+
+            dati += dim_corr ;
+            dim -= dim_corr ;
+        } while ( dim ) ;
+
+        if ( dim ) {
             break ;
         }
-    }
 
-    if ( !fpga_done() ) {
-        DBG_ERR ;
-        return false ;
-    }
+        // Startup (Step 8) + attendo DONE alto
+        for ( int i = 0 ; i < TIMEOUT_MS ; i++ ) {
+            uint8_t clk ;
+            fpga_spi_tx( &clk, sizeof(clk) ) ;
+            if ( fpga_done() ) {
+                break ;
+            }
+        }
 
-    // A conservative number for the clock cycles required after DONE is 24
-    uint8_t clk[3] = {
-        0
-    } ;
-    fpga_spi_tx( clk, sizeof(clk) ) ;
+        if ( !fpga_done() ) {
+            DBG_ERR ;
+            break ;
+        }
 
+        // A conservative number for the clock cycles required after DONE is 24
+        uint8_t clk[3] = {
+            0
+        } ;
+        fpga_spi_tx( clk, sizeof(clk) ) ;
+
+        esito = true ;
+    } while ( false ) ;
 #ifdef DBG_ABIL
     durata = HAL_GetTick() - durata ;
 
-    DBG_PRINTF("FPGA ok %u\n", durata) ;
+    DBG_PRINTF("FPGA %s %u\n", esito ? "OK" : "ERR", durata) ;
 #endif
-    return true ;
-}
-
-bool FPGA_iniz(
-    const uint8_t * dati,
-    uint32_t dim)
-{
-    iniz = programma(dati, dim) ;
-
-    return iniz ;
-}
-
-bool FPGA_leggi(
-    uint8_t ind,
-    uint16_t * p)
-{
-    bool esito = false ;
-
-    if ( !iniz ) {
-        DBG_ERR ;
-    }
-    else if ( NULL == p ) {
-        DBG_ERR ;
-    }
-    else {
-        esito = fpga_i2c_leggi(ind, p) ;
-    }
-
-    return esito ;
-}
-
-bool FPGA_scrivi(
-    uint8_t ind,
-    uint16_t val)
-{
-    bool esito = false ;
-
-    if ( !iniz ) {
-        DBG_ERR ;
-    }
-    else {
-        esito = fpga_i2c_scrivi(ind, val) ;
-    }
-
     return esito ;
 }
