@@ -98,28 +98,28 @@ void NET_fine(void) ;
 // ------------------------------------
 
 // Invocare sul fronte di discesa del pin
-void PHY_irq(void);
+void PHY_irq(void) ;
 
 // collegamento attivo (o cavo scollegato)
-bool PHY_link(void);
+bool PHY_link(void) ;
 // se attivo: full o half duplex
-bool PHY_fullduplex(void);
+bool PHY_fullduplex(void) ;
 // se attivo: 100 o 10 Mbs
-bool PHY_100M(void);
+bool PHY_100M(void) ;
 
 // Identificativo
 // Vengono gestiti due PHY:
 //    LAN8742A 0x0007c13r
 //    LAN8720  0x0007c0fr
 // dove r e' la revisione
-uint32_t PHY_id(void);
+uint32_t PHY_id(void) ;
 
 // Callback
 // ------------------------------------
 
-// Invocata quando il thd e' pronto
+// Invocata quando il thd e' pronto (o morto)
 // Questa e' weak, se volete fatevi la vostra
-void net_start(void) ;
+void net_start(bool pronto) ;
 
 // Invocata quando il phy e' connesso (o sconnesso)
 // Questa e' weak, se volete fatevi la vostra
@@ -130,7 +130,6 @@ void net_link(bool link) ;
 // Questa e' weak, se volete fatevi la vostra
 // null -> unbound
 void net_bound(const char * ip) ;
-
 
 /************************************************
  * Asynchronous operation must be started with: NET_?_ini
@@ -153,7 +152,6 @@ typedef struct {
     uint32_t ip ;
     uint16_t porta ;
 } S_NET_IND ;
-
 
 /*!
  * Wait for the end of the operation

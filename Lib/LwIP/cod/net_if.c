@@ -1,7 +1,8 @@
-#define STAMPA_DBG
 #include "utili.h"
 #include "stm32h7xx_hal.h"
 #include "cmsis_rtos/cmsis_os.h"
+//#define USA_DIARIO
+#include "diario/diario.h"
 #include "bsp.h"
 #include "net.h"
 #include "lwip/init.h"
@@ -13,20 +14,22 @@
 #include "net_mdma.h"
 #include "lwipopts.h"
 
+/*
+ * Vedi
+ *  https://community.st.com/s/question/0D53W00001Gi9BoSAJ/ethernet-hal-driver-reworked-by-st-and-available-in-22q1-preview-now-available-on-github
+ */
+
 extern void phy_reset(void) ;
 extern void phy_stop(void) ;
 
 //#define STAMPA_ROBA	1
-#define DBG_PBUF_RX     0
-#define DBG_PBUF_TX     0
+#define DBG_PBUF_RX     1
+#define DBG_PBUF_TX     1
 #define DBG_EVN         0
-
-//#define TX_ASINC    1
 
 #define EVN_ESCI        (1 << 0)
 #define EVN_IRQ_PHY     (1 << 1)
 #define EVN_TX          (1 << 2)
-#define EVN_IRQ_TX      (1 << 3)
 #define EVN_IRQ_RX      (1 << 4)
 #define EVN_IRQ_ERR     (1 << 5)
 #define EVN_RIC         (1 << 6)
@@ -34,10 +37,6 @@ extern void phy_stop(void) ;
 #define EVN_MDMA_RX_M   (1 << 8)
 #define EVN_MDMA_TX_B   (1 << 8)
 #define EVN_MDMA_TX_M   (1 << 9)
-
-#ifdef TX_ASINC
-static bool trasm = false ;
-#endif
 
 #if LWIP_DHCP + LWIP_AUTOIP
 static bool ip_bound = false ;
@@ -152,7 +151,7 @@ static void pbuf_free_custom(struct pbuf * p)
     LWIP_MEMPOOL_FREE(RX_POOL, custom_pbuf) ;
 
     // vedi esame_cust_pbuf.py
-    DBG_PRN( DBG_PBUF_RX, ("%s %08X", __func__, p) )
+    DDB_PRN( DBG_PBUF_RX, ("%s %08X", __func__, p) )
 }
 
 #else
@@ -173,7 +172,7 @@ static void pbuf_free_custom(struct pbuf * p)
     LWIP_MEMPOOL_FREE(RX_POOL, custom_pbuf) ;
 
     // vedi esame_cust_pbuf.py
-    DBG_PRN( DBG_PBUF_RX, ("%s %08X", __func__, p) )
+    DDB_PRN( DBG_PBUF_RX, ("%s %08X", __func__, p) )
 }
 
 #endif
@@ -201,23 +200,33 @@ static ETH_HandleTypeDef heth = {
     }
 } ;
 
-__WEAK void net_bound(const char * _)
+__WEAK void net_start(bool pronto)
 {
-    INUTILE(_) ;
+    INUTILE(pronto) ;
+    DDB_DEBUG("WEAK %s(%s)", __func__, pronto ? "PRONTO" : "morto") ;
 }
 
-__WEAK void net_start(void) {}
-
-__WEAK void net_link(bool _)
+__WEAK void net_link(bool link)
 {
-    INUTILE(_) ;
+    INUTILE(link) ;
+    DDB_DEBUG("WEAK %s(%s)", __func__, link ? "SU" : "giu") ;
+}
+
+__WEAK void net_bound(const char * _ip)
+{
+    if ( _ip ) {
+        DDB_DEBUG("WEAK %s(%s)", __func__, _ip) ;
+    }
+    else {
+        DDB_DEBUG("WEAK %s(NULL)", __func__) ;
+    }
 }
 
 static void trasmetti(struct pbuf * p)
 {
     static_assert(ETH_TX_DESC_CNT == MEMP_NUM_FRAG_PBUF, "OKKIO") ;
 
-    DBG_PRN( DBG_PBUF_TX, ("TX %08X[%d]", p, p->tot_len) ) ;
+    DDB_PRN( DBG_PBUF_TX, ("TX %08X[%d]", p, p->tot_len) ) ;
 
     // preparo
     struct pbuf * q = p ;
@@ -242,57 +251,15 @@ static void trasmetti(struct pbuf * p)
         }
     }
     txB[ETH_TX_DESC_CNT - 1].next = NULL ;
-    ASSERT(NULL == q) ;
+    DDB_ASSERT(NULL == q) ;
 
     // invio
     TxConfig.Length = p->tot_len ;
     TxConfig.TxBuffer = txB ;
     TxConfig.pData = p ;
-#ifdef TX_ASINC
-    trasm = HAL_OK == HAL_ETH_Transmit_IT(&heth, &TxConfig) ;
-    if ( !trasm ) {
-        DBG_ERR ;
-        HAL_ETH_ReleaseTxPacket(&heth) ;
-    }
-    else {
-        LINK_STATS_INC(link.xmit) ;
-    }
-#else
-    CONTROLLA( HAL_OK == HAL_ETH_Transmit(&heth, &TxConfig, 1000) ) ;
-    HAL_ETH_ReleaseTxPacket(&heth) ;
-#endif
+    DDB_CONTROLLA( HAL_OK == HAL_ETH_Transmit(&heth, &TxConfig, 1000) ) ;
 }
 
-#ifdef TX_ASINC
-static err_t
-port_netif_output(
-    struct netif * n_if,
-    struct pbuf * p)
-{
-    INUTILE(n_if) ;
-    assert(osThreadGetId() == tid) ;
-
-    if ( !PHY_link() ) {}
-    else if ( trasm ) {
-        // accodo
-        DBG_PRN( DBG_PBUF_TX, ("TX accodo %08X[%d]", p, p->tot_len) ) ;
-        if ( osOK == osMessagePut(mq_tx, UINTEGER(p), 0) ) {
-            pbuf_ref(p) ;
-        }
-        else {
-            DBG_ERR ;
-        }
-    }
-    else {
-        pbuf_ref(p) ;
-
-        trasmetti(p) ;
-    }
-
-    return ERR_OK ;
-}
-
-#else
 static err_t
 port_netif_output(
     struct netif * n_if,
@@ -307,8 +274,6 @@ port_netif_output(
 
     return ERR_OK ;
 }
-
-#endif
 
 static err_t port_netif_init(struct netif * n_if)
 {
@@ -327,7 +292,7 @@ static err_t port_netif_init(struct netif * n_if)
     // memoria
     if ( NULL == mq_tx ) {
         mq_tx = osMessageCreate(osMessageQ(mq_tx), NULL) ;
-        CONTROLLA(NULL != mq_tx) ;
+        DDB_CONTROLLA(NULL != mq_tx) ;
     }
 
     /*
@@ -344,14 +309,14 @@ static err_t port_netif_init(struct netif * n_if)
         break ;
     case HAL_ERROR:
         if ( HAL_ETH_ERROR_TIMEOUT == heth.ErrorCode ) {
-            DBG_PUTS("ETH: ? manca il clock ?") ;
+            DDB_ERROR("ETH: ? manca il clock ?") ;
         }
         else {
-            DBG_ERR ;
+            DDB_ERR ;
         }
         break ;
     default:
-        DBG_ERR ;
+        DDB_ERR ;
         break ;
     }
 
@@ -406,7 +371,7 @@ static void netTHD(void * argument)
     autoip_start(&netif) ;
 #endif
 
-    net_start() ;
+    net_start(true) ;
 
     while ( true ) {
         // senza link attendo le interruzioni del PHY ...
@@ -427,11 +392,11 @@ static void netTHD(void * argument)
                 struct dhcp * x = netif_dhcp_data(&netif) ;
                 if ( NULL == x ) {}
                 else if ( 10 == x->state ) {
-                    DBG_PUTS("DHCP_STATE_BOUND") ;
+                    DDB_DEBUG("DHCP_STATE_BOUND") ;
 
-                    DBG_PRINTF( "\t ip  %s", ip4addr_ntoa(&netif.ip_addr) ) ;
-                    DBG_PRINTF( "\t msk %s", ip4addr_ntoa(&netif.netmask) ) ;
-                    DBG_PRINTF( "\t gw  %s", ip4addr_ntoa(&netif.gw) ) ;
+                    DDB_DEBUG( "\t ip  %s", ip4addr_ntoa(&netif.ip_addr) ) ;
+                    DDB_DEBUG( "\t msk %s", ip4addr_ntoa(&netif.netmask) ) ;
+                    DDB_DEBUG( "\t gw  %s", ip4addr_ntoa(&netif.gw) ) ;
 
                     ip_bound = true ;
 
@@ -445,11 +410,11 @@ static void netTHD(void * argument)
                 if ( NULL == aip ) {}
                 else if ( 3 == aip->state ) {
                     // p.e. 169.254.86.68
-                    DBG_PUTS("AUTOIP_STATE_BOUND") ;
+                    DDB_DEBUG("AUTOIP_STATE_BOUND") ;
 
-                    DBG_PRINTF( "\t ip  %s", ip4addr_ntoa(&netif.ip_addr) ) ;
-                    DBG_PRINTF( "\t msk %s", ip4addr_ntoa(&netif.netmask) ) ;
-                    DBG_PRINTF( "\t gw  %s", ip4addr_ntoa(&netif.gw) ) ;
+                    DDB_DEBUG( "\t ip  %s", ip4addr_ntoa(&netif.ip_addr) ) ;
+                    DDB_DEBUG( "\t msk %s", ip4addr_ntoa(&netif.netmask) ) ;
+                    DDB_DEBUG( "\t gw  %s", ip4addr_ntoa(&netif.gw) ) ;
 
                     ip_bound = true ;
                     net_bound( ip4addr_ntoa(&netif.ip_addr) ) ;
@@ -470,34 +435,20 @@ static void netTHD(void * argument)
 #endif
         if ( EVN_IRQ_ERR & evn.value.signals ) {
 //            heth.gState = HAL_ETH_STATE_STARTED ;
-//            CONTROLLA( HAL_OK == HAL_ETH_Stop_IT(&heth) ) ;
-//            CONTROLLA( HAL_OK == HAL_ETH_Start_IT(&heth) ) ;
+//            DDB_CONTROLLA( HAL_OK == HAL_ETH_Stop_IT(&heth) ) ;
+//            DDB_CONTROLLA( HAL_OK == HAL_ETH_Start_IT(&heth) ) ;
         }
 
         if ( EVN_IRQ_PHY & evn.value.signals ) {
             PHY_isr() ;
         }
-#ifdef TX_ASINC
-        if ( EVN_IRQ_TX & evn.value.signals ) {
-            DBG_PUT(DBG_EVN, "EVN_IRQ_TX") ;
-            trasm = false ;
-            HAL_ETH_ReleaseTxPacket(&heth) ;
-
-            osEvent msg = osMessageGet(mq_tx, 0) ;
-            if ( osEventMessage == msg.status ) {
-                struct pbuf * p = msg.value.p ;
-
-                trasmetti(p) ;
-            }
-        }
-#endif
 //        if ( EVN_TX & evn.value.signals ) {
 //            DBG_PUTS("EVN_TX") ;
 //            trasmetti() ;
 //        }
 
         if ( EVN_IRQ_RX & evn.value.signals ) {
-            DBG_PUT(DBG_EVN, "EVN_IRQ_RX") ;
+            DDB_PUT(DBG_EVN, "EVN_IRQ_RX") ;
 
             struct pbuf * p = NULL ;
             while ( true ) {
@@ -511,7 +462,7 @@ static void netTHD(void * argument)
                     break ;
                 }
                 LINK_STATS_INC(link.recv) ;
-                //DBG_PRN( DBG_PBUF_RX, ("\t%08X", p) )
+                //DDB_PRN( DBG_PBUF_RX, ("\t%08X", p) )
 #ifdef STAMPA_ROBA
                 DBG_PRINT_HEX("\t", p->payload, p->len) ;
 #endif
@@ -542,7 +493,7 @@ static void netTHD(void * argument)
 #if USA_NET_FINE
     DBG_QUA ;
 
-    CONTROLLA( HAL_OK == HAL_ETH_DeInit(&heth) ) ;
+    DDB_CONTROLLA( HAL_OK == HAL_ETH_DeInit(&heth) ) ;
     phy_stop() ;
 #if LWIP_DHCP
     dhcp_stop(&netif) ;
@@ -557,11 +508,8 @@ static void netTHD(void * argument)
 
     eth_rx_free() ;
 
-#if 0
-    // Questa manca: non credo che si possa far ripartire
-    lwip_deinit() ;
-#endif
     tid = NULL ;
+    net_start(false) ;
     osThreadTerminate(NULL) ;
 #endif
 }
@@ -575,15 +523,17 @@ bool NET_iniz(
     bool esito = false ;
 
     static_assert(ETH_TX_DESC_CNT >= 2, "OKKIO") ;
+    static_assert(H_ETH_PAYL <= RX_BUF_LEN, "OKKIO") ;
+    static_assert(TCP_MAX_PAYL ==TCP_MSS, "OKKIO") ;
 
     do {
         if ( NULL != tid ) {
-            DBG_ERR ;
+            DDB_ERR ;
             break ;
         }
 
         if ( NULL == m ) {
-            DBG_ERR ;
+            DDB_ERR ;
             break ;
         }
         memcpy(mac, m, NETIF_MAX_HWADDR_LEN) ;
@@ -598,19 +548,19 @@ bool NET_iniz(
         gw = ip_addr_any ;
 #else
         if ( NULL == _ip ) {
-            DBG_ERR ;
+            DDB_ERR ;
             break ;
         }
         memcpy( &ip, _ip, sizeof(ip) ) ;
 
         if ( NULL == _msk ) {
-            DBG_ERR ;
+            DDB_ERR ;
             break ;
         }
         memcpy( &msk, _msk, sizeof(msk) ) ;
 
         if ( NULL == _gw ) {
-            DBG_ERR ;
+            DDB_ERR ;
             break ;
         }
         memcpy( &gw, _gw, sizeof(gw) ) ;
@@ -650,7 +600,7 @@ void NET_fine(void)
         (void) osSignalSet(tid, EVN_ESCI) ;
     }
 #else
-    DBG_ERR ;
+    DDB_ERR ;
 #endif
 }
 
@@ -706,7 +656,7 @@ void HAL_ETH_RxAllocateCallback(uint8_t * * buff)
         *buff = (uint8_t *) p + offsetof(RxBuff_t, buff) ;
 
         // vedi esame_cust_pbuf.py
-        DBG_PRN( DBG_PBUF_RX, ("%08X = %s", p, __func__) )
+        DDB_PRN( DBG_PBUF_RX, ("%08X = %s", p, __func__) )
 
         p->custom_free_function = pbuf_free_custom ;
         /* Initialize the struct pbuf.
@@ -716,25 +666,9 @@ void HAL_ETH_RxAllocateCallback(uint8_t * * buff)
     }
     else {
         *buff = NULL ;
-        DBG_ERR ;
+        DDB_ERR ;
     }
 }
-
-#ifdef TX_ASINC
-
-void HAL_ETH_TxFreeCallback(uint32_t * buff)
-{
-    DBG_PRN( DBG_PBUF_TX, ("TX free %08X", buff) ) ;
-    pbuf_free( (struct pbuf *) buff ) ;
-}
-
-void HAL_ETH_TxCpltCallback(ETH_HandleTypeDef * h)
-{
-    INUTILE(h) ;
-    (void) osSignalSet(tid, EVN_IRQ_TX) ;
-}
-
-#endif
 
 void HAL_ETH_RxCpltCallback(ETH_HandleTypeDef * h)
 {
@@ -748,29 +682,29 @@ void HAL_ETH_RxCpltCallback(ETH_HandleTypeDef * h)
 void HAL_ETH_ErrorCallback(ETH_HandleTypeDef * h)
 {
     INUTILE(h) ;
-    DBG_ERR ;
-    DBG_PRINTF("\t ErrorCode %08X", h->ErrorCode) ;
+    DDB_ERR ;
+    DDB_DEBUG("\t ErrorCode %08X", h->ErrorCode) ;
     if ( HAL_ETH_ERROR_DMA & h->ErrorCode ) {
-        DBG_PRINTF("\t\t DMACSR %08X", h->DMAErrorCode) ;
+        DDB_DEBUG("\t\t DMACSR %08X", h->DMAErrorCode) ;
     }
     if ( HAL_ETH_ERROR_MAC & h->ErrorCode ) {
-        DBG_PRINTF("\t\t MACRXTXSR %08X", h->MACErrorCode) ;
+        DDB_DEBUG("\t\t MACRXTXSR %08X", h->MACErrorCode) ;
     }
     switch ( h->gState ) {
     case HAL_ETH_STATE_RESET:
-        DBG_PUTS("\t HAL_ETH_STATE_RESET  ") ;
+        DDB_DEBUG("\t HAL_ETH_STATE_RESET  ") ;
         break ;
     case HAL_ETH_STATE_READY:
-        DBG_PUTS("\t HAL_ETH_STATE_READY  ") ;
+        DDB_DEBUG("\t HAL_ETH_STATE_READY  ") ;
         break ;
     case HAL_ETH_STATE_STARTED:
-        DBG_PUTS("\t HAL_ETH_STATE_STARTED") ;
+        DDB_DEBUG("\t HAL_ETH_STATE_STARTED") ;
         break ;
     case HAL_ETH_STATE_ERROR:
-        DBG_PUTS("\t HAL_ETH_STATE_ERROR  ") ;
+        DDB_DEBUG("\t HAL_ETH_STATE_ERROR  ") ;
         break ;
     default:
-        DBG_PUTS("\t ???") ;
+        DDB_DEBUG("\t ???") ;
         break ;
     }
 //    if ( tid ) {
@@ -798,20 +732,20 @@ bool is_btp_running(void)
 void net_mdma_rx_esito(bool bene)
 {
     if ( bene ) {
-        CONTROLLA( osOK == osSignalSet(tid, EVN_MDMA_RX_B) ) ;
+        DDB_CONTROLLA( osOK == osSignalSet(tid, EVN_MDMA_RX_B) ) ;
     }
     else {
-        CONTROLLA( osOK == osSignalSet(tid, EVN_MDMA_RX_M) ) ;
+        DDB_CONTROLLA( osOK == osSignalSet(tid, EVN_MDMA_RX_M) ) ;
     }
 }
 
 void net_mdma_tx_esito(bool bene)
 {
     if ( bene ) {
-        CONTROLLA( osOK == osSignalSet(tid, EVN_MDMA_TX_B) ) ;
+        DDB_CONTROLLA( osOK == osSignalSet(tid, EVN_MDMA_TX_B) ) ;
     }
     else {
-        CONTROLLA( osOK == osSignalSet(tid, EVN_MDMA_TX_M) ) ;
+        DDB_CONTROLLA( osOK == osSignalSet(tid, EVN_MDMA_TX_M) ) ;
     }
 }
 
@@ -825,11 +759,11 @@ uint32_t reg_leggi(uint32_t reg)
                                                     &val) ;
     if ( HAL_OK == stt ) {
 #ifdef STAMPA_REG
-        DBG_PRINTF("[%u] -> %04X", reg, val) ;
+        DDB_DEBUG("[%u] -> %04X", reg, val) ;
 #endif
     }
     else {
-        DBG_ERR ;
+        DDB_ERR ;
     }
     return val ;
 }
@@ -845,11 +779,11 @@ bool reg_scrivi(
 
     if ( HAL_OK == stt ) {
 #ifdef STAMPA_REG
-        DBG_PRINTF("[%u] <- %04X", reg, val) ;
+        DDB_DEBUG("[%u] <- %04X", reg, val) ;
 #endif
     }
     else {
-        DBG_ERR ;
+        DDB_ERR ;
     }
 
     return HAL_OK == stt ;
@@ -867,14 +801,11 @@ void MAC_iniz(
         fullduplex ? ETH_FULLDUPLEX_MODE : ETH_HALFDUPLEX_MODE ;
     MACConf.Speed = centomega ? ETH_SPEED_100M : ETH_SPEED_10M ;
     HAL_ETH_SetMACConfig(&heth, &MACConf) ;
-    CONTROLLA( HAL_OK == HAL_ETH_Start_IT(&heth) ) ;
+    DDB_CONTROLLA( HAL_OK == HAL_ETH_Start_IT(&heth) ) ;
 
     // lwip
 #if LWIP_DHCP + LWIP_AUTOIP
     ip_bound = false ;
-#endif
-#ifdef TX_ASINC
-    trasm = false ;
 #endif
     netif_set_link_up(&netif) ;
     net_link(true) ;
@@ -886,24 +817,13 @@ void MAC_fine(void)
     netif_set_link_down(&netif) ;
 
     // mac
-    CONTROLLA( HAL_OK == HAL_ETH_Stop_IT(&heth) ) ;
+    DDB_CONTROLLA( HAL_OK == HAL_ETH_Stop_IT(&heth) ) ;
 
     // thd
 #if LWIP_STATS
 #if LWIP_STATS_DISPLAY
     stats_display() ;
 #endif
-#endif
-#ifdef TX_ASINC
-    while ( true ) {
-        osEvent msg = osMessageGet(mq_tx, 0) ;
-        if ( osEventMessage == msg.status ) {
-            pbuf_free( (struct pbuf *) msg.value.p ) ;
-        }
-        else {
-            break ;
-        }
-    }
 #endif
 #if LWIP_DHCP + LWIP_AUTOIP
     net_bound(NULL) ;

@@ -1,8 +1,10 @@
-#define STAMPA_DBG
 #include "utili.h"
 #include "net.h"
 #include "bsp.h"
 #include "cmsis_rtos/cmsis_os.h"
+//#define USA_DIARIO
+#include "diario/diario.h"
+
 
 #define PHY_ID_LAN8742A        0x0007c130
 #define PHY_ID_LAN8720         0x0007c0f0
@@ -134,7 +136,7 @@ void phy_stop(void)
 static bool trova(void)
 {
     bool trovato = false ;
-    DBG_FUN ;
+    DDB_FUN ;
 
     // hard reset (vedi port_netif_init())
     //phy_reset() ;
@@ -144,7 +146,7 @@ static bool trova(void)
     while ( ERRORE_REG_L == r0 ) {
         r0 = reg_leggi(REG__0_CTR) ;
     }
-    DBG_PRINTF("r0 = %08X", r0) ;
+    DDB_DEBUG("r0 = %08X", r0) ;
     r0 |= REG0_RST ;
     while ( !reg_scrivi(REG__0_CTR, r0) ) {
         osDelay(1) ;
@@ -161,37 +163,37 @@ riprova:
             milli++ ;
             goto riprova ;
         }
-        DBG_PRINTF("r0 = %08X (%d ms)", r0, milli) ;
+        DDB_DEBUG("r0 = %08X (%d ms)", r0, milli) ;
     }
 
     do {
         uint32_t id_l = reg_leggi(REG__3_ID_MNF) ;
         if ( ERRORE_REG_L == id_l ) {
-            DBG_ERR ;
+            DDB_ERR ;
             break ;
         }
         else if ( 0 == id_l ) {
-            DBG_ERR ;
+            DDB_ERR ;
             break ;
         }
 
         uint32_t id_h = reg_leggi(REG__2_ID_OUI) ;
         if ( ERRORE_REG_L == id_h ) {
-            DBG_ERR ;
+            DDB_ERR ;
             break ;
         }
         else if ( 0 == id_h ) {
-            DBG_ERR ;
+            DDB_ERR ;
             break ;
         }
 
         // tengo anche la revisione per il collaudo
         id_phy = ( ( ( uint32_t ) id_h ) << 16 ) | id_l ;
-        DBG_PRINTF("PHY %X", id_phy) ;
+        DDB_DEBUG("PHY %X", id_phy) ;
 
         // tolgo revisione per gestire la famiglia
         ulPhyID = id_phy & 0xFFFFFFF0 ;
-        DBG_PRINTF("phy %X", ulPhyID) ;
+        DDB_DEBUG("phy %X", ulPhyID) ;
 
         trovato = true ;
     } while ( false ) ;
@@ -246,7 +248,7 @@ static uint32_t configura(
 {
     uint32_t ulAdvertise = 0 ;
 
-    DBG_FUN ;
+    DDB_FUN ;
 
     /* Set advertise register. */
     if ( (speed == PHY_SPEED_AUTO) &&
@@ -313,7 +315,7 @@ static uint32_t configura(
         ulConfig |= REG0_DUPLEX ;
     }
 
-    DBG_PRINTF("PHY reg4 %04X config %04X", ulAdvertise, ulConfig) ;
+    DDB_DEBUG("PHY reg4 %04X config %04X", ulAdvertise, ulConfig) ;
 
     // Abilito IRQ
     if ( PHY_ID_LAN8742A == ulPhyID ) {
@@ -338,7 +340,7 @@ static uint32_t configura(
 
 static void negozia(void)
 {
-    DBG_FUN ;
+    DDB_FUN ;
     reg_scrivi(REG__0_CTR, ulConfig | REG0_R_AN) ;
 }
 
@@ -346,7 +348,7 @@ void PHY_iniz(
     PHY_SPEED spid,
     PHY_DUPLEX dup)
 {
-    CONTROLLA( trova() ) ;
+    DDB_CONTROLLA( trova() ) ;
     (void) configura(spid, dup) ;
     negozia() ;
 }
@@ -357,27 +359,27 @@ void PHY_isr(void)
     irq &= lanmsk ;
 
     // Stampe
-    DBG_PRINTF("PHY_EVENT %04X", irq) ;
+    DDB_DEBUG("PHY_EVENT %04X", irq) ;
     if ( irq & LAN87xx_IRQ_ENERGYON ) {
-        DBG_PUTS("\t ENERGYON      ") ;
+        DDB_PUTS("\t ENERGYON      ") ;
     }
     if ( irq & LAN87xx_IRQ_AUTO_NEGOTIATION_COMPLETE ) {
-        DBG_PUTS("\t AUTO_NEGOTIATION_COMPLETE      ") ;
+        DDB_PUTS("\t AUTO_NEGOTIATION_COMPLETE      ") ;
     }
     if ( irq & LAN87xx_IRQ_REMOTE_FAULT_DETECTED ) {
-        DBG_PUTS("\t REMOTE_FAULT_DETECTED          ") ;
+        DDB_PUTS("\t REMOTE_FAULT_DETECTED          ") ;
     }
     if ( irq & LAN87xx_IRQ_LINK_DOWN ) {
-        DBG_PUTS("\t LINK_DOWN                      ") ;
+        DDB_PUTS("\t LINK_DOWN                      ") ;
     }
     if ( irq & LAN87xx_IRQ_AUTO_NEGOTIATION_LP_ACKNOWLEDGE ) {
-        DBG_PUTS("\t AUTO_NEGOTIATION_LP_ACKNOWLEDGE") ;
+        DDB_PUTS("\t AUTO_NEGOTIATION_LP_ACKNOWLEDGE") ;
     }
     if ( irq & LAN87xx_IRQ_PARALLEL_DETECTION_FAULT ) {
-        DBG_PUTS("\t PARALLEL_DETECTION_FAULT       ") ;
+        DDB_PUTS("\t PARALLEL_DETECTION_FAULT       ") ;
     }
     if ( irq & LAN87xx_IRQ_AUTO_NEGOTIATION_PAGE_RECEIVED ) {
-        DBG_PUTS("\t AUTO_NEGOTIATION_PAGE_RECEIVED ") ;
+        DDB_PUTS("\t AUTO_NEGOTIATION_PAGE_RECEIVED ") ;
     }
 
     if ( irq
@@ -387,20 +389,20 @@ void PHY_isr(void)
         uint32_t stt = reg_leggi(REG__1_STT) ;
         stt = reg_leggi(REG__1_STT) ;
 
-        DBG_PRINTF("\t stt %04X", stt) ;
+        DDB_DEBUG("\t stt %04X", stt) ;
 
         if ( stt & REG1_LS ) {
             // Bene
             if ( !link ) {
-                DBG_PUTS("\t\t LINK") ;
+                DDB_PUTS("\t\t LINK") ;
                 link = true ;
 
                 stt = reg_leggi(LAN87xx_STT) ;
 
                 full = stt & LAN87xx_STT_FULL ;
-                DBG_PUTS(full ? "full duplex" : "half duplex") ;
+                DDB_PUTS(full ? "full duplex" : "half duplex") ;
                 m100 = stt & LAN87xx_STT_100 ;
-                DBG_PUTS(m100 ? "100 Mb" : "10 Mb") ;
+                DDB_PUTS(m100 ? "100 Mb" : "10 Mb") ;
 
                 // mac (e altro)
                 MAC_iniz(full, m100) ;
@@ -409,7 +411,7 @@ void PHY_isr(void)
         else {
             // Male
             if ( link ) {
-                DBG_PUTS("\t\t link") ;
+                DDB_PUTS("\t\t link") ;
 
                 link = full = m100 = false ;
 

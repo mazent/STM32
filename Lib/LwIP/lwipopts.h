@@ -20,15 +20,52 @@
 #define NO_SYS                  1
 
 // Fatti da hw
-#define CHECKSUM_GEN_IP 	0
-#define CHECKSUM_GEN_UDP 	0
-#define CHECKSUM_GEN_TCP 	0
-#define CHECKSUM_CHECK_IP 	0
-#define CHECKSUM_CHECK_UDP 	0
-#define CHECKSUM_CHECK_TCP 	0
+#define CHECKSUM_GEN_IP     0
+#define CHECKSUM_GEN_UDP    0
+#define CHECKSUM_GEN_TCP    0
+#define CHECKSUM_CHECK_IP   0
+#define CHECKSUM_CHECK_UDP  0
+#define CHECKSUM_CHECK_TCP  0
 
 // abilita la NET_fine()
-#define USA_NET_FINE		0
+#define USA_NET_FINE        1
+
+/*
+                  6           6       2      46..1500
+             +----------+----------+------+-----------+
+             |          |          |      |           |
+Ethernet II  | MAC dst  |  MAC srg | prot | Payload   |
+             |          |          |      |           |
+             +----------+----------+------+-----------+
+
+         12        4         4     0..40     0..65515-opz
+      +--------+--------+--------+---------+--------------+
+      |        |        |        |         |              |
+IPv4  | header | IP srg | IP dst | Opzioni | Payload      |
+      |        |        |        |         |              |
+      +--------+--------+--------+---------+--------------+
+
+        2      2     2      2    0..65527
+     +------+-----+------+-----+-----------+
+     |      |     |      |     |           |
+UDP  | srg  | dst | dim  | cs  |  Payload  |
+     |      |     |      |     |           |
+     +------+-----+------+-----+-----------+
+
+        2      2     4       4     2      2    2    2     0,4,8,..40   0..
+     +------+-----+-------+-----+------+-----+----+-----+------------+---------+
+     |      |     |       |     |      |     |    |     |            |         |
+TCP  | srg  | dst |  seq  | ack | flag | win | cs | urg |    opz     | Payload |
+     |      |     |       |     |      |     |    |     |            |         |
+     +------+-----+-------+-----+------+-----+----+-----+------------+---------+
+*/
+
+#define H_ETH_PAYL      1500
+#define H_IP            (12 + 4 + 4)
+#define H_UDP           (2 + 2 + 2 + 2)
+#define UDP_MAX_PAYL    (H_ETH_PAYL - H_UDP - H_IP)
+#define H_TCP           (2 + 2 + 4 + 4 + 2 + 2 + 2 + 2)
+#define TCP_MAX_PAYL    (H_ETH_PAYL - H_TCP - H_IP)
 
 // IPv4
 // --------------------------------------------------------------

@@ -3,7 +3,8 @@
 
 // vedi https://lwip.fandom.com/wiki/Porting_for_an_OS#cc.h
 
-#include <stdio.h>
+#define USA_DIARIO
+#include "diario/diario.h"
 
 #define BYTE_ORDER      LITTLE_ENDIAN
 
@@ -18,8 +19,8 @@
 #define LWIP_PLATFORM_DIAG(x)
 #define LWIP_PLATFORM_ASSERT(x)
 #else
-#define LWIP_PLATFORM_DIAG(x) do { printf x ; } while ( 0 )
-#define LWIP_PLATFORM_ASSERT(x) do { printf( \
+#define LWIP_PLATFORM_DIAG(x) do { DDB_INFO x ; } while ( 0 )
+#define LWIP_PLATFORM_ASSERT(x) do { DDB_printf(DDB_L_ERROR, \
                                          "Assertion \"%s\" failed at line %d in %s\n", \
                                          x, \
                                          __LINE__, \

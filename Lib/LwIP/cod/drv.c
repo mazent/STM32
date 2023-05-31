@@ -1,5 +1,6 @@
-//#define STAMPA_DBG
 #include "utili.h"
+//#define USA_DIARIO
+#include "diario/diario.h"
 
 #include "drv.h"
 
@@ -60,30 +61,30 @@ bool DRV_begin(
     osMailQDef(drvReq, max_req, S_DRV_REQ) ;
     osMessageQDef(drvRsp, 1, uint32_t) ;
 
-    DBG_PRINTF("%s(%d)\n", __FUNCTION__, max_req) ;
+    DDB_DEBUG("%s(%d)\n", __FUNCTION__, max_req) ;
 
     do {
         assert(pDrv) ;
         if ( NULL == pDrv ) {
-            DBG_ERR ;
+            DDB_ERR ;
             break ;
         }
 
         assert(mem) ;
         if ( NULL == mem ) {
-            DBG_ERR ;
+            DDB_ERR ;
             break ;
         }
 
         assert(max_req > 0) ;
         if ( max_req <= 0 ) {
-            DBG_ERR ;
+            DDB_ERR ;
             break ;
         }
 
         assert(pDrv->signal) ;
         if ( 0 == pDrv->signal ) {
-            DBG_ERR ;
+            DDB_ERR ;
             break ;
         }
 
@@ -91,7 +92,7 @@ bool DRV_begin(
             // Already initialized
             DRV_free_all(pDrv) ;
             result = true ;
-            DBG_QUA ;
+            DDB_DBG ;
             break ;
         }
 
@@ -122,12 +123,12 @@ bool DRV_begin(
             // ... and some data
             mail->data = osPoolAlloc(mem) ;
             if ( NULL == mail->data ) {
-                DBG_ERR ;
+                DDB_ERR ;
                 break ;
             }
 
             // Park
-            CHECK_IT( osOK == osMailPut(req, mail) ) ;
+            DDB_CONTROLLA( osOK == osMailPut(req, mail) ) ;
         }
 
         if ( i < max_req ) {
@@ -141,7 +142,7 @@ bool DRV_begin(
             assert(evt.status == osEventMail) ;
 
             if ( evt.status == osEventMail ) {
-                CHECK_IT( osOK == osMailFree(req, evt.value.p) ) ;
+                DDB_CONTROLLA( osOK == osMailFree(req, evt.value.p) ) ;
             }
             else {
                 break ;
@@ -165,13 +166,13 @@ void DRV_clean(S_DRIVER * pDrv)
     do {
         assert(pDrv) ;
         if ( NULL == pDrv ) {
-            DBG_ERR ;
+            DDB_ERR ;
             break ;
         }
 
         assert( pDrv->drvTHD == osThreadGetId() ) ;
         if ( pDrv->drvTHD != osThreadGetId() ) {
-            DBG_ERR ;
+            DDB_ERR ;
             break ;
         }
 
@@ -215,24 +216,24 @@ S_DRV_REQ * DRV_alloc_wcb(
 {
     S_DRV_REQ * mail = NULL ;
 
-    DBG_FUN ;
+    DDB_FUN ;
 
     do {
         assert(pDrv) ;
         if ( NULL == pDrv ) {
-            DBG_ERR ;
+            DDB_ERR ;
             break ;
         }
 
         assert( pDrv->drvTHD != osThreadGetId() ) ;
         if ( pDrv->drvTHD == osThreadGetId() ) {
-            DBG_ERR ;
+            DDB_ERR ;
             break ;
         }
 
         assert(NULL != pDrv->req) ;
         if ( NULL == pDrv->req ) {
-            DBG_ERR ;
+            DDB_ERR ;
             break ;
         }
 
@@ -258,34 +259,34 @@ bool DRV_send(
 {
     bool result = false ;
 
-    DBG_FUN ;
+    DDB_DEBUG("%s %08X", __func__, pR) ;
 
     do {
         assert(pDrv) ;
         if ( NULL == pDrv ) {
-            DBG_ERR ;
+            DDB_ERR ;
             break ;
         }
 
         assert( pDrv->drvTHD != osThreadGetId() ) ;
         if ( pDrv->drvTHD == osThreadGetId() ) {
-            DBG_ERR ;
+            DDB_ERR ;
             break ;
         }
 
         assert(pR) ;
         if ( NULL == pR ) {
-            DBG_ERR ;
+            DDB_ERR ;
             break ;
         }
 
         if ( osOK != osMailPut(pDrv->req, pR) ) {
-            DBG_ERR ;
+            DDB_ERR ;
             break ;
         }
 
         if ( osOK != osSignalSet(pDrv->drvTHD, pDrv->signal) ) {
-            DBG_ERR ;
+            DDB_ERR ;
             break ;
         }
 
@@ -302,24 +303,24 @@ bool DRV_outcome(
 {
     bool result = false ;
 
-    DBG_FUN ;
+    DDB_DEBUG("%s %08X", __func__, pR) ;
 
     do {
         assert(pDrv) ;
         if ( NULL == pDrv ) {
-            DBG_ERR ;
+            DDB_ERR ;
             break ;
         }
 
         assert( pDrv->drvTHD != osThreadGetId() ) ;
         if ( pDrv->drvTHD == osThreadGetId() ) {
-            DBG_ERR ;
+            DDB_ERR ;
             break ;
         }
 
         assert(pR) ;
         if ( NULL == pR ) {
-            DBG_ERR ;
+            DDB_ERR ;
             break ;
         }
 
@@ -336,31 +337,31 @@ void DRV_cancel(
     S_DRIVER * pDrv,
     S_DRV_REQ * pR)
 {
-    DBG_FUN ;
+    DDB_DEBUG("%s %08X", __func__, pR) ;
 
     do {
         assert(pDrv) ;
         if ( NULL == pDrv ) {
-            DBG_ERR ;
+            DDB_ERR ;
             break ;
         }
 
         assert( pDrv->drvTHD != osThreadGetId() ) ;
         if ( pDrv->drvTHD == osThreadGetId() ) {
-            DBG_ERR ;
+            DDB_ERR ;
             break ;
         }
 
         assert(pR) ;
         if ( NULL == pR ) {
-            DBG_ERR ;
+            DDB_ERR ;
             break ;
         }
 
         pR->aborted = true ;
 
         // The thread will free the request
-        CHECK_IT( osOK == osSignalSet(pDrv->drvTHD, pDrv->signal) ) ;
+        DDB_CONTROLLA( osOK == osSignalSet(pDrv->drvTHD, pDrv->signal) ) ;
     } while ( false ) ;
 }
 
@@ -369,18 +370,19 @@ S_DRV_REQ * DRV_receive(
     size_t milli)
 {
     S_DRV_REQ * pR = NULL ;
-    DBG_FUN ;
+
+    DDB_FUN ;
 
     do {
         assert(pDrv) ;
         if ( NULL == pDrv ) {
-            DBG_ERR ;
+            DDB_ERR ;
             break ;
         }
 
         assert( pDrv->drvTHD == osThreadGetId() ) ;
         if ( pDrv->drvTHD != osThreadGetId() ) {
-            DBG_ERR ;
+            DDB_ERR ;
             break ;
         }
 
@@ -393,7 +395,7 @@ S_DRV_REQ * DRV_receive(
             if ( pR->aborted ) {
                 // Too late
                 if ( pR->pf_free ) {
-                	pR->pf_free(pR->data) ;
+                    pR->pf_free(pR->data) ;
                 }
                 osMailFree(pDrv->req, pR) ;
 
@@ -409,38 +411,38 @@ void DRV_reply(
     S_DRIVER * pDrv,
     S_DRV_REQ * pR)
 {
-    DBG_FUN ;
+    DDB_DEBUG("%s %08X", __func__, pR) ;
 
     do {
         assert(pDrv) ;
         if ( NULL == pDrv ) {
-            DBG_ERR ;
+            DDB_ERR ;
             break ;
         }
 
         assert( pDrv->drvTHD == osThreadGetId() ) ;
         if ( pDrv->drvTHD != osThreadGetId() ) {
-            DBG_ERR ;
+            DDB_ERR ;
             break ;
         }
 
         assert(pR) ;
         if ( NULL == pR ) {
-            DBG_ERR ;
+            DDB_ERR ;
             break ;
         }
 
         if ( pR->aborted ) {
             // Too late
             if ( pR->pf_free ) {
-            	pR->pf_free(pR->data) ;
+                pR->pf_free(pR->data) ;
             }
 
-            CHECK_IT( osOK == osMailFree(pDrv->req, pR) ) ;
+            DDB_CONTROLLA( osOK == osMailFree(pDrv->req, pR) ) ;
         }
         else {
             // Unlock the api
-            CHECK_IT( osOK == osMessagePut(pR->rsp, (uint32_t) 0, 0) ) ;
+            DDB_CONTROLLA( osOK == osMessagePut(pR->rsp, (uint32_t) 0, 0) ) ;
         }
     } while ( false ) ;
 }
@@ -449,30 +451,31 @@ void DRV_free(
     S_DRIVER * pDrv,
     S_DRV_REQ * pR)
 {
-    DBG_FUN ;
+    DDB_DEBUG("%s %08X", __func__, pR) ;
+
     do {
         assert(pDrv) ;
         if ( NULL == pDrv ) {
-            DBG_ERR ;
+            DDB_ERR ;
             break ;
         }
 
         assert( pDrv->drvTHD != osThreadGetId() ) ;
         if ( pDrv->drvTHD == osThreadGetId() ) {
-            DBG_ERR ;
+            DDB_ERR ;
             break ;
         }
 
         assert(pR) ;
         if ( NULL == pR ) {
-            DBG_ERR ;
+            DDB_ERR ;
             break ;
         }
 
         if ( pR->pf_free ) {
-        	pR->pf_free(pR->data) ;
+            pR->pf_free(pR->data) ;
         }
-        CHECK_IT( osOK == osMailFree(pDrv->req, pR) ) ;
+        DDB_CONTROLLA( osOK == osMailFree(pDrv->req, pR) ) ;
     } while ( false ) ;
 }
 
@@ -480,24 +483,24 @@ void DRV_suspend(
     S_DRIVER * pDrv,
     S_DRV_REQ * pR)
 {
-    DBG_FUN ;
+    DDB_DEBUG("%s %08X", __func__, pR) ;
 
     do {
         assert(pDrv) ;
         if ( NULL == pDrv ) {
-            DBG_ERR ;
+            DDB_ERR ;
             break ;
         }
 
         assert( pDrv->drvTHD == osThreadGetId() ) ;
         if ( pDrv->drvTHD != osThreadGetId() ) {
-            DBG_ERR ;
+            DDB_ERR ;
             break ;
         }
 
         assert(pR) ;
         if ( NULL == pR ) {
-            DBG_ERR ;
+            DDB_ERR ;
             break ;
         }
 
@@ -513,18 +516,18 @@ S_DRV_REQ * DRV_first_susp(S_DRIVER * pDrv)
 {
     S_DRV_REQ * pR = NULL ;
 
-    DBG_FUN ;
+    DDB_FUN ;
 
     do {
         assert(pDrv) ;
         if ( NULL == pDrv ) {
-            DBG_ERR ;
+            DDB_ERR ;
             break ;
         }
 
         assert( pDrv->drvTHD == osThreadGetId() ) ;
         if ( pDrv->drvTHD != osThreadGetId() ) {
-            DBG_ERR ;
+            DDB_ERR ;
             break ;
         }
 
@@ -545,23 +548,23 @@ S_DRV_REQ * DRV_next_susp(
 {
     S_DRV_REQ * next = NULL ;
 
-    DBG_FUN ;
+    DDB_FUN ;
     do {
         assert(pDrv) ;
         if ( NULL == pDrv ) {
-            DBG_ERR ;
+            DDB_ERR ;
             break ;
         }
 
         assert( pDrv->drvTHD == osThreadGetId() ) ;
         if ( pDrv->drvTHD != osThreadGetId() ) {
-            DBG_ERR ;
+            DDB_ERR ;
             break ;
         }
 
         assert(pR) ;
         if ( NULL == pR ) {
-            DBG_ERR ;
+            DDB_ERR ;
             break ;
         }
 
@@ -582,24 +585,24 @@ void DRV_remove_susp(
     S_DRIVER * pDrv,
     S_DRV_REQ * pR)
 {
-    DBG_FUN ;
+    DDB_DEBUG("%s %08X", __func__, pR) ;
 
     do {
         assert(pDrv) ;
         if ( NULL == pDrv ) {
-            DBG_ERR ;
+            DDB_ERR ;
             break ;
         }
 
         assert( pDrv->drvTHD == osThreadGetId() ) ;
         if ( pDrv->drvTHD != osThreadGetId() ) {
-            DBG_ERR ;
+            DDB_ERR ;
             break ;
         }
 
         assert(pR) ;
         if ( NULL == pR ) {
-            DBG_ERR ;
+            DDB_ERR ;
             break ;
         }
 

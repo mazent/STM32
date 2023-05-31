@@ -1,5 +1,6 @@
-#define STAMPA_DBG
 #include "utili.h"
+//#define USA_DIARIO
+#include "diario/diario.h"
 #include "drv.h"
 #include "richieste.h"
 #include "lwip/tcp.h"
@@ -61,7 +62,7 @@ void netop_iniz(uint32_t segnale)
 {
     if ( NULL == ric ) {
         ric = osPoolCreate( osPool(ric) ) ;
-        ASSERT(ric) ;
+        DDB_ASSERT(ric) ;
     }
 
     for ( int i = 0 ; i < NUM_SOCK ; ++i ) {
@@ -71,7 +72,7 @@ void netop_iniz(uint32_t segnale)
     }
 
     drv.signal = segnale ;
-    CONTROLLA( DRV_begin(&drv, ric, MAX_RIC) ) ;
+    DDB_CONTROLLA( DRV_begin(&drv, ric, MAX_RIC) ) ;
 }
 
 static int uno_libero(void)
@@ -215,7 +216,7 @@ static bool copia_recvfrom(S_REQUEST_DATA * rd)
 void netop_rx(bool esito)
 {
     if ( NULL == cnuCor ) {
-        DBG_ERR ;
+        DDB_ERR ;
         return ;
     }
 
@@ -237,7 +238,7 @@ void netop_rx(bool esito)
 void netop_tx(bool esito)
 {
 //    if ( NULL == cnuCor ) {
-//        DBG_ERR ;
+//        DDB_ERR ;
 //        return ;
 //    }
 //
@@ -318,11 +319,11 @@ static void udp_rx_cb(
 
         if ( net_mdma_rx_iniz() ) {
             cnuCor = pR ;
-            CONTROLLA( copia_recvfrom(rd) ) ;
+            DDB_CONTROLLA( copia_recvfrom(rd) ) ;
         }
         else {
             // alla prossima
-            DBG_QUA ;
+            DDB_DBG ;
         }
     }
 }
@@ -418,7 +419,7 @@ static int sok_udp(int sok)
 {
     struct udp_pcb * pcb = udp_new_ip_type(IPADDR_TYPE_ANY) ;
     if ( NULL == pcb ) {
-        DBG_ERR ;
+        DDB_ERR ;
         return -1 ;
     }
 
@@ -458,7 +459,7 @@ static void trasmetti(
                               DIM,
                               TCP_WRITE_FLAG_COPY) ;
         if ( ERR_OK != err ) {
-            DBG_ERR ;
+            DDB_ERR ;
             rd->result = NET_RISUL_ERROR ;
             DRV_reply(&drv, pR) ;
             break ;
@@ -466,7 +467,7 @@ static void trasmetti(
 
         err = tcp_output(pcb) ;
         if ( ERR_OK != err ) {
-            DBG_ERR ;
+            DDB_ERR ;
             rd->result = NET_RISUL_ERROR ;
             DRV_reply(&drv, pR) ;
             break ;
@@ -478,7 +479,7 @@ static void trasmetti(
 }
 
 #define CHIUDI_SOK               \
-    DBG_QUA ;                    \
+    DDB_DBG ;                    \
     error_susp_recv(sok) ;       \
     error_susp_send(sok) ;       \
                                  \
@@ -505,8 +506,8 @@ static void x_recv_cb(
     else {
         pS->p = p ;
     }
-//        DBG_PRINTF( "\t %d pbuf", pbuf_clen(pS->p) ) ;
-//        DBG_PRINTF("\t %d byte", pS->p->tot_len) ;
+//        DDB_DEBUG( "\t %d pbuf", pbuf_clen(pS->p) ) ;
+//        DDB_DEBUG("\t %d byte", pS->p->tot_len) ;
 
     S_DRV_REQ * pR = remove_susp_recv(sok) ;
     if ( pR ) {
@@ -541,7 +542,7 @@ static void x_sent_cb(
         }
     }
     else {
-        DBG_ERR ;
+        DDB_ERR ;
     }
 }
 
@@ -555,7 +556,7 @@ loc_recv_cb(
     err_t ret_err = ERR_OK ;
     UN_SOCK * pS = arg ;
 
-    //DBG_PRINTF("%d %s %d", pS->idx, __func__, err) ;
+    //DDB_DEBUG("%d %s %d", pS->idx, __func__, err) ;
 
     int sok = pS->idx ;
 
@@ -584,7 +585,7 @@ loc_error_cb(
     UN_SOCK * pS = arg ;
 
     INUTILE(err) ;
-    DBG_PRINTF( "%d %s %d = %s", pS->idx, __func__, err, lwip_strerr(err) ) ;
+    DDB_DEBUG( "%d %s %d = %s", pS->idx, __func__, err, lwip_strerr(err) ) ;
 
     S_DRV_REQ * pR = remove_susp_connect(pS->idx) ;
     if ( pR ) {
@@ -593,7 +594,7 @@ loc_error_cb(
         DRV_reply(&drv, pR) ;
     }
     else {
-        DBG_ERR ;
+        DDB_ERR ;
     }
 
     int sok = pS->idx ;
@@ -623,7 +624,7 @@ static int sok_tcp(int sok)
 {
     struct tcp_pcb * pcb = tcp_new() ;
     if ( NULL == pcb ) {
-        DBG_ERR ;
+        DDB_ERR ;
         return -1 ;
     }
     vLoc[sok].tcp = true ;
@@ -643,7 +644,7 @@ static void rt_socket(
 {
     int tmp = uno_libero() ;
     if ( -1 == tmp ) {
-        DBG_ERR ;
+        DDB_ERR ;
         rd->result = NET_RISUL_ERROR ;
     }
     else {
@@ -677,7 +678,7 @@ static void rt_close_x(
             error_susp_accept(rd->sok) ;
         }
         else {
-            DBG_ERR ;
+            DDB_ERR ;
         }
     }
     else {
@@ -745,7 +746,7 @@ static err_t tcp_connected_cb(
 
     S_DRV_REQ * pR = remove_susp_connect(pS->idx) ;
     if ( NULL == pR ) {
-        DBG_ERR ;
+        DDB_ERR ;
         return ERR_MEM ;
     }
 
@@ -762,7 +763,7 @@ static void rt_connect(
 {
     int sok = rd->sok ;
     if ( NULL == vLoc[sok].pcb ) {
-        DBG_ERR ;
+        DDB_ERR ;
         rd->result = NET_RISUL_ERROR ;
         DRV_reply(&drv, pR) ;
         return ;
@@ -781,8 +782,8 @@ static void rt_connect(
                               porta,
                               tcp_connected_cb) ;
         if ( ERR_OK != e ) {
-            DBG_ERR ;
-            DBG_PUTS( lwip_strerr(e) ) ;
+            DDB_ERR ;
+            DDB_PUTS( lwip_strerr(e) ) ;
             rd->result = NET_RISUL_ERROR ;
             DRV_reply(&drv, pR) ;
         }
@@ -793,8 +794,8 @@ static void rt_connect(
     else {
         err_t e = udp_connect(vLoc[sok].pcb, &ipaddr, porta) ;
         if ( ERR_OK != e ) {
-            DBG_ERR ;
-            DBG_PUTS( lwip_strerr(e) ) ;
+            DDB_ERR ;
+            DDB_PUTS( lwip_strerr(e) ) ;
             rd->result = NET_RISUL_ERROR ;
         }
         else {
@@ -810,7 +811,7 @@ static void rt_bind(
 {
     int sok = rd->sok ;
     if ( NULL == vLoc[sok].pcb ) {
-        DBG_ERR ;
+        DDB_ERR ;
         rd->result = NET_RISUL_ERROR ;
     }
     else {
@@ -830,8 +831,8 @@ static void rt_bind(
             rd->result = 0 ;
         }
         else {
-            DBG_ERR ;
-            DBG_PUTS( lwip_strerr(e) ) ;
+            DDB_ERR ;
+            DDB_PUTS( lwip_strerr(e) ) ;
         }
     }
 
@@ -845,13 +846,13 @@ static void rt_recvfrom(
     int sok = rd->sok ;
     do {
         if ( NULL == vLoc[sok].pcb ) {
-            DBG_ERR ;
+            DDB_ERR ;
             rd->result = NET_RISUL_ERROR ;
             DRV_reply(&drv, pR) ;
             break ;
         }
         if ( vLoc[sok].tcp ) {
-            DBG_ERR ;
+            DDB_ERR ;
             rd->result = NET_RISUL_ERROR ;
             DRV_reply(&drv, pR) ;
             break ;
@@ -868,11 +869,11 @@ static void rt_recvfrom(
             // se riesce, la richiesta si conclude alla fine dell'mdma
             // altrimenti c'e' un errore irrecuperabile
             cnuCor = pR ;
-            CONTROLLA( copia_recvfrom(rd) ) ;
+            DDB_CONTROLLA( copia_recvfrom(rd) ) ;
         }
         else {
             // alla prossima
-            DBG_QUA ;
+            DDB_DBG ;
         }
 #else
         rd->result = copia_recvfrom(rd) ;
@@ -888,13 +889,13 @@ static void rt_sendto(
     int sok = rd->sok ;
     do {
         if ( NULL == vLoc[sok].pcb ) {
-            DBG_ERR ;
+            DDB_ERR ;
             rd->result = NET_RISUL_ERROR ;
             DRV_reply(&drv, pR) ;
             break ;
         }
         if ( vLoc[sok].tcp ) {
-            DBG_ERR ;
+            DDB_ERR ;
             rd->result = NET_RISUL_ERROR ;
             DRV_reply(&drv, pR) ;
             break ;
@@ -904,14 +905,14 @@ static void rt_sendto(
                                      rd->sendto.len,
                                      PBUF_RAM) ;
         if ( NULL == p ) {
-            DBG_ERR ;
+            DDB_ERR ;
             rd->result = NET_RISUL_ERROR ;
             DRV_reply(&drv, pR) ;
             break ;
         }
 #ifdef USA_MDMA_
         if ( !net_mdma_tx_iniz() ) {
-            DBG_ERR ;
+            DDB_ERR ;
             rd->result = NET_RISUL_ERROR ;
             DRV_reply(&drv, pR) ;
         }
@@ -921,7 +922,7 @@ static void rt_sendto(
                 DRV_suspend(&drv, pR) ;
             }
             else {
-                DBG_ERR ;
+                DDB_ERR ;
                 rd->result = NET_RISUL_ERROR ;
                 DRV_reply(&drv, pR) ;
             }
@@ -929,8 +930,8 @@ static void rt_sendto(
 #else
         err_t e = pbuf_take(p, rd->sendto.buf, rd->sendto.len) ;
         if ( ERR_OK != e ) {
-            DBG_ERR ;
-            DBG_PUTS( lwip_strerr(e) ) ;
+            DDB_ERR ;
+            DDB_PUTS( lwip_strerr(e) ) ;
             rd->result = NET_RISUL_ERROR ;
             DRV_reply(&drv, pR) ;
             break ;
@@ -939,7 +940,7 @@ static void rt_sendto(
         // nel pcb sono in host order
         uint16_t porta = ntohs(rd->sendto.ind.porta) ;
 
-        DBG_PRINTF("[%d] sendto %s:%04X", p->tot_len,
+        DDB_DEBUG("[%d] sendto %s:%04X", p->tot_len,
                    ip4addr_ntoa(
                        (ip_addr_t const *) &rd->sendto.ind.ip), porta) ;
         e = udp_sendto(vLoc[sok].pcb,
@@ -949,8 +950,8 @@ static void rt_sendto(
             rd->result = rd->sendto.len ;
         }
         else {
-            DBG_ERR ;
-            DBG_PUTS( lwip_strerr(e) ) ;
+            DDB_ERR ;
+            DDB_PUTS( lwip_strerr(e) ) ;
             rd->result = NET_RISUL_ERROR ;
         }
         pbuf_free(p) ;
@@ -966,13 +967,13 @@ static void rt_listen(
     int sok = rd->sok ;
     do {
         if ( NULL == vLoc[sok].pcb ) {
-            DBG_ERR ;
+            DDB_ERR ;
             rd->result = NET_RISUL_ERROR ;
             DRV_reply(&drv, pR) ;
             break ;
         }
         if ( !vLoc[sok].tcp ) {
-            DBG_ERR ;
+            DDB_ERR ;
             rd->result = NET_RISUL_ERROR ;
             DRV_reply(&drv, pR) ;
             break ;
@@ -988,8 +989,8 @@ static void rt_listen(
             rd->result = 0 ;
         }
         else {
-            DBG_ERR ;
-            DBG_PUTS( lwip_strerr(err) ) ;
+            DDB_ERR ;
+            DDB_PUTS( lwip_strerr(err) ) ;
             rd->result = NET_RISUL_ERROR ;
         }
         DRV_reply(&drv, pR) ;
@@ -1008,7 +1009,7 @@ rem_recv_cb(
 
     INUTILE(tpcb) ;
 
-    //DBG_PRINTF("%d %s %d", pS->idx, __func__, err) ;
+    //DDB_DEBUG("%d %s %d", pS->idx, __func__, err) ;
 
     int sok = pS->idx | ID_SOCK_REM ;
 
@@ -1037,7 +1038,7 @@ rem_error_cb(
 
     INUTILE(err) ;
 
-    DBG_PRINTF( "%d %s %d = %s", pS->idx, __func__, err, lwip_strerr(err) ) ;
+    DDB_DEBUG( "%d %s %d = %s", pS->idx, __func__, err, lwip_strerr(err) ) ;
 
     libera_pbuf(pS) ;
 
@@ -1057,7 +1058,7 @@ rem_sent_cb(
 
     INUTILE(_len) ;
 
-    //DBG_PRINTF("cb %d", _len) ;
+    //DDB_DEBUG("cb %d", _len) ;
 
     int sok = pS->idx | ID_SOCK_REM ;
     x_sent_cb(sok, _len, tpcb) ;
@@ -1077,7 +1078,7 @@ static err_t tcp_accept_cb(
     UN_SOCK * pS = arg ;
     S_DRV_REQ * pR = remove_susp_accept(pS->idx) ;
     if ( NULL == pR ) {
-        DBG_ERR ;
+        DDB_ERR ;
         return ERR_MEM ;
     }
 
@@ -1107,13 +1108,13 @@ static void rt_accept(
     int sok = rd->sok ;
     do {
         if ( NULL == vLoc[sok].pcb ) {
-            DBG_ERR ;
+            DDB_ERR ;
             rd->result = NET_RISUL_ERROR ;
             DRV_reply(&drv, pR) ;
             break ;
         }
         if ( !vLoc[sok].tcp ) {
-            DBG_ERR ;
+            DDB_ERR ;
             rd->result = NET_RISUL_ERROR ;
             DRV_reply(&drv, pR) ;
             break ;
@@ -1150,7 +1151,7 @@ static void rt_recv(
         }
 
         if ( !pS->tcp ) {
-            DBG_ERR ;
+            DDB_ERR ;
             rd->result = NET_RISUL_ERROR ;
             DRV_reply(&drv, pR) ;
             break ;
@@ -1184,14 +1185,14 @@ static void rt_send(
 
     do {
         if ( NULL == pS->pcb ) {
-            DBG_ERR ;
+            DDB_ERR ;
             rd->result = NET_RISUL_ERROR ;
             DRV_reply(&drv, pR) ;
             break ;
         }
 
         if ( !pS->tcp ) {
-            DBG_ERR ;
+            DDB_ERR ;
             rd->result = NET_RISUL_ERROR ;
             DRV_reply(&drv, pR) ;
             break ;
@@ -1213,47 +1214,47 @@ void netop_ric(void)
         S_REQUEST_DATA * rd = DRV_data(pR) ;
         switch ( rd->type ) {
         case RT_SOCKET:
-            DBG_PUT(DBG_REQ, "RT_SOCKET") ;
+            DDB_PUT(DBG_REQ, "RT_SOCKET") ;
             rt_socket(pR, rd) ;
             break ;
         case RT_CLOSE:
-            DBG_PUT(DBG_REQ, "RT_CLOSE") ;
+            DDB_PUT(DBG_REQ, "RT_CLOSE") ;
             rt_close(pR, rd) ;
             break ;
         case RT_BIND:
-            DBG_PUT(DBG_REQ, "RT_BIND") ;
+            DDB_PUT(DBG_REQ, "RT_BIND") ;
             rt_bind(pR, rd) ;
             break ;
         case RT_RECVFROM:
-            DBG_PUT(DBG_REQ, "RT_RECVFROM") ;
+            DDB_PUT(DBG_REQ, "RT_RECVFROM") ;
             rt_recvfrom(pR, rd) ;
             break ;
         case RT_SENDTO:
-            DBG_PUT(DBG_REQ, "RT_SENDTO") ;
+            DDB_PUT(DBG_REQ, "RT_SENDTO") ;
             rt_sendto(pR, rd) ;
             break ;
         case RT_LISTEN:
-            DBG_PUT(DBG_REQ, "RT_LISTEN") ;
+            DDB_PUT(DBG_REQ, "RT_LISTEN") ;
             rt_listen(pR, rd) ;
             break ;
         case RT_ACCEPT:
-            DBG_PUT(DBG_REQ, "RT_ACCEPT") ;
+            DDB_PUT(DBG_REQ, "RT_ACCEPT") ;
             rt_accept(pR, rd) ;
             break ;
         case RT_RECV:
-            DBG_PUT(DBG_REQ, "RT_RECV") ;
+            DDB_PUT(DBG_REQ, "RT_RECV") ;
             rt_recv(pR, rd) ;
             break ;
         case RT_SEND:
-            DBG_PUT(DBG_REQ, "RT_SEND") ;
+            DDB_PUT(DBG_REQ, "RT_SEND") ;
             rt_send(pR, rd) ;
             break ;
         case RT_CONNECT:
-            DBG_PUT(DBG_REQ, "RT_CONNECT") ;
+            DDB_PUT(DBG_REQ, "RT_CONNECT") ;
             rt_connect(pR, rd) ;
             break ;
         default:
-            ASSERT(false) ;
+            DDB_ASSERT(false) ;
             rd->result = NET_RISUL_ERROR ;
             DRV_reply(&drv, pR) ;
             break ;
@@ -1280,7 +1281,7 @@ uint32_t NET_risul(
     uint32_t esito = NET_RISUL_ERROR ;
 
     do {
-        ASSERT(pOp) ;
+        DDB_ASSERT(pOp) ;
         if ( NULL == pOp ) {
             break ;
         }
@@ -1288,7 +1289,7 @@ uint32_t NET_risul(
         // Get the request
         S_DRV_REQ * pR = (S_DRV_REQ *) pOp->x ;
 
-        ASSERT(pR) ;
+        DDB_ASSERT(pR) ;
         if ( NULL == pR ) {
             break ;
         }
@@ -1309,10 +1310,11 @@ uint32_t NET_risul(
             case RT_RECV:
             case RT_SEND:
             case RT_CONNECT:
+            	DDB_DEBUG("%s %08X",__func__,pR);
                 esito = rd->result ;
                 break ;
             default:
-                DBG_ERR ;
+                DDB_ERR ;
                 break ;
             }
 
@@ -1355,6 +1357,8 @@ bool NET_socket_ini(
         if ( NULL == pR ) {
             break ;
         }
+
+        DDB_DEBUG("%s %08X",__func__,pR);
 
         S_REQUEST_DATA * rd = DRV_data(pR) ;
 
@@ -1411,6 +1415,8 @@ bool NET_close_ini(
         if ( NULL == pR ) {
             break ;
         }
+
+        DDB_DEBUG("%s %08X",__func__,pR);
 
         S_REQUEST_DATA * rd = DRV_data(pR) ;
 
@@ -1469,6 +1475,8 @@ bool NET_connect_ini(
             break ;
         }
 
+        DDB_DEBUG("%s %08X",__func__,pR);
+
         S_REQUEST_DATA * rd = DRV_data(pR) ;
 
         rd->type = RT_CONNECT ;
@@ -1522,6 +1530,8 @@ bool NET_bind_ini(
         if ( NULL == pR ) {
             break ;
         }
+
+        DDB_DEBUG("%s %08X",__func__,pR);
 
         S_REQUEST_DATA * rd = DRV_data(pR) ;
 
@@ -1585,6 +1595,8 @@ bool NET_recvfrom_ini(
         if ( NULL == pR ) {
             break ;
         }
+
+        DDB_DEBUG("%s %08X",__func__,pR);
 
         S_REQUEST_DATA * rd = DRV_data(pR) ;
 
@@ -1655,6 +1667,8 @@ bool NET_sendto_ini(
             break ;
         }
 
+        DDB_DEBUG("%s %08X",__func__,pR);
+
         S_REQUEST_DATA * rd = DRV_data(pR) ;
 
         rd->type = RT_SENDTO ;
@@ -1719,6 +1733,8 @@ bool NET_listen_ini(
             break ;
         }
 
+        DDB_DEBUG("%s %08X",__func__,pR);
+
         S_REQUEST_DATA * rd = DRV_data(pR) ;
 
         rd->type = RT_LISTEN ;
@@ -1772,6 +1788,8 @@ bool NET_accept_ini(
         if ( NULL == pR ) {
             break ;
         }
+
+        DDB_DEBUG("%s %08X",__func__,pR);
 
         S_REQUEST_DATA * rd = DRV_data(pR) ;
 
@@ -1839,6 +1857,8 @@ bool NET_recv_ini(
             break ;
         }
 
+        DDB_DEBUG("%s %08X",__func__,pR);
+
         S_REQUEST_DATA * rd = DRV_data(pR) ;
 
         rd->type = RT_RECV ;
@@ -1905,6 +1925,8 @@ bool NET_send_ini(
         if ( NULL == pR ) {
             break ;
         }
+
+        DDB_DEBUG("%s %08X",__func__,pR);
 
         S_REQUEST_DATA * rd = DRV_data(pR) ;
 

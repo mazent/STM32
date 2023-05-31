@@ -1,15 +1,13 @@
 // vedi https://www.cs.cmu.edu/afs/cs/academic/class/15213-f99/www/class26/udpserver.c
 
-#define STAMPA_DBG
 #include "utili.h"
 #include "cmsis_rtos/cmsis_os.h"
+//#define USA_DIARIO
+#include "diario/diario.h"
 #include "net_sock.h"
 #include "lwip/opt.h"
 
-// udp payload 1460 (come TCP_MSS)
-// udp len     1468
-// frame       1502
-#define BUFSIZE         ( (ETH_RX_DESC_CNT - 1) * TCP_MSS )
+#define BUFSIZE      ( (ETH_RX_DESC_CNT - 1) * UDP_MAX_PAYL )
 
 static
 __attribute__( ( section(".dtcm") ) )
@@ -30,7 +28,7 @@ static void udp_eco_srv(void * argument)
 #endif
     INUTILE(argument) ;
 
-    DBG_PRINTF("%s %d B", __func__, BUFSIZE) ;
+    DDB_DEBUG("%s %d B", __func__, BUFSIZE) ;
 
     int sockfd ; /* socket */
 
@@ -40,12 +38,12 @@ ripeti:
      */
     sockfd = socket(AF_INET, SOCK_DGRAM, 0) ;
     if ( sockfd < 0 ) {
-        DBG_PUTS("ERROR opening socket") ;
+        DDB_PUTS("ERROR opening socket") ;
     }
 
     if ( test_close1 ) {
         test_close1 = false ;
-        CONTROLLA( 0 == close(sockfd) ) ;
+        DDB_CONTROLLA( 0 == close(sockfd) ) ;
         goto ripeti ;
     }
 
@@ -64,12 +62,12 @@ ripeti:
      */
     if ( bind( sockfd, (struct sockaddr *) &serveraddr,
                sizeof(serveraddr) ) < 0 ) {
-        DBG_PUTS("ERROR on binding") ;
+        DDB_PUTS("ERROR on binding") ;
     }
 
     if ( test_close2 ) {
         test_close2 = false ;
-        CONTROLLA( 0 == close(sockfd) ) ;
+        DDB_CONTROLLA( 0 == close(sockfd) ) ;
         goto ripeti ;
     }
 
@@ -83,16 +81,16 @@ ripeti:
         int n = recvfrom(sockfd, buf, BUFSIZE, 0,
                          (struct sockaddr *) &clientaddr, &clientlen) ;
         if ( n < 0 ) {
-            DBG_PUTS("ERROR in recvfrom") ;
+            DDB_PUTS("ERROR in recvfrom") ;
             break ;
         }
-#ifdef DBG_ABIL
+#if DDB_LIV >= DDB_LIV_DBG
         // cinema
         uint16_t hport = ntohs(clientaddr.sin_port) ;
-        DBG_PRINTF("[srv] ricevo %d B da %s:%04X",
-        		n,
-				inet_ntoa(clientaddr.sin_addr),
-				hport) ;
+        DDB_DEBUG("[srv] ricevo %d B da %s:%04X",
+                   n,
+                   inet_ntoa(clientaddr.sin_addr),
+                   hport) ;
 #endif
         /*
          * sendto: echo the input back to the client
@@ -100,12 +98,12 @@ ripeti:
         n = sendto(sockfd, buf, n, 0,
                    (struct sockaddr *) &clientaddr, clientlen) ;
         if ( n < 0 ) {
-            DBG_PUTS("ERROR in sendto") ;
+            DDB_PUTS("ERROR in sendto") ;
             break ;
         }
     }
 
-    DBG_QUA ;
+    DDB_DBG ;
     srvTHD = NULL ;
     osThreadTerminate(NULL) ;
 }
@@ -115,7 +113,7 @@ void udp_eco_srv_iniz(void)
     if ( NULL == srvTHD ) {
         osThreadDef(udp_eco_srv, osPriorityNormal, 0, 800) ;
         srvTHD = osThreadCreate(osThread(udp_eco_srv), NULL) ;
-        ASSERT(srvTHD) ;
+        DDB_ASSERT(srvTHD) ;
     }
 }
 
@@ -134,11 +132,11 @@ static void udp_eco_cln(void * _)
 
     INUTILE(_) ;
 
-    DBG_PRINTF("%s %d B", __func__, BUFSIZE) ;
+    DDB_DEBUG("%s %d B", __func__, BUFSIZE) ;
 
     int sok = socket(AF_INET, SOCK_DGRAM, 0) ;
     if ( sok < 0 ) {
-        DBG_PUTS("ERROR opening socket") ;
+        DDB_PUTS("ERROR opening socket") ;
         goto esci ;
     }
 
@@ -150,28 +148,21 @@ static void udp_eco_cln(void * _)
     dest.sin_addr.s_addr = NET_inet_addr("10.1.20.254") ;
     dest.sin_port = htons( (unsigned short) PORTA_ECO ) ;
 
-    if ( connect( sok, (struct sockaddr *) &dest,
-                  sizeof(dest) ) < 0 ) {
-        DBG_PUTS("ERROR on connect") ;
-        goto esci ;
-    }
-
-
     inizio = HAL_GetTick() ;
     for ( ; i < quanti ; ++i ) {
         int n = sendto( sok, dati, dim, 0, &dest, sizeof(dest) ) ;
         if ( n < 0 ) {
-            DBG_PUTS("ERROR in sendto") ;
+            DDB_PUTS("ERROR in sendto") ;
             break ;
         }
 
-        DBG_PUTS("risposta ...");
+        DDB_PUTS("risposta ...") ;
         n = recvfrom(sok, buf, dim, 0, &mitt, &mit_dim) ;
         if ( n < 0 ) {
-            DBG_PUTS("ERROR in recvfrom") ;
+            DDB_PUTS("ERROR in recvfrom") ;
             break ;
         }
-        DBG_PRINTF("ricevo %d B da %s:%04X", n,
+        DDB_DEBUG("ricevo %d B da %s:%04X", n,
                    inet_ntoa(mitt.sin_addr), mitt.sin_port) ;
         tot += dim ;
     }
@@ -181,11 +172,11 @@ static void udp_eco_cln(void * _)
         sec /= 1000.0 ;
         double tput = tot ;
         tput /= sec ;
-        DBG_PRINTF("%u / %u = %.3f B/s", tot, durata, tput) ;
+        DDB_DEBUG("%u B / %u ms = %.3f B/s", tot, durata, tput) ;
     }
 esci:
-    CONTROLLA( 0 == close(sok) ) ;
-    DBG_QUA ;
+    DDB_CONTROLLA( 0 == close(sok) ) ;
+    DDB_DBG ;
     clnTHD = NULL ;
     osThreadTerminate(NULL) ;
 }
@@ -202,6 +193,6 @@ void udp_eco_cln_iniz(
 
         osThreadDef(udp_eco_cln, osPriorityNormal, 0, 800) ;
         clnTHD = osThreadCreate(osThread(udp_eco_cln), NULL) ;
-        ASSERT(clnTHD) ;
+        DDB_ASSERT(clnTHD) ;
     }
 }
