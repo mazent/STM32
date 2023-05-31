@@ -538,31 +538,90 @@ osStatus osMutexDelete(osMutexId mutex_id)
 
 #if (defined (osFeature_Semaphore) && (osFeature_Semaphore != 0 ) )       // Semaphore available
 
-///// Create and Initialize a Semaphore object used for managing resources.
-///// \param[in]     semaphore_def semaphore definition referenced with \ref osSemaphore.
-///// \param[in]     count         number of available resources.
-///// \return semaphore ID for reference by other functions or NULL in case of error.
-///// \note MUST REMAIN UNCHANGED: \b osSemaphoreCreate shall be consistent in every CMSIS-RTOS.
-//osSemaphoreId osSemaphoreCreate (const osSemaphoreDef_t *semaphore_def, int32_t count);
-//
-///// Wait until a Semaphore token becomes available.
-///// \param[in]     semaphore_id  semaphore object referenced with \ref osSemaphoreCreate.
-///// \param[in]     millisec      \ref CMSIS_RTOS_TimeOutValue or 0 in case of no time-out.
-///// \return number of available tokens, or -1 in case of incorrect parameters.
-///// \note MUST REMAIN UNCHANGED: \b osSemaphoreWait shall be consistent in every CMSIS-RTOS.
-//int32_t osSemaphoreWait (osSemaphoreId semaphore_id, uint32_t millisec);
-//
-///// Release a Semaphore token.
-///// \param[in]     semaphore_id  semaphore object referenced with \ref osSemaphoreCreate.
-///// \return status code that indicates the execution status of the function.
-///// \note MUST REMAIN UNCHANGED: \b osSemaphoreRelease shall be consistent in every CMSIS-RTOS.
-//osStatus osSemaphoreRelease (osSemaphoreId semaphore_id);
-//
-///// Delete a Semaphore that was created by \ref osSemaphoreCreate.
-///// \param[in]     semaphore_id  semaphore object referenced with \ref osSemaphoreCreate.
-///// \return status code that indicates the execution status of the function.
-///// \note MUST REMAIN UNCHANGED: \b osSemaphoreDelete shall be consistent in every CMSIS-RTOS.
-//osStatus osSemaphoreDelete (osSemaphoreId semaphore_id);
+osSemaphoreId osSemaphoreCreate(
+    const osSemaphoreDef_t * semaphore_def,
+    int32_t count)
+{
+    INUTILE(semaphore_def) ;
+
+    ASSERT( !xPortInIsrContext() ) ;
+    if ( xPortInIsrContext() ) {
+        return NULL ;
+    }
+    else if ( count == 1 ) {
+        osSemaphoreId sema ;
+        vSemaphoreCreateBinary(sema) ;
+        return sema ;
+    }
+    else {
+        return xSemaphoreCreateCounting(count, count) ;
+    }
+}
+
+int32_t osSemaphoreWait(
+    osSemaphoreId semaphore_id,
+    uint32_t millisec)
+{
+    ASSERT(semaphore_id) ;
+    ASSERT( !xPortInIsrContext() ) ;
+    if ( xPortInIsrContext() ) {
+        return osErrorISR ;
+    }
+    else if ( NULL == semaphore_id ) {
+        return osErrorParameter ;
+    }
+    else {
+        TickType_t attesa = ms_in_tick(millisec) ;
+
+        return pdTRUE ==
+               xSemaphoreTake(semaphore_id, attesa) ?
+               osOK : osErrorTimeoutResource ;
+    }
+}
+
+osStatus osSemaphoreRelease(osSemaphoreId semaphore_id)
+{
+    ASSERT(semaphore_id) ;
+
+    if ( NULL == semaphore_id ) {
+        return osErrorParameter ;
+    }
+    else if ( xPortInIsrContext() ) {
+        BaseType_t xHigherPriorityTaskWoken = pdFALSE ;
+
+        if ( xSemaphoreGiveFromISR(semaphore_id,
+                                   &xHigherPriorityTaskWoken) != pdTRUE ) {
+            DBG_ERR ;
+            return osErrorResource ;
+        }
+
+        portYIELD_FROM_ISR(xHigherPriorityTaskWoken) ;
+    }
+    else {
+        if ( xSemaphoreGive(semaphore_id) != pdTRUE ) {
+            DBG_ERR ;
+            return osErrorResource ;
+        }
+    }
+    return osOK ;
+}
+
+osStatus osSemaphoreDelete(osSemaphoreId semaphore_id)
+{
+    ASSERT(semaphore_id) ;
+    ASSERT( !xPortInIsrContext() ) ;
+    if ( xPortInIsrContext() ) {
+        return osErrorISR ;
+    }
+    else if ( NULL == semaphore_id ) {
+        return osErrorParameter ;
+    }
+    else {
+        vSemaphoreDelete(semaphore_id) ;
+
+        return osOK ;
+    }
+}
 
 #endif     // Semaphore available
 
@@ -822,6 +881,23 @@ int ose_MessageWaiting(osMessageQId queue_id)
     }
     else {
         return uxQueueMessagesWaiting(queue_id) ;
+    }
+}
+
+osStatus ose_MessageDelete(osMessageQId queue_id)
+{
+    ASSERT(queue_id) ;
+
+    if ( queue_id == NULL ) {
+        return osErrorParameter ;
+    }
+    else if ( xPortInIsrContext() ) {
+        return osErrorISR ;
+    }
+    else {
+        vQueueDelete(queue_id) ;
+
+        return osOK ;
     }
 }
 

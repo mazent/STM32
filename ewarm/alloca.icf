@@ -1,0 +1,54 @@
+/* DISLOCAZIONE *********************************************/
+
+place at start of REG_SRAM12 {
+	block SRAM12
+} ;
+
+place at start of REG_SRAM4 {
+	block SRAM4
+} ;
+
+
+if (isdefinedsymbol(ALLOCA_BL)) {
+	place at start of REGIONE_BL {
+		block CODICE
+	} ;
+	
+	place at start of REGIONE_APP {
+		block ALTRO
+	} ;
+}
+else {
+	place at start of REGIONE_BL {
+		block ALTRO
+	} ;
+	
+	place at start of REGIONE_APP {
+		block CODICE
+	} ;        
+}
+
+place at start of REG_ITCM {
+    block CODRAM,
+} ;
+
+place at start of REG_RAM {
+    block VARIABILI,
+	// Uno dei due ci deve essere
+    block HEAP,
+	block HEAP_X,
+} ;
+
+place at start of REG_RAM_NC {
+	block RAM_NO_CACHE
+} ;
+
+place at start of REG_DTCM {
+    block RAM_COMUNE,
+	block RAM_FPGA,
+	block RAM_DTCM
+} ;
+
+place at end of REG_DTCM {
+    block CSTACK	
+} ;

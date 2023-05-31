@@ -1,0 +1,107 @@
+
+/******************* REGIONI **************************************************/
+
+define symbol INIZIO_BL       = ROM_INIZIO ;
+define symbol INIZIO_APP      = INIZIO_BL + DIM_BL;
+
+define region REGIONE_BL   	  = mem:[from INIZIO_BL  size DIM_BL] ;
+define region REGIONE_APP     = mem:[from INIZIO_APP size DIM_APP] ;
+
+/******************* REGIONI RAM *****************************************/
+
+define region REG_ITCM   = mem:[from ITCM_INIZIO   to ITCM_FINE] ;
+define region REG_DTCM   = mem:[from DTCM_INIZIO   to DTCM_FINE] ;
+define region REG_RAM    = mem:[from AXI_INIZIO      to AXI_FINE] ;
+define region REG_RAM_NC = mem:[from AXI_ITCM_INIZIO to AXI_ITCM_FINE] ;
+define region REG_SRAM12 = mem:[from SRAM12_INIZIO to SRAM12_FINE] ;
+define region REG_SRAM4  = mem:[from SRAM4_INIZIO  to SRAM4_FINE] ;
+
+/******************* BLOCCHI SPECIALI *****************************************/
+
+define block SRAM12 { 
+	section .sram12
+} ;
+do not initialize  { section .sram12 } ;
+
+define block SRAM4 { 
+	section .sram4
+} ;
+do not initialize  { section .sram4 } ;
+
+define block CODRAM { 
+	section .codram
+} ;
+do not initialize  { section .codram } ;
+
+// Scambio informazioni bootloader/applicativo
+// -------------
+
+define symbol DIMENSIONE_RAM_COMUNE = 1K ;
+
+define block RAM_COMUNE with size = DIMENSIONE_RAM_COMUNE {
+	section .ram_comune
+} ;
+do not initialize  { section .ram_comune } ;
+
+// Programmazione FPGA
+// -------------
+
+define block RAM_FPGA {
+	section .fpga
+} ;
+do not initialize  { section .fpga } ;
+
+// Area senza cache
+// -------------
+
+define block RAM_NO_CACHE  {
+	section .no_cache,
+	section .ethernet
+} ;
+do not initialize  { section .no_cache } ;
+do not initialize  { section .ethernet } ;
+
+// Area DTCM
+// -------------
+
+define block RAM_DTCM {
+	section .dtcm
+} ;
+do not initialize  { section .DTCM } ;
+
+
+/******************* BLOCCHI **************************************************/
+
+// ----------------------------------------------
+// Programma corrente
+// ----------------------------------------------
+
+define block CODICE with fixed order {            
+	readonly section .intvec,
+	// Allungo le interruzioni fino a 1K (per MB, opzionale)
+	readonly section .ai1k,
+    readonly section DESCRITTORE,
+    readonly,
+    readonly section ALLINEAMENTO
+} ;
+
+// ----------------------------------------------
+// Altro programma
+// ----------------------------------------------
+
+if (isdefinedsymbol (ALLOCA_BL)) {
+	define block ALTRO with size = DIM_APP {} ;
+	keep { block ALTRO } ;
+}
+else {
+	define block ALTRO with size = DIM_BL {} ;
+	keep { block ALTRO } ;
+}
+
+// ----------------------------------------------
+// Variabili 
+// ----------------------------------------------
+define block VARIABILI with fixed order {
+	readwrite
+} ;
+

@@ -1,0 +1,203 @@
+/*
+    1024 KiB flash (8 pagine da 128 KiB)
+     vari blocchi di ram sparsi in giro
+*/
+
+define memory mem with size = 4G;
+
+define symbol ROM_INIZIO = 0x08000000 ;
+define symbol ROM_FINE   = 0x080FFFFF ;
+
+// ITCM (TCM_AXI_SHARED = 0)
+define symbol ITCM_INIZIO = 0x00000000 ;
+define symbol ITCM_FINE   = 0x0000FFFF ;
+
+// DTCM
+define symbol DTCM_INIZIO = 0x20000000 ;
+define symbol DTCM_FINE   = 0x2001FFFF ;
+
+// D1 domain
+define symbol AXI_INIZIO = 0x24000000 ;
+define symbol AXI_FINE   = 0x2401FFFF ;
+
+// TCM_AXI_SHARED = 0
+define symbol AXI_ITCM_INIZIO = 0x24020000 ;
+define symbol AXI_ITCM_FINE   = 0x2404FFFF ;
+
+// D2 domain
+define symbol SRAM12_INIZIO = 0x30000000 ;
+define symbol SRAM12_FINE   = 0x30007FFF ;
+
+// D3 domain
+define symbol SRAM4_INIZIO = 0x38000000 ;
+define symbol SRAM4_FINE   = 0x38003FFF ;
+
+
+// Questi ci sono sempre
+
+define block CSTACK with alignment = 8, size = STACK_DIM { } ;
+define block HEAP   with alignment = 8, size = HEAP_DIM  { } ;
+
+initialize by copy { readwrite };
+do not initialize  { section .noinit } ;
+
+// Se si usano heap_[1|2|4] mettere qui ucHeap
+define block HEAP_X { 
+	section .heap_x
+} ;
+do not initialize  { section .heap_x } ;
+
+
+/*
+    Esempio: area di ram aggiuntiva
+
+        1) limiti (processore.icf)
+            define symbol SRAM4_INIZIO = 0x38000000 ;
+            define symbol SRAM4_FINE   = 0x38003FFF ;
+
+        2) regione e blocchi (sezioni.icf)
+            define region REG_SRAM4 = mem:[from SRAM4_INIZIO to SRAM4_FINE] ;
+
+            ...
+
+            define block SRAM4 {
+                section .sram4
+            } ;
+            do not initialize  { section .sram4 } ;
+
+        3) posizionamento (alloca.icf)
+            place at start of REG_SRAM4 {
+                block SRAM4
+            } ;
+
+        4) codice
+            #pragma location=".sram4"
+            static union {
+                uint16_t val[ADC3_NBROFCONVERSION] ;
+                uint32_t x ;
+            } u3 ;
+
+           oppure
+            int pippo
+            __attribute__( ( section(".sram4") ) ) ;
+			
+		   oppure
+		    __attribute__( ( section(".sram4") ) ) 
+            int pippo ;
+            
+		   
+
+
+    Esempio: descrittore del fw
+
+        1) regione e blocchi (sezioni.icf): aggiungo al codice
+            define block CODICE with fixed order {
+                readonly section .intvec,
+                readonly section DESCRITTORE,
+                readonly,
+                readonly section ALLINEAMENTO
+            } ;
+
+        2) codice
+            __root const S_DESCRITTORE  Descrittore @ "DESCRITTORE" = { ...
+
+            __root const uint32_t Allinea @ "ALLINEAMENTO" = 0xEFBEADDE ;
+		   
+		   oppure
+			__root
+			__attribute__( ( section("DESCRITTORE") ) )
+			const S_DESCRITTORE Descrittore = { ... 
+			
+			__root
+			__attribute__( ( section("ALLINEAMENTO") ) )
+			const uint32_t Allinea = 0xEFBEADDE ;
+			
+		   
+
+    Esempio: indirizzo
+
+        #pragma segment=".sram12"
+        static uint8_t * INDIRIZZO_RAM_FPGA = __section_begin(".sram12") ;
+
+
+*/
+
+
+/*  promemoria
+    define memory [ name ] with size = size_expr [ ,unit-size ];
+        Definisce uno spazio di indirizzi
+
+    define region name = region-expr;
+        Definisce uno spazio fisico, cioe' disponibile
+
+        [ memory-name: ][from expr { to expr | size expr } [repeat expr [ displacement expr ]]]
+
+    define block name [ with param, param... ]
+        Raggruppa sezioni, nel codice: __section_begin, __section_end, __section_size (in asm: SFB, SFE, SIZEOF)
+        ma prima occorre dichiararle:
+            #pragma section=".intvec"
+            #pragma segment="APP"
+
+        param   size = expr
+                maximum size = expr
+                alignment = expr
+                fixed order
+    {
+        extended-selectors
+    }
+    [except
+    {
+        section_selectors
+    }];
+
+    define overlay name [ with param, param... ]
+        Come block, ma condividono il name
+        Usare anche:
+            initialize manually { section dentro-overlay };
+    {
+        extended-selectors;
+    }
+    [except
+    {
+        section-selectors
+    } ];
+
+    [ "name": ] place at { address [ memory: ] expr | start of region_expr | end of region_expr }
+    {
+        extended-selectors
+    }
+    [except
+    {
+        section-selectors
+    }];
+
+    Espressioni
+        expression binop expression
+            binop +, -, *, /, %, <<, >>, <, >, ==, !=, &, ^, |, &&, ||
+        unop expression
+            unop +, -, !, ~
+        expression ? expression : expression
+        (expression)
+        number
+            nr [K|M|G|T|P]
+        symbol
+            define [ exported ] symbol name = expr;
+        func-operator
+            minimum(expr,expr)  Returns the smallest of the two parameters.
+            maximum(expr,expr)  Returns the largest of the two parameters.
+            isempty(r)          Returns True if the region is empty, otherwise False.
+            isdefinedsymbol(expr-symbol)
+                                Returns True if the expression symbol is defined, otherwise False.
+            start(r)            Returns the lowest address in the region.
+            end(r)              Returns the highest address in the region.
+            size(r)             Returns the size of the complete region.
+
+
+    Per l'analisi dello stack:
+        nel file .suc:
+            call graph root [task] : nome-funzione ;
+        se e' static non funziona, occorre usare:
+            #pragma call_graph_root="task"
+        subito prima della funzione
+*/
+

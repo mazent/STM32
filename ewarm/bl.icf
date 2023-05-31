@@ -1,0 +1,26 @@
+define symbol STACK_DIM = 10K ;
+define symbol HEAP_DIM  = 80K ;
+
+include "stm32h735xx.icf" ;
+
+define symbol ALLOCA_BL = 1 ;
+
+/*
+    Struttura
+
+	| Blocco | KiB | Sezione | Programma |
+	+--------+-----+---------+-----------+
+    |     0  | 128 | CODICE  | BL        |
+    |--------+-----+---------+-----------+
+    |     1  | 256 |         | SRV       |
+    +--------+-----+ ALTRO   +-----------+
+    |     3  | 640 |         | MAIN      |
+    +--------+-----+---------+-----------+
+*/
+
+define symbol DIM_BL         =  128K ;
+define symbol DIM_APP        =  896K ;
+
+
+include "sezioni.icf" ;
+include "alloca.icf" ;
