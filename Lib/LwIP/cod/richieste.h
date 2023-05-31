@@ -28,9 +28,6 @@ typedef struct {
 typedef struct {
     void * buf ;
     int len ;
-#ifdef USA_MDMA
-    int tot ;
-#endif
     S_NET_IND * ind ;
 } S_REQ_RECVFROM ;
 

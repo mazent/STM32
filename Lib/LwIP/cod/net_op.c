@@ -140,125 +140,7 @@ static void reply_suspended(
 #define error_susp_send(s)      reply_suspended(RT_SEND, s, NET_RISUL_ERROR)
 #define error_susp_accept(s)    reply_suspended(RT_ACCEPT, s, NET_RISUL_ERROR)
 
-#ifdef USA_MDMA
-
-// copia net -> user in corso
-static S_DRV_REQ * cnuCor = NULL ;
-// copia user -> net in corso
-static S_DRV_REQ * cunCor = NULL ;
-
-//static bool copia_sendto(
-//    S_REQUEST_DATA * rd,
-//    struct pbuf * q)
-//{
-//    bool esito = true ;
-//    int sok = rd->sendto.sok ;
-//    uint8_t * buf = rd->sendto.buf ;
-//    int len = rd->sendto.len ;
-//    int dim = 0 ;
-//    while ( dim < rd->sendto.len ) {
-//        const int DIM = MINI(len, q->len) ;
-//        if ( !net_mdma_tx_buf(buf, q->payload, DIM) ) {
-//            esito = false ;
-//            break ;
-//        }
-//        dim += DIM ;
-//        q = q->next ;
-//        if ( NULL == q ) {
-//            break ;
-//        }
-//
-//        buf += DIM ;
-//        len -= DIM ;
-//    }
-//    if ( esito ) {
-//        esito = net_mdma_tx() ;
-//    }
-//
-//    return esito ;
-//}
-
-static bool copia_recvfrom(S_REQUEST_DATA * rd)
-{
-    bool esito = true ;
-    int idx = rd->recvf.idx ;
-    struct pbuf * q = vLoc[idx].p ;
-    uint8_t * buf = rd->recvf.buf ;
-    int len = rd->recvf.len ;
-    int dim = 0 ;
-    while ( dim < rd->recvf.len ) {
-        const int DIM = MINI(len, q->len) ;
-        if ( !net_mdma_rx_buf(buf, q->payload, DIM) ) {
-            esito = false ;
-            break ;
-        }
-        dim += DIM ;
-        q = q->next ;
-        if ( NULL == q ) {
-            break ;
-        }
-
-        buf += DIM ;
-        len -= DIM ;
-    }
-    if ( esito ) {
-        rd->recvf.tot = dim ;
-        if ( rd->recvf.ind ) {
-            rd->recvf.ind->ip = vLoc[idx].addr.addr ;
-            rd->recvf.ind->porta = vLoc[idx].port ;
-        }
-        esito = net_mdma_rx() ;
-    }
-
-    return esito ;
-}
-
-void netop_rx(bool esito)
-{
-    if ( NULL == cnuCor ) {
-        DDB_ERR ;
-        return ;
-    }
-
-    S_REQUEST_DATA * rd = DRV_data(cnuCor) ;
-    pbuf_free(vLoc[rd->idx].p) ;
-    vLoc[rd->idx].p = NULL ;
-
-    if ( esito ) {
-        rd->result = rd->recvf.tot ;
-    }
-    else {
-        rd->result = NET_RISUL_ERROR ;
-    }
-    DRV_remove_susp(&drv, cnuCor) ;
-    DRV_reply(&drv, cnuCor) ;
-    cnuCor = NULL ;
-}
-
-void netop_tx(bool esito)
-{
-//    if ( NULL == cnuCor ) {
-//        DDB_ERR ;
-//        return ;
-//    }
-//
-//    S_REQUEST_DATA * rd = DRV_data(cnuCor) ;
-//    pbuf_free(vSock[rd->sok].p) ;
-//    vSock[rd->sok].p = NULL ;
-//
-//    if ( esito ) {
-//        rd->result = rd->recvf.tot ;
-//    }
-//    else {
-//        rd->result = NET_RISUL_ERROR ;
-//    }
-//    DRV_remove_susp(&drv, cnuCor) ;
-//    DRV_reply(&drv, cnuCor) ;
-//    cnuCor = NULL ;
-}
-
-#else
-
+#if LWIP_UDP
 static int copia_recvfrom(S_REQUEST_DATA * rd)
 {
     int sok = rd->sok ;
@@ -289,46 +171,6 @@ static int copia_recvfrom(S_REQUEST_DATA * rd)
     return dim ;
 }
 
-#endif
-
-#ifdef USA_MDMA
-static void udp_rx_cb(
-    void * arg,
-    struct udp_pcb * pcb,
-    struct pbuf * p,
-    const ip_addr_t * addr,
-    uint16_t port)
-{
-    UN_SOCK * pUS = arg ;
-    S_DRV_REQ * pR = NULL ;
-
-    INUTILE(pcb) ;
-
-    if ( pUS->p ) {
-        pbuf_free(pUS->p) ;
-    }
-
-    pUS->p = p ;
-    pUS->addr = *addr ;
-    pUS->port = port ;
-
-    pR = remove_susp_recvf(pUS->idx) ;
-    if ( pR ) {
-        S_REQUEST_DATA * rd = DRV_data(pR) ;
-        DRV_suspend(&drv, pR) ;
-
-        if ( net_mdma_rx_iniz() ) {
-            cnuCor = pR ;
-            DDB_CONTROLLA( copia_recvfrom(rd) ) ;
-        }
-        else {
-            // alla prossima
-            DDB_DBG ;
-        }
-    }
-}
-
-#else
 static void udp_rx_cb(
     void * arg,
     struct udp_pcb * pcb,
@@ -370,7 +212,49 @@ ancora:
     }
 }
 
+static int sok_udp(int sok)
+{
+    struct udp_pcb * pcb = udp_new_ip_type(IPADDR_TYPE_ANY) ;
+    if ( NULL == pcb ) {
+        DDB_ERR ;
+        return -1 ;
+    }
+
+    vLoc[sok].tcp = false ;
+    vLoc[sok].pcb = pcb ;
+    udp_recv(pcb, udp_rx_cb, &vLoc[sok]) ;
+    return sok ;
+}
+
 #endif
+
+static void libera_pbuf(UN_SOCK * pS)
+{
+    if ( pS->p ) {
+        pbuf_free(pS->p) ;
+        pS->p = NULL ;
+    }
+}
+
+
+#if LWIP_TCP
+
+#define CHIUDI_SOK               \
+    DDB_DBG ;                    \
+    error_susp_recv(sok) ;       \
+    error_susp_send(sok) ;       \
+                                 \
+    tcp_arg(tpcb, NULL) ;        \
+    tcp_sent(tpcb, NULL) ;       \
+    tcp_recv(tpcb, NULL) ;       \
+    tcp_err(tpcb, NULL) ;        \
+    tcp_poll(tpcb, NULL, 0) ;    \
+                                 \
+    libera_pbuf(pS) ;            \
+    pS->pcb = NULL ;             \
+                                 \
+    tcp_close(tpcb)
+
 
 // non mi piace la versione originale
 static struct pbuf * port_pbuf_dechain(struct pbuf * p)
@@ -415,28 +299,6 @@ static int copia_recv(
     return dim ;
 }
 
-static int sok_udp(int sok)
-{
-    struct udp_pcb * pcb = udp_new_ip_type(IPADDR_TYPE_ANY) ;
-    if ( NULL == pcb ) {
-        DDB_ERR ;
-        return -1 ;
-    }
-
-    vLoc[sok].tcp = false ;
-    vLoc[sok].pcb = pcb ;
-    udp_recv(pcb, udp_rx_cb, &vLoc[sok]) ;
-    return sok ;
-}
-
-static void libera_pbuf(UN_SOCK * pS)
-{
-    if ( pS->p ) {
-        pbuf_free(pS->p) ;
-        pS->p = NULL ;
-    }
-}
-
 static void trasmetti(
     struct tcp_pcb * pcb,
     S_DRV_REQ * pR)
@@ -477,22 +339,6 @@ static void trasmetti(
         DRV_suspend(&drv, pR) ;
     } while ( false ) ;
 }
-
-#define CHIUDI_SOK               \
-    DDB_DBG ;                    \
-    error_susp_recv(sok) ;       \
-    error_susp_send(sok) ;       \
-                                 \
-    tcp_arg(tpcb, NULL) ;        \
-    tcp_sent(tpcb, NULL) ;       \
-    tcp_recv(tpcb, NULL) ;       \
-    tcp_err(tpcb, NULL) ;        \
-    tcp_poll(tpcb, NULL, 0) ;    \
-                                 \
-    libera_pbuf(pS) ;            \
-    pS->pcb = NULL ;             \
-                                 \
-    tcp_close(tpcb)
 
 static void x_recv_cb(
     UN_SOCK * pS,
@@ -638,21 +484,26 @@ static int sok_tcp(int sok)
     return sok ;
 }
 
+#endif
 static void rt_socket(
     S_DRV_REQ * pR,
     S_REQUEST_DATA * rd)
 {
     int tmp = uno_libero() ;
+    rd->result = NET_RISUL_ERROR ;
     if ( -1 == tmp ) {
         DDB_ERR ;
-        rd->result = NET_RISUL_ERROR ;
     }
     else {
         if ( rd->tcp ) {
+#if LWIP_TCP
             rd->result = sok_tcp(tmp) ;
+#endif
         }
         else {
+#if LWIP_UDP
             rd->result = sok_udp(tmp) ;
+#endif
         }
     }
 
@@ -668,6 +519,7 @@ static void rt_close_x(
         // Ottimo
     }
     else if ( pS->tcp ) {
+#if LWIP_TCP
         err_t e = tcp_close(pS->pcb) ;
         if ( ERR_OK == e ) {
             pS->pcb = NULL ;
@@ -680,8 +532,10 @@ static void rt_close_x(
         else {
             DDB_ERR ;
         }
+#endif
     }
     else {
+#if LWIP_UDP
         udp_remove(pS->pcb) ;
 
         pS->pcb = NULL ;
@@ -689,8 +543,8 @@ static void rt_close_x(
 
         error_susp_recvfrom(rd->sok) ;
         error_susp_sendto(rd->sok) ;
+#endif
     }
-
     if ( pR ) {
         rd->result = 0 ;
         DRV_reply(&drv, pR) ;
@@ -734,6 +588,7 @@ void netop_fine(void)
     DRV_free_all(&drv) ;
 }
 
+#if LWIP_TCP
 static err_t tcp_connected_cb(
     void * arg,
     struct tcp_pcb * tpcb,
@@ -757,6 +612,7 @@ static err_t tcp_connected_cb(
     return ERR_OK ;
 }
 
+#endif
 static void rt_connect(
     S_DRV_REQ * pR,
     S_REQUEST_DATA * rd)
@@ -776,6 +632,7 @@ static void rt_connect(
     } ;
 
     if ( vLoc[sok].tcp ) {
+#if LWIP_TCP
         tcp_arg(vLoc[sok].pcb, &vLoc[sok]) ;
         err_t e = tcp_connect(vLoc[sok].pcb,
                               &ipaddr,
@@ -790,8 +647,10 @@ static void rt_connect(
         else {
             DRV_suspend(&drv, pR) ;
         }
+#endif
     }
     else {
+#if LWIP_UDP
         err_t e = udp_connect(vLoc[sok].pcb, &ipaddr, porta) ;
         if ( ERR_OK != e ) {
             DDB_ERR ;
@@ -802,6 +661,7 @@ static void rt_connect(
             rd->result = 0 ;
         }
         DRV_reply(&drv, pR) ;
+#endif
     }
 }
 
@@ -815,18 +675,21 @@ static void rt_bind(
         rd->result = NET_RISUL_ERROR ;
     }
     else {
-        err_t e ;
+        err_t e = ERR_ARG ;
 
         // nel pcb sono in host order
         uint16_t porta = ntohs(rd->bind.porta) ;
 
         if ( vLoc[sok].tcp ) {
+#if LWIP_TCP
             e = tcp_bind(vLoc[sok].pcb, NULL, porta) ;
+#endif
         }
         else {
+#if LWIP_UDP
             e = udp_bind(vLoc[sok].pcb, NULL, porta) ;
+#endif
         }
-
         if ( ERR_OK == e ) {
             rd->result = 0 ;
         }
@@ -839,6 +702,7 @@ static void rt_bind(
     DRV_reply(&drv, pR) ;
 }
 
+#if LWIP_UDP
 static void rt_recvfrom(
     S_DRV_REQ * pR,
     S_REQUEST_DATA * rd)
@@ -863,22 +727,8 @@ static void rt_recvfrom(
             break ;
         }
         // ci sono dati!
-#ifdef USA_MDMA
-        DRV_suspend(&drv, pR) ;
-        if ( net_mdma_rx_iniz() ) {
-            // se riesce, la richiesta si conclude alla fine dell'mdma
-            // altrimenti c'e' un errore irrecuperabile
-            cnuCor = pR ;
-            DDB_CONTROLLA( copia_recvfrom(rd) ) ;
-        }
-        else {
-            // alla prossima
-            DDB_DBG ;
-        }
-#else
         rd->result = copia_recvfrom(rd) ;
         DRV_reply(&drv, pR) ;
-#endif
     } while ( false ) ;
 }
 
@@ -910,24 +760,6 @@ static void rt_sendto(
             DRV_reply(&drv, pR) ;
             break ;
         }
-#ifdef USA_MDMA_
-        if ( !net_mdma_tx_iniz() ) {
-            DDB_ERR ;
-            rd->result = NET_RISUL_ERROR ;
-            DRV_reply(&drv, pR) ;
-        }
-        else {
-            cunCor = pR ;
-            if ( copia_sendto(rd, p) ) {
-                DRV_suspend(&drv, pR) ;
-            }
-            else {
-                DDB_ERR ;
-                rd->result = NET_RISUL_ERROR ;
-                DRV_reply(&drv, pR) ;
-            }
-        }
-#else
         err_t e = pbuf_take(p, rd->sendto.buf, rd->sendto.len) ;
         if ( ERR_OK != e ) {
             DDB_ERR ;
@@ -941,8 +773,8 @@ static void rt_sendto(
         uint16_t porta = ntohs(rd->sendto.ind.porta) ;
 
         DDB_DEBUG("[%d] sendto %s:%04X", p->tot_len,
-                   ip4addr_ntoa(
-                       (ip_addr_t const *) &rd->sendto.ind.ip), porta) ;
+                  ip4addr_ntoa(
+                      (ip_addr_t const *) &rd->sendto.ind.ip), porta) ;
         e = udp_sendto(vLoc[sok].pcb,
                        p,
                        (ip_addr_t const *) &rd->sendto.ind.ip, porta) ;
@@ -956,10 +788,11 @@ static void rt_sendto(
         }
         pbuf_free(p) ;
         DRV_reply(&drv, pR) ;
-#endif
     } while ( false ) ;
 }
 
+#endif
+#if LWIP_TCP
 static void rt_listen(
     S_DRV_REQ * pR,
     S_REQUEST_DATA * rd)
@@ -1203,6 +1036,7 @@ static void rt_send(
     } while ( false ) ;
 }
 
+#endif
 void netop_ric(void)
 {
     while ( true ) {
@@ -1225,6 +1059,7 @@ void netop_ric(void)
             DDB_PUT(DBG_REQ, "RT_BIND") ;
             rt_bind(pR, rd) ;
             break ;
+#if LWIP_UDP
         case RT_RECVFROM:
             DDB_PUT(DBG_REQ, "RT_RECVFROM") ;
             rt_recvfrom(pR, rd) ;
@@ -1233,6 +1068,8 @@ void netop_ric(void)
             DDB_PUT(DBG_REQ, "RT_SENDTO") ;
             rt_sendto(pR, rd) ;
             break ;
+#endif
+#if LWIP_TCP
         case RT_LISTEN:
             DDB_PUT(DBG_REQ, "RT_LISTEN") ;
             rt_listen(pR, rd) ;
@@ -1249,6 +1086,7 @@ void netop_ric(void)
             DDB_PUT(DBG_REQ, "RT_SEND") ;
             rt_send(pR, rd) ;
             break ;
+#endif
         case RT_CONNECT:
             DDB_PUT(DBG_REQ, "RT_CONNECT") ;
             rt_connect(pR, rd) ;
@@ -1310,7 +1148,7 @@ uint32_t NET_risul(
             case RT_RECV:
             case RT_SEND:
             case RT_CONNECT:
-            	DDB_DEBUG("%s %08X",__func__,pR);
+                DDB_DEBUG("%s %08X", __func__, pR) ;
                 esito = rd->result ;
                 break ;
             default:
@@ -1358,7 +1196,7 @@ bool NET_socket_ini(
             break ;
         }
 
-        DDB_DEBUG("%s %08X",__func__,pR);
+        DDB_DEBUG("%s %08X", __func__, pR) ;
 
         S_REQUEST_DATA * rd = DRV_data(pR) ;
 
@@ -1416,7 +1254,7 @@ bool NET_close_ini(
             break ;
         }
 
-        DDB_DEBUG("%s %08X",__func__,pR);
+        DDB_DEBUG("%s %08X", __func__, pR) ;
 
         S_REQUEST_DATA * rd = DRV_data(pR) ;
 
@@ -1475,7 +1313,7 @@ bool NET_connect_ini(
             break ;
         }
 
-        DDB_DEBUG("%s %08X",__func__,pR);
+        DDB_DEBUG("%s %08X", __func__, pR) ;
 
         S_REQUEST_DATA * rd = DRV_data(pR) ;
 
@@ -1531,7 +1369,7 @@ bool NET_bind_ini(
             break ;
         }
 
-        DDB_DEBUG("%s %08X",__func__,pR);
+        DDB_DEBUG("%s %08X", __func__, pR) ;
 
         S_REQUEST_DATA * rd = DRV_data(pR) ;
 
@@ -1561,7 +1399,7 @@ bool NET_recvfrom_ini(
     S_NET_IND * ind)
 {
     bool esito = false ;
-
+#if LWIP_UDP
     do {
         assert(op) ;
         if ( NULL == op ) {
@@ -1596,7 +1434,7 @@ bool NET_recvfrom_ini(
             break ;
         }
 
-        DDB_DEBUG("%s %08X",__func__,pR);
+        DDB_DEBUG("%s %08X", __func__, pR) ;
 
         S_REQUEST_DATA * rd = DRV_data(pR) ;
 
@@ -1616,7 +1454,13 @@ bool NET_recvfrom_ini(
 
         esito = true ;
     } while ( false ) ;
-
+#else
+    INUTILE(op) ;
+    INUTILE(sok) ;
+    INUTILE(buf) ;
+    INUTILE(len) ;
+    INUTILE(ind) ;
+#endif
     return esito ;
 }
 
@@ -1628,7 +1472,7 @@ bool NET_sendto_ini(
     S_NET_IND * ind)
 {
     bool esito = false ;
-
+#if LWIP_UDP
     do {
         assert(op) ;
         if ( NULL == op ) {
@@ -1667,7 +1511,7 @@ bool NET_sendto_ini(
             break ;
         }
 
-        DDB_DEBUG("%s %08X",__func__,pR);
+        DDB_DEBUG("%s %08X", __func__, pR) ;
 
         S_REQUEST_DATA * rd = DRV_data(pR) ;
 
@@ -1687,7 +1531,13 @@ bool NET_sendto_ini(
 
         esito = true ;
     } while ( false ) ;
-
+#else
+    INUTILE(op) ;
+    INUTILE(sok) ;
+    INUTILE(buf) ;
+    INUTILE(len) ;
+    INUTILE(ind) ;
+#endif
     return esito ;
 }
 
@@ -1697,7 +1547,7 @@ bool NET_listen_ini(
     int backlog)
 {
     bool esito = false ;
-
+#if LWIP_TCP
     do {
         assert(op) ;
         if ( NULL == op ) {
@@ -1733,7 +1583,7 @@ bool NET_listen_ini(
             break ;
         }
 
-        DDB_DEBUG("%s %08X",__func__,pR);
+        DDB_DEBUG("%s %08X", __func__, pR) ;
 
         S_REQUEST_DATA * rd = DRV_data(pR) ;
 
@@ -1751,7 +1601,11 @@ bool NET_listen_ini(
 
         esito = true ;
     } while ( false ) ;
-
+#else
+    INUTILE(op) ;
+    INUTILE(sok) ;
+    INUTILE(backlog) ;
+#endif
     return esito ;
 }
 
@@ -1761,7 +1615,7 @@ bool NET_accept_ini(
     S_NET_IND * ind)
 {
     bool esito = false ;
-
+#if LWIP_TCP
     do {
         assert(op) ;
         if ( NULL == op ) {
@@ -1789,7 +1643,7 @@ bool NET_accept_ini(
             break ;
         }
 
-        DDB_DEBUG("%s %08X",__func__,pR);
+        DDB_DEBUG("%s %08X", __func__, pR) ;
 
         S_REQUEST_DATA * rd = DRV_data(pR) ;
 
@@ -1807,7 +1661,11 @@ bool NET_accept_ini(
 
         esito = true ;
     } while ( false ) ;
-
+#else
+    INUTILE(op) ;
+    INUTILE(sok) ;
+    INUTILE(ind) ;
+#endif
     return esito ;
 }
 
@@ -1818,7 +1676,7 @@ bool NET_recv_ini(
     int len)
 {
     bool esito = false ;
-
+#if LWIP_TCP
     do {
         assert(op) ;
         if ( NULL == op ) {
@@ -1857,7 +1715,7 @@ bool NET_recv_ini(
             break ;
         }
 
-        DDB_DEBUG("%s %08X",__func__,pR);
+        DDB_DEBUG("%s %08X", __func__, pR) ;
 
         S_REQUEST_DATA * rd = DRV_data(pR) ;
 
@@ -1876,7 +1734,12 @@ bool NET_recv_ini(
 
         esito = true ;
     } while ( false ) ;
-
+#else
+    INUTILE(op) ;
+    INUTILE(sok) ;
+    INUTILE(buf) ;
+    INUTILE(len) ;
+#endif
     return esito ;
 }
 
@@ -1887,7 +1750,7 @@ bool NET_send_ini(
     int len)
 {
     bool esito = false ;
-
+#if LWIP_TCP
     do {
         assert(op) ;
         if ( NULL == op ) {
@@ -1926,7 +1789,7 @@ bool NET_send_ini(
             break ;
         }
 
-        DDB_DEBUG("%s %08X",__func__,pR);
+        DDB_DEBUG("%s %08X", __func__, pR) ;
 
         S_REQUEST_DATA * rd = DRV_data(pR) ;
 
@@ -1945,7 +1808,12 @@ bool NET_send_ini(
 
         esito = true ;
     } while ( false ) ;
-
+#else
+    INUTILE(op) ;
+    INUTILE(sok) ;
+    INUTILE(buf) ;
+    INUTILE(len) ;
+#endif
     return esito ;
 }
 

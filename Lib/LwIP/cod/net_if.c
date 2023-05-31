@@ -81,6 +81,10 @@ ETH_TxPacketConfig TxConfig ;
 
 #define RXBUFF_T_DIM_BUFF   DCACHE_LINE_ARR(ETH_RX_BUFFER_SIZE)
 
+#if LWIP_TCP + LWIP_UDP == 0
+#error SCEGLI ALMENO UNO DEI DUE
+#endif
+
 #if USA_NET_FINE
 
 /*
@@ -475,20 +479,6 @@ static void netTHD(void * argument)
         if ( EVN_RIC & evn.value.signals ) {
             netop_ric() ;
         }
-#ifdef USA_MDMA
-        if ( EVN_MDMA_RX_B & evn.value.signals ) {
-            netop_rx(true) ;
-        }
-        if ( EVN_MDMA_RX_M & evn.value.signals ) {
-            netop_rx(false) ;
-        }
-//        if ( EVN_MDMA_TX_B & evn.value.signals ) {
-//            netop_tx(true) ;
-//        }
-//        if ( EVN_MDMA_TX_M & evn.value.signals ) {
-//            netop_tx(false) ;
-//        }
-#endif
     }
 #if USA_NET_FINE
     DBG_QUA ;
