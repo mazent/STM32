@@ -1,0 +1,148 @@
+<HTML>
+
+<!--
+    Simboli: https://htmlhelp.com/reference/html40/entities/
+
+    Per i grafici:
+        *) Il file di testo puo' essere creato con http://www.asciiflow.com/
+           Le immagini si ottengono con:
+                java -jar ditaa0_9.jar ?.txt ?.png
+        *) dot (www.graphviz.org)
+		*) https://www.websequencediagrams.com/
+		*) https://mermaid-js.github.io/mermaid-live-editor
+
+
+    Analisi python in github
+        https://codeclimate.com/oss/dashboard
+
+	hex speak: http://www.datagenetics.com/blog/march42013/index.html
+	    g -> 9    l -> 1    q ->        v ->
+	    h ->      m ->      r ->        w ->
+	    i -> 1    n ->      s -> 5      x ->
+	    j ->      o -> 0    t -> 7      y ->
+	    k ->      p ->      u ->        z -> 2
+
+	stile: http://www.w3.org/TR/html401/present/styles.html#edef-STYLE
+	.nome -> class="nome"
+	#nome -> id="nome"  (p.e. nei link interni)
+	
+	div:  block-level 
+	span: inline 
+	
+	formule:
+		https://www.mathjax.org/
+		https://www.caam.rice.edu/~heinken/latex/symbols.pdf
+		$$...$$ and \[...\] for displayed mathematics, and \(...\) for in-line mathematics
+-->
+
+<HEAD>
+    <TITLE>Parametri</TITLE>
+    <STYLE TYPE="text/css">
+		H1              { text-align: center }
+        H2              { text-align: center }
+		P               { text-align: justify }
+		P:first-letter  { margin-left: 1cm }
+		DL:first-letter { margin-left: 1cm }
+		DT:first-letter { margin-left: 2cm }
+		DD:first-letter { margin-left: 2cm }
+		CAPTION         { font-weight: bold }
+		TD.titolo       { text-align: center; font-weight: bold; color: blue }
+        TD.centra       { text-align: center }
+
+		.evidenzia      { font-weight: bold; color: blue; font-size: 2em }
+		.attenzione     { font-weight: bold; color: red }
+		.corsivo		{ font-style: italic }
+		.neretto	    { font-weight: bold }
+		.nullo			{ text-decoration: line-through}
+    </STYLE>
+
+	<script type="text/javascript" async
+		src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-MML-AM_CHTML">
+	</script>
+	
+</HEAD>
+
+<BODY>
+    <H1>Parametri</H1>
+
+		<P>I parametri sono salvati in una eeprom (<CODE>at24c512c</CODE>) organizzata in <CODE>512</CODE> pagine da <CODE>128</CODE> byte
+		
+		<P>Ogni pagina contiene uno o pi&ugrave; parametri 
+				
+		<P><TABLE border="1" cellspacing="0" cellpadding="4" align=center>
+			<CAPTION>Pagine note
+			<TR>
+				<TH>Indice</TH> 
+				<TH>Contenuto</TH> 
+			</TR>
+			<TR>
+				<TD><CODE>0</CODE></TD>
+				<TD>Numero di serie</TD>
+			</TR>
+			<TR>
+				<TD><CODE>1</CODE></TD>
+				<TD>Stato del collaudo</TD>
+			</TR>
+		</TABLE> 
+
+<DIV class="nullo">
+	<H2><CODE>param_wl.c</CODE></H2>
+		
+		<H3>Caratteristiche</H3>
+					
+			<P>Si preferisce non riscrivere nuovamente la stessa pagina ma salvare i nuovi dati in una nuova posizione (<CITE>wear-leveling</CITE>)
+			
+			<P>Esistono quindi pagine fisiche sulle quali vengono salvate pagine logiche
+			
+			<P>&starf;
+			
+			<P>Il contenuto viene cifrato
+			
+		<H3>Struttura della pagina</H3>
+			
+			<P><OL>Ogni pagina &egrave; composta da:
+				<LI><CODE>uint32_t</CODE>: versione della pagina logica
+				<LI><CODE>uint8_t</CODE>: indice della pagina logica
+				<LI><CODE>uint8_t[11]</CODE>: casuali (assieme ai precedenti forma l'<CITE>initialization vector</CITE>)
+				<LI><CODE>uint8_t[112]</CODE>: contenuto (cifrato con <CITE>AES-128 CBC</CITE>)
+			</OL>
+</DIV>
+			
+		<H3 id="sicu">Sicurezza</H3>
+		
+			<P>La chiave per <CITE>aes</CITE> viene calcolata cos&igrave;:
+<PRE>
+SHA1( SHA1( SHA1(uid) ) )[0..15]
+</PRE>
+
+			<P>L'uid (<CITE>Unique device ID</CITE>) fornisce una chiave diversa per ogni dispositivo
+
+			<P>Il triplo sha evita i <CITE>codebook</CITE> 
+	
+	<H2><CODE>param.c</CODE></H2>
+		
+		<H3>Caratteristiche</H3>
+					
+			<P>Ogni gruppo di parametri viene salvato sempre nella stessa pagina
+			
+			<P>&starf;
+			
+			<P>Il contenuto viene cifrato
+			
+		<H3>Struttura della pagina</H3>
+			
+			<P><OL>Ogni pagina &egrave; composta da:
+				<LI><CODE>uint8_t[16]</CODE>: <CITE>initialization vector</CITE>
+				<LI><CODE>uint8_t[112]</CODE>: contenuto (cifrato con <CITE>AES-128 CBC</CITE>)
+			</OL>
+			
+		<H3>Sicurezza</H3>
+		
+			<P>Come <A  href="#sicu">sopra</A> 
+		
+		
+		
+
+	
+</BODY>
+</HTML>
