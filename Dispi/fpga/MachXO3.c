@@ -5,7 +5,8 @@
 #include "stm32h7xx_hal.h"
 #include "hash.h"
 
-extern void fpga_programn(bool) ;
+// Deve offrirmelo bsp.h
+// void fpga_programn(bool) ;
 
 
 // Qui c'e' la roba
@@ -196,7 +197,7 @@ bool FPGA_config(void)
             DBG_ERR ;
             break ;
         }
-        else if ( dimbit > DIM_BIT ) {
+        if ( dimbit > DIM_BIT ) {
             DBG_ERR ;
             break ;
         }

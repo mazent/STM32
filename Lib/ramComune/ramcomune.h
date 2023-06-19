@@ -13,7 +13,7 @@ typedef enum {
 } RC_TIPO_BOOT ;
 
 RC_TIPO_BOOT RC_cosa_butto(void) ;
-void RC_butta_questo(RC_TIPO_BOOT) ;
+void RC_butta_questo(RC_TIPO_BOOT /*tb*/) ;
 
 void RC_ma(bool valida) ;
 void RC_sa(bool valida) ;

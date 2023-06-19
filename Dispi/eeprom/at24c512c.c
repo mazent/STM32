@@ -30,7 +30,7 @@ bool EEP_leggi(
             DBG_ERR ;
             break ;
         }
-        else if ( dim > EEP_DIM_PAGINA ) {
+        if ( dim > EEP_DIM_PAGINA ) {
             DBG_ERR ;
             break ;
         }
@@ -73,7 +73,7 @@ bool EEP_scrivi(
             DBG_ERR ;
             break ;
         }
-        else if ( dim > EEP_DIM_PAGINA ) {
+        if ( dim > EEP_DIM_PAGINA ) {
             DBG_ERR ;
             break ;
         }

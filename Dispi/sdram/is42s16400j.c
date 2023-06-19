@@ -1,6 +1,8 @@
 #include "bsp.h"
 #include "sdram.h"
 
+#ifdef HAL_SDRAM_MODULE_ENABLED
+
 #if SDRAM_BANK == FMC_SDRAM_BANK1
 #   define FMC_SDRAM_CMD_TARGET_BANK    FMC_SDRAM_CMD_TARGET_BANK1
 #else
@@ -76,3 +78,5 @@ void SDRAM_Initialization_Sequence(SDRAM_HandleTypeDef * hsdram)
     /* Set the device refresh counter */
     HAL_SDRAM_ProgramRefreshRate(hsdram, REFRESH_COUNT) ;
 }
+
+#endif

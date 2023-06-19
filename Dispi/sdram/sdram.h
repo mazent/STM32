@@ -3,7 +3,11 @@
 
 #include "stm32h7xx_hal.h"
 
-void SDRAM_Initialization_Sequence(SDRAM_HandleTypeDef *) ;
+#ifdef HAL_SDRAM_MODULE_ENABLED
+
+void SDRAM_Initialization_Sequence(SDRAM_HandleTypeDef * /*hsdram*/) ;
+
+#endif
 
 #else
 #   warning sdram.h incluso

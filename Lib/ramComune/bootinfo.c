@@ -4,7 +4,7 @@
 #ifndef DESCRITTORE_MIO
 
 #include "ramcomune.h"
-#include "boot/fwh.h"
+#include "../boot/fwh.h"
 
 /*
  * Scambio di informazioni col resto del mondo stile MB

@@ -16,7 +16,7 @@
 // Legge una pagina (da 0 a EEP_NUM_PAGINE-1)
 // Torna NULL se errore
 // La memoria viene da una zona unica: copiatela prima di invocare di nuovo
-const void * prm_leggi(uint16_t) ;
+const void * prm_leggi(uint16_t /*fis*/) ;
 
 // Oppure passate la zona dove copiarla
 static inline bool prm_copia(
@@ -34,7 +34,7 @@ static inline bool prm_copia(
 }
 
 // Scrive una pagina (da 0 a EEP_NUM_PAGINE-1)
-bool prm_scrivi(uint16_t, const void *, uint8_t) ;
+bool prm_scrivi(uint16_t /*fis*/, const void * /*prm*/, uint8_t /*dim*/) ;
 
 #else
 #   warning param.h incluso

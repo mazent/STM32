@@ -93,7 +93,7 @@ typedef struct commonHeader {
     uint8_t reserved[84] ;
 } commonHeader ;
 
-bool app_valida(const uint32_t dove) ;
+bool app_valida(uint32_t dove) ;
 
 #endif
 

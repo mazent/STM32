@@ -22,8 +22,8 @@ static bool h_valido(const commonHeader * pD)
 }
 
 static uint32_t fw_crc32(
-    uint8_t *,
-    uint32_t) ;
+    void * /*bin*/,
+    uint32_t /*dim*/) ;
 
 bool app_valida(const uint32_t dove)
 {
@@ -185,7 +185,7 @@ static CRC_HandleTypeDef hcrc = {
 #define DIM_PRIVATE_H       128
 
 static uint32_t fw_crc32(
-    uint8_t * bin,
+    void * bin,
     uint32_t dim)
 {
     uint32_t crc = 0 ;

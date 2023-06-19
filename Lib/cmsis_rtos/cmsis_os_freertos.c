@@ -122,11 +122,10 @@ osStatus osKernelStart(void)
     if ( xPortInIsrContext() ) {
         return osErrorISR ;
     }
-    else {
-        vTaskStartScheduler() ;
 
-        return osOK ;
-    }
+    vTaskStartScheduler() ;
+
+    return osOK ;
 }
 
 ///// Check if the RTOS kernel is already started.
@@ -141,9 +140,8 @@ uint32_t osKernelSysTick(void)
     if ( xPortInIsrContext() ) {
         return xTaskGetTickCountFromISR() ;
     }
-    else {
-        return xTaskGetTickCount() ;
-    }
+
+    return xTaskGetTickCount() ;
 }
 
 ///// The RTOS kernel system timer frequency in Hz
@@ -164,9 +162,8 @@ void * ose_malloc(size_t dim)
     if ( dim ) {
         return pvPortMalloc(dim) ;
     }
-    else {
-        return NULL ;
-    }
+
+    return NULL ;
 }
 
 void ose_free(void * v)
@@ -346,26 +343,24 @@ osStatus osTimerStart(
     if ( xPortInIsrContext() ) {
         return osErrorISR ;
     }
-    else {
-        if ( millisec != timer_id->milli ) {
-            if ( pdPASS ==
-                 xTimerChangePeriod(timer_id->h, ms_in_tick(millisec), 0) ) {
-                timer_id->milli = millisec ;
-            }
-            else {
-                DBG_ERR ;
-                return osErrorOS ;
-            }
-        }
 
-        if ( pdPASS == xTimerStart(timer_id->h, 0) ) {
-            return osOK ;
+    if ( millisec != timer_id->milli ) {
+        if ( pdPASS ==
+             xTimerChangePeriod(timer_id->h, ms_in_tick(millisec), 0) ) {
+            timer_id->milli = millisec ;
         }
         else {
             DBG_ERR ;
-            return osErrorParameter ;
+            return osErrorOS ;
         }
     }
+
+    if ( pdPASS == xTimerStart(timer_id->h, 0) ) {
+        return osOK ;
+    }
+
+    DBG_ERR ;
+    return osErrorParameter ;
 }
 
 osStatus osTimerStop(osTimerId timer_id)
@@ -374,13 +369,12 @@ osStatus osTimerStop(osTimerId timer_id)
     if ( xPortInIsrContext() ) {
         return osErrorISR ;
     }
-    else if ( pdPASS == xTimerStop(timer_id->h, 0) ) {
+    if ( pdPASS == xTimerStop(timer_id->h, 0) ) {
         return osOK ;
     }
-    else {
-        DBG_ERR ;
-        return osErrorParameter ;
-    }
+
+    DBG_ERR ;
+    return osErrorParameter ;
 }
 
 osStatus osTimerDelete(osTimerId timer_id)
@@ -389,15 +383,14 @@ osStatus osTimerDelete(osTimerId timer_id)
     if ( xPortInIsrContext() ) {
         return osErrorISR ;
     }
-    else if ( pdPASS == xTimerDelete(timer_id->h, 0) ) {
+    if ( pdPASS == xTimerDelete(timer_id->h, 0) ) {
         vPortFree(timer_id) ;
 
         return osOK ;
     }
-    else {
-        DBG_ERR ;
-        return osErrorParameter ;
-    }
+
+    DBG_ERR ;
+    return osErrorParameter ;
 }
 
 //  ==== Signal Management ====
@@ -474,9 +467,8 @@ osMutexId osMutexCreate(const osMutexDef_t * mutex_def)
     if ( xPortInIsrContext() ) {
         return NULL ;
     }
-    else {
-        return xSemaphoreCreateMutex() ;
-    }
+
+    return xSemaphoreCreateMutex() ;
 }
 
 osStatus osMutexWait(
@@ -488,16 +480,15 @@ osStatus osMutexWait(
     if ( xPortInIsrContext() ) {
         return osErrorISR ;
     }
-    else if ( NULL == mutex_id ) {
+    if ( NULL == mutex_id ) {
         return osErrorParameter ;
     }
-    else {
-        TickType_t attesa = ms_in_tick(millisec) ;
 
-        return pdTRUE ==
-               xSemaphoreTake(mutex_id, attesa) ?
-               osOK : osErrorTimeoutResource ;
-    }
+    TickType_t attesa = ms_in_tick(millisec) ;
+
+    return pdTRUE ==
+           xSemaphoreTake(mutex_id, attesa) ?
+           osOK : osErrorTimeoutResource ;
 }
 
 osStatus osMutexRelease(osMutexId mutex_id)
@@ -507,14 +498,13 @@ osStatus osMutexRelease(osMutexId mutex_id)
     if ( xPortInIsrContext() ) {
         return osErrorISR ;
     }
-    else if ( NULL == mutex_id ) {
+    if ( NULL == mutex_id ) {
         return osErrorParameter ;
     }
-    else {
-        return pdTRUE ==
-               xSemaphoreGive(mutex_id) ?
-               osOK : osErrorResource ;
-    }
+
+    return pdTRUE ==
+           xSemaphoreGive(mutex_id) ?
+           osOK : osErrorResource ;
 }
 
 osStatus osMutexDelete(osMutexId mutex_id)
@@ -524,14 +514,13 @@ osStatus osMutexDelete(osMutexId mutex_id)
     if ( xPortInIsrContext() ) {
         return osErrorISR ;
     }
-    else if ( NULL == mutex_id ) {
+    if ( NULL == mutex_id ) {
         return osErrorParameter ;
     }
-    else {
-        vSemaphoreDelete(mutex_id) ;
 
-        return osOK ;
-    }
+    vSemaphoreDelete(mutex_id) ;
+
+    return osOK ;
 }
 
 //  ==== Semaphore Management Functions ====
@@ -548,14 +537,13 @@ osSemaphoreId osSemaphoreCreate(
     if ( xPortInIsrContext() ) {
         return NULL ;
     }
-    else if ( count == 1 ) {
+    if ( count == 1 ) {
         osSemaphoreId sema ;
         vSemaphoreCreateBinary(sema) ;
         return sema ;
     }
-    else {
-        return xSemaphoreCreateCounting(count, count) ;
-    }
+
+    return xSemaphoreCreateCounting(count, count) ;
 }
 
 int32_t osSemaphoreWait(
@@ -567,16 +555,15 @@ int32_t osSemaphoreWait(
     if ( xPortInIsrContext() ) {
         return osErrorISR ;
     }
-    else if ( NULL == semaphore_id ) {
+    if ( NULL == semaphore_id ) {
         return osErrorParameter ;
     }
-    else {
-        TickType_t attesa = ms_in_tick(millisec) ;
 
-        return pdTRUE ==
-               xSemaphoreTake(semaphore_id, attesa) ?
-               osOK : osErrorTimeoutResource ;
-    }
+    TickType_t attesa = ms_in_tick(millisec) ;
+
+    return pdTRUE ==
+           xSemaphoreTake(semaphore_id, attesa) ?
+           osOK : osErrorTimeoutResource ;
 }
 
 osStatus osSemaphoreRelease(osSemaphoreId semaphore_id)
@@ -586,7 +573,7 @@ osStatus osSemaphoreRelease(osSemaphoreId semaphore_id)
     if ( NULL == semaphore_id ) {
         return osErrorParameter ;
     }
-    else if ( xPortInIsrContext() ) {
+    if ( xPortInIsrContext() ) {
         BaseType_t xHigherPriorityTaskWoken = pdFALSE ;
 
         if ( xSemaphoreGiveFromISR(semaphore_id,
@@ -613,14 +600,13 @@ osStatus osSemaphoreDelete(osSemaphoreId semaphore_id)
     if ( xPortInIsrContext() ) {
         return osErrorISR ;
     }
-    else if ( NULL == semaphore_id ) {
+    if ( NULL == semaphore_id ) {
         return osErrorParameter ;
     }
-    else {
-        vSemaphoreDelete(semaphore_id) ;
 
-        return osOK ;
-    }
+    vSemaphoreDelete(semaphore_id) ;
+
+    return osOK ;
 }
 
 #endif     // Semaphore available
@@ -738,10 +724,10 @@ osStatus osPoolFree(
     if ( NULL == pool_id ) {
         return osErrorParameter ;
     }
-    else if ( NULL == buf ) {
+    if ( NULL == buf ) {
         return osErrorParameter ;
     }
-    else if ( xPortInIsrContext() ) {
+    if ( xPortInIsrContext() ) {
         osStatus esito = osOK ;
         BaseType_t xHigherPriorityTaskWoken = pdFALSE ;
 
@@ -756,13 +742,12 @@ osStatus osPoolFree(
 
         return esito ;
     }
-    else if ( pdTRUE == xQueueSend(pool_id->liberi, &buf, 0) ) {
+    if ( pdTRUE == xQueueSend(pool_id->liberi, &buf, 0) ) {
         return osOK ;
     }
-    else {
-        DBG_ERR ;
-        return osErrorOS ;
-    }
+
+    DBG_ERR ;
+    return osErrorOS ;
 }
 
 #endif   // Memory Pool Management available
@@ -781,11 +766,10 @@ osMessageQId osMessageCreate(
     if ( xPortInIsrContext() ) {
         return NULL ;
     }
-    else {
-        return queue_create_and_register(queue_def->queue_sz,
-                                         queue_def->item_sz,
-                                         queue_def->nome) ;
-    }
+
+    return queue_create_and_register(queue_def->queue_sz,
+                                     queue_def->item_sz,
+                                     queue_def->nome) ;
 }
 
 osStatus osMessagePut(
@@ -800,7 +784,7 @@ osStatus osMessagePut(
     if ( queue_id == NULL ) {
         return osErrorParameter ;
     }
-    else if ( xPortInIsrContext() ) {
+    if ( xPortInIsrContext() ) {
         BaseType_t xHigherPriorityTaskWoken = pdFALSE ;
 
         if ( xQueueSendFromISR(queue_id, &info,
@@ -874,14 +858,14 @@ int ose_MessageWaiting(osMessageQId queue_id)
     ASSERT(queue_id) ;
 
     if ( queue_id == NULL ) {
+        // invalid queue: no messages waiting
         return 0 ;
     }
-    else if ( xPortInIsrContext() ) {
+    if ( xPortInIsrContext() ) {
         return uxQueueMessagesWaitingFromISR(queue_id) ;
     }
-    else {
-        return uxQueueMessagesWaiting(queue_id) ;
-    }
+
+    return uxQueueMessagesWaiting(queue_id) ;
 }
 
 osStatus ose_MessageDelete(osMessageQId queue_id)
@@ -891,14 +875,12 @@ osStatus ose_MessageDelete(osMessageQId queue_id)
     if ( queue_id == NULL ) {
         return osErrorParameter ;
     }
-    else if ( xPortInIsrContext() ) {
+    if ( xPortInIsrContext() ) {
         return osErrorISR ;
     }
-    else {
-        vQueueDelete(queue_id) ;
+    vQueueDelete(queue_id) ;
 
-        return osOK ;
-    }
+    return osOK ;
 }
 
 #endif     // Message Queues available
@@ -1042,10 +1024,10 @@ osStatus osMailFree(
     if ( NULL == queue_id ) {
         return osErrorParameter ;
     }
-    else if ( NULL == mail ) {
+    if ( NULL == mail ) {
         return osErrorParameter ;
     }
-    else if ( xPortInIsrContext() ) {
+    if ( xPortInIsrContext() ) {
         osStatus esito = osOK ;
         BaseType_t xHigherPriorityTaskWoken = pdFALSE ;
 
@@ -1060,13 +1042,12 @@ osStatus osMailFree(
 
         return esito ;
     }
-    else if ( pdTRUE == xQueueSend(queue_id->libere, &mail, 0) ) {
+    if ( pdTRUE == xQueueSend(queue_id->libere, &mail, 0) ) {
         return osOK ;
     }
-    else {
-        DBG_ERR ;
-        return osErrorOS ;
-    }
+
+    DBG_ERR ;
+    return osErrorOS ;
 }
 
 osStatus osMailPut(
@@ -1079,10 +1060,10 @@ osStatus osMailPut(
     if ( NULL == queue_id ) {
         return osErrorParameter ;
     }
-    else if ( NULL == mail ) {
+    if ( NULL == mail ) {
         return osErrorParameter ;
     }
-    else if ( xPortInIsrContext() ) {
+    if ( xPortInIsrContext() ) {
         osStatus esito = osOK ;
         BaseType_t xHigherPriorityTaskWoken = pdFALSE ;
 
@@ -1096,13 +1077,12 @@ osStatus osMailPut(
 
         return esito ;
     }
-    else if ( pdTRUE == xQueueSend(queue_id->spedite, &mail, 0) ) {
+    if ( pdTRUE == xQueueSend(queue_id->spedite, &mail, 0) ) {
         return osOK ;
     }
-    else {
-        DBG_ERR ;
-        return osErrorOS ;
-    }
+
+    DBG_ERR ;
+    return osErrorOS ;
 }
 
 osEvent osMailGet(
@@ -1148,8 +1128,6 @@ osEvent osMailGet(
     ma dipendono da freertos
 *********************************************/
 
-extern void xPortSysTickHandler(void) ;
-
 void SysTick_Handler(void)
 {
     HAL_IncTick() ;
@@ -1162,19 +1140,6 @@ void SysTick_Handler(void)
 #   error INCLUDE_xTaskGetSchedulerState deve valere 1
 #endif
 }
-
-
-#if configAPPLICATION_ALLOCATED_HEAP == 1
-// Lo stack tcp/ip usa
-//     xPortGetMinimumEverFreeHeapSize
-//     xPortGetFreeHeapSize
-// che heap_3.c non ha
-// Lo metto dove voglio io
-USED
-__attribute__( ( section(".heap_x") ) )
-uint8_t ucHeap[configTOTAL_HEAP_SIZE] ;
-#endif
-
 
 #if configCHECK_FOR_STACK_OVERFLOW > 0
 

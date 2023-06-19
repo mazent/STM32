@@ -37,7 +37,7 @@ static uint32_t plain[DIM_DATI_32] ;
 static union {
     uint8_t bpag[EEP_DIM_PAGINA] ;
     PAGINA pagina ;
-} ;
+} p ;
 
 static uint32_t kiave[4] ;
 
@@ -51,15 +51,16 @@ static void chiave(void)
     } ;
 
     // Primo giro
+    // NOLINTNEXTLINE(bugprone-branch-clone)
     if ( !HASH_calcola(uid, sizeof(uid), tmp) ) {
         DBG_ERR ;
     }
     // Secondo giro
-    else if ( !HASH_calcola(tmp, HASH_DIM, bpag) ) {
+    else if ( !HASH_calcola(tmp, HASH_DIM, p.bpag) ) {
         DBG_ERR ;
     }
     // Terzo giro
-    else if ( !HASH_calcola(bpag, HASH_DIM, tmp) ) {
+    else if ( !HASH_calcola(p.bpag, HASH_DIM, tmp) ) {
         DBG_ERR ;
     }
     else {
@@ -73,7 +74,7 @@ const void * prm_leggi(uint16_t fis)
     const void * prm = NULL ;
 
     do {
-        if ( !EEP_leggi(fis, bpag, EEP_DIM_PAGINA) ) {
+        if ( !EEP_leggi(fis, p.bpag, EEP_DIM_PAGINA) ) {
             DBG_ERR ;
             break ;
         }
@@ -82,14 +83,14 @@ const void * prm_leggi(uint16_t fis)
         (void) HAL_CRYP_DeInit(&hcryp) ;
 
         hcryp.Init.pKey = kiave ;
-        hcryp.Init.pInitVect = pagina.iv ;
+        hcryp.Init.pInitVect = p.pagina.iv ;
         if ( HAL_CRYP_Init(&hcryp) != HAL_OK ) {
             DBG_ERR ;
             break ;
         }
 
         if ( HAL_OK !=
-             HAL_CRYP_Decrypt(&hcryp, (uint32_t *) &pagina.dati, DIM_DATI_32,
+             HAL_CRYP_Decrypt(&hcryp, (uint32_t *) &p.pagina.dati, DIM_DATI_32,
                               plain, 1000) ) {
             DBG_ERR ;
             break ;
@@ -108,7 +109,7 @@ static bool nuovo_iv(void)
 {
     for ( int i = 0 ; i < 4 ; i++ ) {
         if ( HAL_OK !=
-             HAL_RNG_GenerateRandomNumber(&hrng, pagina.iv + i) ) {
+             HAL_RNG_GenerateRandomNumber(&hrng, p.pagina.iv + i) ) {
             DBG_ERR ;
             return false ;
         }
@@ -144,21 +145,21 @@ bool prm_scrivi(
         (void) HAL_CRYP_DeInit(&hcryp) ;
 
         hcryp.Init.pKey = kiave ;
-        hcryp.Init.pInitVect = pagina.iv ;
+        hcryp.Init.pInitVect = p.pagina.iv ;
         if ( HAL_CRYP_Init(&hcryp) != HAL_OK ) {
             DBG_ERR ;
             break ;
         }
 
         if ( HAL_OK !=
-             HAL_CRYP_Encrypt(&hcryp, plain, DIM_DATI_32, pagina.dati,
+             HAL_CRYP_Encrypt(&hcryp, plain, DIM_DATI_32, p.pagina.dati,
                               1000) ) {
             DBG_ERR ;
             break ;
         }
 
         // salvo
-        if ( !EEP_scrivi(fis, &pagina, EEP_DIM_PAGINA) ) {
+        if ( !EEP_scrivi(fis, &p.pagina, EEP_DIM_PAGINA) ) {
             DBG_ERR ;
             break ;
         }
