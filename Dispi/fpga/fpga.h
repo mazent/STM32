@@ -4,25 +4,20 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-// Caso 1:
-// ==============================
 // 1: trasferire l'immagine
 bool FPGA_copia(
     uint32_t pos,
     uint32_t dim,
-    const void *) ;
+    const void * /*srg*/) ;
 
 // 2: calcolare sha (opzionale)
+#define FPGA_SHA_DIM         20
 bool FPGA_sha(
     uint32_t dim,
-    void *) ;
+    void * /*mem*/) ;
 
 // 3: installare l'immagine
-bool FPGA_config1(void) ;
-
-// Caso 2: XC7S6
-// ==============================
-bool FPGA_config2(const uint8_t *,uint32_t) ;
+bool FPGA_config(void) ;
 
 // **************************
 // SPI

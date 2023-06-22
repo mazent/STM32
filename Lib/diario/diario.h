@@ -52,20 +52,23 @@ extern void ddb_scrivi(
 
 #if DDB_LIV >= DDB_LIV_ERR
 #define DDB_ERROR(f, ...)       DDB_printf(DDB_L_ERROR, f, ## __VA_ARGS__)
-#define DDB_ERR                 DDB_printf(DDB_L_ERROR, "%s %d", \
+#define DDB_ERR                 DDB_printf(DDB_L_ERROR, "ERR %s %d", \
                                            __FILE__, \
                                            __LINE__)
-#else
-#define DDB_ERROR(f, ...)
-#define DDB_ERR
-#endif
 #define DDB_ASSERT(x)         \
     do {                  \
         if ( !(x) ) {     \
-            DDB_ERR ;  \
+        	DDB_printf(DDB_L_ERROR, "ASSERT %s %d",   \
+								   __FILE__,          \
+								   __LINE__) ;        \
         }                 \
     } while ( false )
 
+#else
+#define DDB_ERROR(f, ...)
+#define DDB_ERR
+#define DDB_ASSERT(x)
+#endif
 #define DDB_CONTROLLA(x)        \
     do {                \
         if ( !(x) ) {   \

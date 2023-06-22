@@ -156,7 +156,7 @@ typedef void * osMutexId ;
 
 /// Semaphore ID identifies the semaphore (pointer to a semaphore control block).
 /// \note CAN BE CHANGED: \b os_semaphore_cb is implementation specific in every CMSIS-RTOS.
-typedef void * osSemaphoreId ;
+typedef struct os_semaphore_cb *osSemaphoreId ;
 
 /// Pool ID identifies the memory pool (pointer to a memory pool control block).
 /// \note CAN BE CHANGED: \b os_pool_cb is implementation specific in every CMSIS-RTOS.
