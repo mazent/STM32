@@ -4,24 +4,26 @@ define symbol HEAP_DIM  = 80K ;
 include "stm32h735xx.icf" ;
 
 define symbol ALLOCA_BL = 1 ;
+define symbol TUTTO_IN_RAM = 1 ;
 
 /*
     Struttura
+
 
 	| Blocco | KiB | Sezione | Programma |
 	+--------+-----+---------+-----------+
     |     0  | 128 |         | BL        |
     |--------+-----+ CODICE  +-----------+
     |     1  | 128 |         |           |
-    +--------+-----+---------+ SRV       |
-    |     2  | 128 |         |           |
-    +--------+-----+ ALTRO   +-----------+
-    |     3  | 640 |         | MAIN      |
+    +--------+-----+---------+ APP       |
+    |     2  | 768 | ALTRO   |           |
     +--------+-----+---------+-----------+
+	
+	Viene distrutta una eventuale app
 */
 
-define symbol DIM_BL         =  256K ;
-define symbol DIM_APP        =  768K ;
+define symbol DIM_BL  = 256K ;
+define symbol DIM_APP = 768K ;
 
 
 include "sezioni.icf" ;

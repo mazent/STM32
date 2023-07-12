@@ -8,16 +8,14 @@ include "stm32h735xx.icf" ;
 
 	| Blocco | KiB | Sezione | Programma |
 	+--------+-----+---------+-----------+
-    |     0  | 128 |         | BL        |
-    |--------+-----+ ALTRO   +-----------+
-    |     1  | 256 |         | SRV       |
-    +--------+-----+---------+-----------+
-    |     3  | 640 | CODICE  | MAIN      |
+    |     0  | 128 | ALTRO   | BL        |
+    |--------+-----+---------+-----------+
+    |     1  | 896 | CODICE  | APP       |
     +--------+-----+---------+-----------+
 */
 
-define symbol DIM_BL         =  384K ;
-define symbol DIM_APP        =  640K ;
+define symbol DIM_BL  = 128K ;
+define symbol DIM_APP = 896K ;
 
 
 include "sezioni.icf" ;

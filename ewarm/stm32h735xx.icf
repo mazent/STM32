@@ -1,6 +1,6 @@
 /*
     1024 KiB flash (8 pagine da 128 KiB)
-     vari blocchi di ram sparsi in giro
+    Vari blocchi di ram sparsi in giro
 */
 
 define memory mem with size = 4G;
@@ -38,7 +38,11 @@ define symbol SRAM4_FINE   = 0x38003FFF ;
 define block CSTACK with alignment = 8, size = STACK_DIM { } ;
 define block HEAP   with alignment = 8, size = HEAP_DIM  { } ;
 
-initialize by copy { readwrite };
+initialize by copy { 
+	readwrite,
+} ;
+
+
 do not initialize  { section .noinit } ;
 
 // Se si usano heap_[1|2|4] mettere qui ucHeap
@@ -84,8 +88,6 @@ do not initialize  { section .heap_x } ;
 		   oppure
 		    __attribute__( ( section(".sram4") ) ) 
             int pippo ;
-            
-		   
 
 
     Esempio: descrittore del fw
@@ -118,8 +120,6 @@ do not initialize  { section .heap_x } ;
 
         #pragma segment=".sram12"
         static uint8_t * INDIRIZZO_RAM_FPGA = __section_begin(".sram12") ;
-
-
 */
 
 
@@ -170,6 +170,39 @@ do not initialize  { section .heap_x } ;
     {
         section-selectors
     }];
+
+	-------
+	
+	https://www.iar.com/knowledge/support/technical-notes/linker/placing-a-library-in-ram/
+	https://www.iar.com/knowledge/support/technical-notes/general/execute-in-ram-after-copying-from-flashrom-v5.20-and-later/
+
+	[ section-selector [ , section-selector... ] ]
+	section-selector is:
+		[ section-attribute ][ section-type ] 
+		[ symbol symbol-name ][ section section-name ] 
+		[ object module-spec ]
+	section-attribute is:
+		ro [ code | data ] | rw [ code | data ] | zi
+	section-type is:
+		[ preinit_array | init_array ]
+		
+		
+	[ extended-selector [ , extended-selector...]]
+	where extended-selector is:
+		[ first | last | midway ]                    
+			{ section-selector |                      
+			  block name [ inline-block-def ] |                      
+			  overlay name }
+	where inline-block-def is:
+		[ block-params ] extended-selectors
+	
+	AN4296
+		The IAR Embedded Workbench linker protects the sections that are referenced from the startup code from being
+		affected by an 'initialize by copy' directive. The symbol __vector_table must not be used to allow
+		copying interrupt handler sections via the 'initialize by copy' directive. A second vector table must be
+		created and placed in CCM SRAM
+		
+	-------
 
     Espressioni
         expression binop expression

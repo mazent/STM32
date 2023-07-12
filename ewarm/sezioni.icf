@@ -9,12 +9,32 @@ define region REGIONE_APP     = mem:[from INIZIO_APP size DIM_APP] ;
 
 /******************* REGIONI RAM *****************************************/
 
-define region REG_ITCM   = mem:[from ITCM_INIZIO   to ITCM_FINE] ;
-define region REG_DTCM   = mem:[from DTCM_INIZIO   to DTCM_FINE] ;
-define region REG_RAM    = mem:[from AXI_INIZIO      to AXI_FINE] ;
-define region REG_RAM_NC = mem:[from AXI_ITCM_INIZIO to AXI_ITCM_FINE] ;
-define region REG_SRAM12 = mem:[from SRAM12_INIZIO to SRAM12_FINE] ;
-define region REG_SRAM4  = mem:[from SRAM4_INIZIO  to SRAM4_FINE] ;
+define region REG_ITCM   = mem:[from ITCM_INIZIO     to ITCM_FINE] ;
+define region REG_DTCM   = mem:[from DTCM_INIZIO     to DTCM_FINE] ;
+define region REG_SRAM12 = mem:[from SRAM12_INIZIO   to SRAM12_FINE] ;
+define region REG_SRAM4  = mem:[from SRAM4_INIZIO    to SRAM4_FINE] ;
+
+if (isdefinedsymbol (TUTTO_IN_RAM)) {
+	// Tutta la ram per il codice
+	define region REG_RAM = mem:[from AXI_INIZIO     to AXI_ITCM_FINE] ;
+
+	initialize by copy { 
+		readonly
+	}
+	except {
+		section .ai1k,
+		section DESCRITTORE,
+		section ALLINEAMENTO,
+		section .intvec
+	} ;
+}
+else {
+	// Una parte per il programma ...
+	define region REG_RAM    = mem:[from AXI_INIZIO      to AXI_FINE] ;
+	// ... e una non-cached (se si usa ethernet, mdma, ecc)
+	define region REG_RAM_NC = mem:[from AXI_ITCM_INIZIO to AXI_ITCM_FINE] ;
+}
+
 
 /******************* BLOCCHI SPECIALI *****************************************/
 
@@ -28,10 +48,25 @@ define block SRAM4 {
 } ;
 do not initialize  { section .sram4 } ;
 
-define block CODRAM { 
-	section .codram
+// codice con indirizzo di esecuzione in ram
+// (indirizzo di caricamento in CODICE)
+define block CODRAM {	
+	section .codram,
+	
+//	rw code object pipporam.o	
 } ;
-do not initialize  { section .codram } ;
+
+// copia da indirizzo di caricamento a indirizzo di esecuzione
+//initialize by copy { 
+//	ro object pipporam.o
+//} ;
+
+// Vettore delle interruzioni in ram
+
+define block RAM_IRQ {
+	section .ram_irq
+} ;
+
 
 // Scambio informazioni bootloader/applicativo
 // -------------
@@ -53,13 +88,14 @@ do not initialize  { section .fpga } ;
 
 // Area senza cache
 // -------------
-
-define block RAM_NO_CACHE  {
-	section .no_cache,
-	section .ethernet
-} ;
-do not initialize  { section .no_cache } ;
-do not initialize  { section .ethernet } ;
+if (!isdefinedsymbol (TUTTO_IN_RAM)) {
+	define block RAM_NO_CACHE  {
+		section .no_cache,
+		section .ethernet
+	} ;
+	do not initialize  { section .no_cache } ;
+	do not initialize  { section .ethernet } ;
+}
 
 // Area DTCM
 // -------------
@@ -81,8 +117,11 @@ define block CODICE with fixed order {
 	// Allungo le interruzioni fino a 1K (per MB, opzionale)
 	readonly section .ai1k,
     readonly section DESCRITTORE,
+	
+//	ro code section *_init object pipporam.o,
+	
     readonly,
-    readonly section ALLINEAMENTO
+	readonly section ALLINEAMENTO
 } ;
 
 // ----------------------------------------------

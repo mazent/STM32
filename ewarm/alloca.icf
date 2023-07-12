@@ -29,7 +29,8 @@ else {
 }
 
 place at start of REG_ITCM {
-    block CODRAM,
+	block RAM_IRQ,
+    block CODRAM
 } ;
 
 place at start of REG_RAM {
@@ -39,9 +40,11 @@ place at start of REG_RAM {
 	block HEAP_X,
 } ;
 
-place at start of REG_RAM_NC {
-	block RAM_NO_CACHE
-} ;
+if (!isdefinedsymbol (TUTTO_IN_RAM)) {
+	place at start of REG_RAM_NC {
+		block RAM_NO_CACHE
+	} ;
+}
 
 place at start of REG_DTCM {
     block RAM_COMUNE,
