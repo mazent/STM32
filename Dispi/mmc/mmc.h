@@ -5,9 +5,10 @@
 #include <stdint.h>
 
 bool MMC_iniz(void) ;
+void MMC_fine(void) ;
 
-bool MMC_leggi(uint32_t /*blocco*/, void * /*dati*/) ;
-bool MMC_scrivi(uint32_t /*blocco*/, const void * /*dati*/) ;
+bool MMC_leggi(uint32_t /*blocco*/, uint32_t /*num_blocchi*/, void * /*dati*/) ;
+bool MMC_scrivi(uint32_t /*blocco*/, uint32_t /*num_blocchi*/, const void * /*dati*/) ;
 
 bool MMC_trim(
     uint32_t da,

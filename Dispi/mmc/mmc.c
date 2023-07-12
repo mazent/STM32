@@ -5,7 +5,20 @@
 #include "stm32h7xx_hal.h"
 
 extern void rpmb_iniz(void) ;
-extern void rpmb_read_wc(MMC_HandleTypeDef *) ;
+extern HAL_StatusTypeDef mmc_writeblocks_dma(
+    MMC_HandleTypeDef * hmmc,
+    uint8_t * pData,
+    uint32_t BlockAdd,
+    uint32_t NumberOfBlocks) ;
+extern HAL_StatusTypeDef mmc_readblocks_dma(
+    MMC_HandleTypeDef * hmmc,
+    uint8_t * pData,
+    uint32_t BlockAdd,
+    uint32_t NumberOfBlocks) ;
+
+extern void stampa_cid(void) ;
+extern void stampa_csd(void) ;
+extern void stampa_ecsd(void) ;
 
 static MMC_HandleTypeDef sdmmc = {
     .Instance = SDMMC1,
@@ -19,10 +32,6 @@ static MMC_HandleTypeDef sdmmc = {
 } ;
 
 //#define STAMPA_ROBA         1
-
-#ifdef DBG_ABIL
-//#define STAMPA_CID_CSD		1
-#endif
 
 typedef enum {
     OCCUPATO,
@@ -63,302 +72,27 @@ void MMC_ext_csd(S_MMC_EXT_CSD * csd)
     memcpy_( p, sdmmc.Ext_CSD, sizeof(S_MMC_EXT_CSD) ) ;
 }
 
-#ifdef STAMPA_CID_CSD
-
-static int meseanno(
-    uint8_t md,
-    char * * cmese)
-{
-    uint8_t mese = md >> 4 ;
-    *cmese = "?" ;
-    switch ( mese ) {
-    case 1:
-        *cmese = "gen" ;
-        break ;
-    case 2:
-        *cmese = "feb" ;
-        break ;
-    case 3:
-        *cmese = "mar" ;
-        break ;
-    case 4:
-        *cmese = "apr" ;
-        break ;
-    case 5:
-        *cmese = "mag" ;
-        break ;
-    case 6:
-        *cmese = "giu" ;
-        break ;
-    case 7:
-        *cmese = "lug" ;
-        break ;
-    case 8:
-        *cmese = "ago" ;
-        break ;
-    case 9:
-        *cmese = "set" ;
-        break ;
-    case 10:
-        *cmese = "ott" ;
-        break ;
-    case 11:
-        *cmese = "nov" ;
-        break ;
-    case 12:
-        *cmese = "dic" ;
-        break ;
-    }
-    return 2013 + (md & 0x0F) ;
-}
-
-#endif
-
 bool MMC_iniz(void)
 {
     if ( HAL_MMC_Init(&sdmmc) != HAL_OK ) {
         return false ;
     }
+
+    // se abilitate
+    stampa_cid() ;
+    stampa_csd() ;
+    stampa_ecsd() ;
+
 #if 0
     rpmb_iniz() ;
-    CONTROLLA( MMC_access(MMC_PART_RPMB) ) ;
-    rpmb_read_wc(&sdmmc) ;
 #endif
-#ifdef STAMPA_CID_CSD
-    {
-        S_MMC_CID cid ;
 
-        MMC_cid(&cid) ;
-
-        DBG_PRINT_HEX("CID", &cid, 16) ;
-        DBG_PRINTF("\t Manufacturer ID:       %02X", cid.MID) ;
-        DBG_PRINTF("\t Card/BGA:              %X", cid.CBX) ;
-        DBG_PRINTF("\t OEM/Application ID:    %02X", cid.OID) ;
-        char pn[6 + 1] ;
-        memcpy(pn, cid.PNM, 6) ;
-        pn[6] = 0 ;
-        DBG_PRINTF("\t Product Name part:     %s", pn) ;
-        DBG_PRINTF("\t Product Revision:      %02X", cid.PRV) ;
-        DBG_PRINTF("\t Product Serial Number: %08X", cid.PSN) ;
-        char * cmese ;
-        int anno = meseanno(cid.MDT, &cmese) ;
-        DBG_PRINTF("\t Manufacturing Date:    %02X -> %s %d",
-                   cid.MDT,
-                   cmese,
-                   anno) ;
-    }
-
-    {
-        S_MMC_CSD csd ;
-
-        MMC_csd(&csd) ;
-
-        DBG_PRINT_HEX("CSD", &csd, 16) ;
-
-        DBG_PRINTF("\t crc %X", csd.crc) ;
-        DBG_PRINTF("\t ecc %X", csd.ecc) ;
-        DBG_PRINTF("\t FILE_FORMAT %X", csd.FILE_FORMAT) ;
-        DBG_PRINTF("\t TMP_WRITE_PROTECT %X", csd.TMP_WRITE_PROTECT) ;
-        DBG_PRINTF("\t PERM_WRITE_PROTECT %X", csd.PERM_WRITE_PROTECT) ;
-        DBG_PRINTF("\t COPY %X", csd.COPY) ;
-        DBG_PRINTF("\t FILE_FORMAT_GRP %X", csd.FILE_FORMAT_GRP) ;
-        DBG_PRINTF("\t CONTENT_PROT_APP %X", csd.CONTENT_PROT_APP) ;
-        DBG_PRINTF("\t WRITE_BL_PARTIAL %X", csd.WRITE_BL_PARTIAL) ;
-        DBG_PRINTF("\t WRITE_BL_LEN %X", csd.WRITE_BL_LEN) ;
-        DBG_PRINTF("\t R2W_FACTOR %X", csd.R2W_FACTOR) ;
-        DBG_PRINTF("\t DEFAULT_ECC %X", csd.DEFAULT_ECC) ;
-        DBG_PRINTF("\t WP_GRP_ENABLE %X", csd.WP_GRP_ENABLE) ;
-        DBG_PRINTF("\t WP_GRP_SIZE %X", csd.WP_GRP_SIZE) ;
-        DBG_PRINTF("\t ERASE_GRP_MULT %X", csd.ERASE_GRP_MULT) ;
-        DBG_PRINTF("\t ERASE_GRP_SIZE %X", csd.ERASE_GRP_SIZE) ;
-        DBG_PRINTF("\t C_SIZE_MULT %X", csd.C_SIZE_MULT) ;
-        DBG_PRINTF("\t VDD_W_CURR_MAX %X", csd.VDD_W_CURR_MAX) ;
-        DBG_PRINTF("\t VDD_W_CURR_MIN %X", csd.VDD_W_CURR_MIN) ;
-        DBG_PRINTF("\t VDD_R_CURR_MAX %X", csd.VDD_R_CURR_MAX) ;
-        DBG_PRINTF("\t VDD_R_CURR_MIN %X", csd.VDD_R_CURR_MIN) ;
-        uint16_t c_size = csd.C_SIZE_h << 2 | csd.C_SIZE_l ;
-        DBG_PRINTF("\t C_SIZE %X", c_size) ;
-        DBG_PRINTF("\t DSR_IMP %X", csd.DSR_IMP) ;
-        DBG_PRINTF("\t READ_BLK_MISALIGN %X", csd.READ_BLK_MISALIGN) ;
-        DBG_PRINTF("\t WRITE_BLK_MISALIGN %X", csd.WRITE_BLK_MISALIGN) ;
-        DBG_PRINTF("\t READ_BL_PARTIAL %X", csd.READ_BL_PARTIAL) ;
-        DBG_PRINTF("\t READ_BL_LEN %X", csd.READ_BL_LEN) ;
-        DBG_PRINTF("\t CCC %X", csd.CCC) ;
-        DBG_PRINTF("\t TRAN_SPEED %X", csd.TRAN_SPEED) ;
-        DBG_PRINTF("\t NSAC %X", csd.NSAC) ;
-        DBG_PRINTF("\t TAAC %X", csd.TAAC) ;
-        DBG_PRINTF("\t SPEC_VERS %X", csd.SPEC_VERS) ;
-        DBG_PRINTF("\t CSD_STRUCTURE %X", csd.CSD_STRUCTURE) ;
-    }
-    {
-        S_MMC_EXT_CSD csd ;
-
-        MMC_ext_csd(&csd) ;
-
-        DBG_PRINT_HEX( "ECSD", &csd, sizeof(S_MMC_EXT_CSD) ) ;
-
-        DBG_PUTS("\t Modes Segment") ;
-        DBG_PRINTF("\t\t CMDQ_MODE_EN %X", csd.CMDQ_MODE_EN) ;
-        DBG_PRINTF("\t\t SECURE_REMOVAL_TYPE %X", csd.SECURE_REMOVAL_TYPE) ;
-        DBG_PRINTF("\t\t PRODUCT_STATE_AWARENESS_ENABLEMENT %X",
-                   csd.PRODUCT_STATE_AWARENESS_ENABLEMENT) ;
-        DBG_PRINT_HEX("\t\t MAX_PRE_LOADING_DATA_SIZE",
-                      csd.MAX_PRE_LOADING_DATA_SIZE,
-                      4) ;
-        DBG_PRINT_HEX("\t\t PRE_LOADING_DATA_SIZE",
-                      csd.PRE_LOADING_DATA_SIZE,
-                      4) ;
-        DBG_PRINTF("\t\t FFU_STATUS %X", csd.FFU_STATUS) ;
-        DBG_PRINTF("\t\t MODE_OPERATION_CODES %X", csd.MODE_OPERATION_CODES) ;
-        DBG_PRINTF("\t\t MODE_CONFIG %X", csd.MODE_CONFIG) ;
-        DBG_PRINTF("\t\t BARRIER_CTRL %X", csd.BARRIER_CTRL) ;
-        DBG_PRINTF("\t\t FLUSH_CACHE %X", csd.FLUSH_CACHE) ;
-        DBG_PRINTF("\t\t CACHE_CTRL %X", csd.CACHE_CTRL) ;
-        DBG_PRINTF("\t\t POWER_OFF_NOTIFICATION %X", csd.POWER_OFF_NOTIFICATION) ;
-        DBG_PRINTF("\t\t PACKED_FAILURE_INDEX %X", csd.PACKED_FAILURE_INDEX) ;
-        DBG_PRINTF("\t\t PACKED_COMMAND_STATUS %X", csd.PACKED_COMMAND_STATUS) ;
-        DBG_PRINT_HEX("\t\t CONTEXT_CONF", csd.CONTEXT_CONF, 15) ;
-        DBG_PRINT_HEX("\t\t EXT_PARTITIONS_ATTRIBUTE",
-                      csd.EXT_PARTITIONS_ATTRIBUTE,
-                      2) ;
-        DBG_PRINT_HEX("\t\t EXCEPTION_EVENTS_STATUS",
-                      csd.EXCEPTION_EVENTS_STATUS,
-                      2) ;
-        DBG_PRINT_HEX("\t\t EXCEPTION_EVENTS_CTRL",
-                      csd.EXCEPTION_EVENTS_CTRL,
-                      2) ;
-        DBG_PRINTF("\t\t DYNCAP_NEEDED %X", csd.DYNCAP_NEEDED) ;
-        DBG_PRINTF("\t\t CLASS_6_CTRL %X", csd.CLASS_6_CTRL) ;
-        DBG_PRINTF("\t\t INI_TIMEOUT_EMU %X", csd.INI_TIMEOUT_EMU) ;
-        DBG_PRINTF("\t\t DATA_SECTOR_SIZE %X", csd.DATA_SECTOR_SIZE) ;
-        DBG_PRINTF("\t\t USE_NATIVE_SECTOR %X", csd.USE_NATIVE_SECTOR) ;
-        DBG_PRINTF("\t\t NATIVE_SECTOR_SIZE %X", csd.NATIVE_SECTOR_SIZE) ;
-        DBG_PRINT_HEX("\t\t VENDOR_SPECIFIC_FIELD",
-                      csd.VENDOR_SPECIFIC_FIELD,
-                      64) ;
-        DBG_PRINTF("\t\t PROGRAM_CID_CSD_DDR_SUPPORT %X",
-                   csd.PROGRAM_CID_CSD_DDR_SUPPORT) ;
-        DBG_PRINTF("\t\t PERIODIC_WAKEUP %X", csd.PERIODIC_WAKEUP) ;
-        DBG_PRINTF("\t\t TCASE_SUPPORT %X", csd.TCASE_SUPPORT) ;
-        DBG_PRINTF("\t\t PRODUCTION_STATE_AWARENESS %X",
-                   csd.PRODUCTION_STATE_AWARENESS) ;
-        DBG_PRINTF("\t\t SEC_BAD_BLK_MGMNT %X", csd.SEC_BAD_BLK_MGMNT) ;
-        DBG_PRINT_HEX("\t\t ENH_START_ADDR", csd.ENH_START_ADDR, 4) ;
-        DBG_PRINT_HEX("\t\t ENH_SIZE_MULT", csd.ENH_SIZE_MULT, 3) ;
-        DBG_PRINT_HEX("\t\t GP_SIZE_MULT", csd.GP_SIZE_MULT, 12) ;
-        DBG_PRINTF("\t\t PARTITION_SETTING_COMPLETED %X",
-                   csd.PARTITION_SETTING_COMPLETED) ;
-        DBG_PRINTF("\t\t PARTITIONS_ATTRIBUTE %X", csd.PARTITIONS_ATTRIBUTE) ;
-        DBG_PRINT_HEX("\t\t MAX_ENH_SIZE_MULT", csd.MAX_ENH_SIZE_MULT, 3) ;
-        DBG_PRINTF("\t\t PARTITIONING_SUPPORT %X", csd.PARTITIONING_SUPPORT) ;
-        DBG_PRINTF("\t\t HPI_MGMT %X", csd.HPI_MGMT) ;
-        DBG_PRINTF("\t\t RST_n_FUNCTION %X", csd.RST_n_FUNCTION) ;
-        DBG_PRINTF("\t\t BKOPS_EN %X", csd.BKOPS_EN) ;
-        DBG_PRINTF("\t\t BKOPS_START %X", csd.BKOPS_START) ;
-        DBG_PRINTF("\t\t SANITIZE_START %X", csd.SANITIZE_START) ;
-        DBG_PRINTF("\t\t WR_REL_PARAM %X", csd.WR_REL_PARAM) ;
-        DBG_PRINTF("\t\t WR_REL_SET %X", csd.WR_REL_SET) ;
-        DBG_PRINTF("\t\t RPMB_SIZE_MULT %X", csd.RPMB_SIZE_MULT) ;
-        DBG_PRINTF("\t\t FW_CONFIG %X", csd.FW_CONFIG) ;
-        DBG_PRINTF("\t\t USER_WP %X", csd.USER_WP) ;
-        DBG_PRINTF("\t\t BOOT_WP %X", csd.BOOT_WP) ;
-        DBG_PRINTF("\t\t BOOT_WP_STATUS %X", csd.BOOT_WP_STATUS) ;
-        DBG_PRINTF("\t\t ERASE_GROUP_DEF %X", csd.ERASE_GROUP_DEF) ;
-        DBG_PRINTF("\t\t BOOT_BUS_CONDITIONS %X", csd.BOOT_BUS_CONDITIONS) ;
-        DBG_PRINTF("\t\t BOOT_CONFIG_PROT %X", csd.BOOT_CONFIG_PROT) ;
-        DBG_PRINTF("\t\t PARTITION_CONFIG %X", csd.PARTITION_CONFIG) ;
-        DBG_PRINTF("\t\t ERASED_MEM_CONT %X", csd.ERASED_MEM_CONT) ;
-        DBG_PRINTF("\t\t BUS_WIDTH %X", csd.BUS_WIDTH) ;
-        DBG_PRINTF("\t\t HS_TIMING %X", csd.HS_TIMING) ;
-        DBG_PRINTF("\t\t POWER_CLASS %X", csd.POWER_CLASS) ;
-        DBG_PRINTF("\t\t CMD_SET_REV %X", csd.CMD_SET_REV) ;
-        DBG_PRINTF("\t\t CMD_SET %X", csd.CMD_SET) ;
-
-        DBG_PUTS("\t Properties Segment") ;
-        DBG_PRINTF("\t\t EXT_CSD_REV %X", csd.EXT_CSD_REV) ;
-        DBG_PRINTF("\t\t CSD_STRUCTURE_VER %X", csd.CSD_STRUCTURE_VER) ;
-        DBG_PRINTF("\t\t DEVICE_TYPE %X", csd.DEVICE_TYPE) ;
-        DBG_PRINTF("\t\t DRIVER_STRENGTH %X", csd.DRIVER_STRENGTH) ;
-        DBG_PRINTF("\t\t OUT_OF_INTERRUPT_TIME %X", csd.OUT_OF_INTERRUPT_TIME) ;
-        DBG_PRINTF("\t\t PARTITION_SWITCH_TIME %X", csd.PARTITION_SWITCH_TIME) ;
-        DBG_PRINTF("\t\t PWR_CL_52_195 %X", csd.PWR_CL_52_195) ;
-        DBG_PRINTF("\t\t PWR_CL_26_195 %X", csd.PWR_CL_26_195) ;
-        DBG_PRINTF("\t\t PWR_CL_52_360 %X", csd.PWR_CL_52_360) ;
-        DBG_PRINTF("\t\t PWR_CL_26_360 %X", csd.PWR_CL_26_360) ;
-        DBG_PRINTF("\t\t MIN_PERF_R_4_26 %X", csd.MIN_PERF_R_4_26) ;
-        DBG_PRINTF("\t\t MIN_PERF_W_4_26 %X", csd.MIN_PERF_W_4_26) ;
-        DBG_PRINTF("\t\t MIN_PERF_R_8_26_4_52 %X", csd.MIN_PERF_R_8_26_4_52) ;
-        DBG_PRINTF("\t\t MIN_PERF_W_8_26_4_52 %X", csd.MIN_PERF_W_8_26_4_52) ;
-        DBG_PRINTF("\t\t MIN_PERF_R_8_52 %X", csd.MIN_PERF_R_8_52) ;
-        DBG_PRINTF("\t\t MIN_PERF_W_8_52 %X", csd.MIN_PERF_W_8_52) ;
-        DBG_PRINT_HEX("\t\t SEC_COUNT", csd.SEC_COUNT, 4) ;
-        DBG_PRINTF("\t\t S_A_TIMEOUT %X", csd.S_A_TIMEOUT) ;
-        DBG_PRINTF("\t\t S_C_VCCQ %X", csd.S_C_VCCQ) ;
-        DBG_PRINTF("\t\t S_C_VCC %X", csd.S_C_VCC) ;
-        DBG_PRINTF("\t\t HC_WP_GRP_SIZE %X", csd.HC_WP_GRP_SIZE) ;
-        DBG_PRINTF("\t\t REL_WR_SEC_C %X", csd.REL_WR_SEC_C) ;
-        DBG_PRINTF("\t\t ERASE_TIMEOUT_MULT %X", csd.ERASE_TIMEOUT_MULT) ;
-        DBG_PRINTF("\t\t HC_ERASE_GRP_SIZE %X", csd.HC_ERASE_GRP_SIZE) ;
-        DBG_PRINTF("\t\t ACC_SIZE %X", csd.ACC_SIZE) ;
-        DBG_PRINTF("\t\t BOOT_SIZE_MULT %X", csd.BOOT_SIZE_MULT) ;
-        DBG_PRINTF("\t\t BOOT_INFO %X", csd.BOOT_INFO) ;
-        DBG_PRINTF("\t\t SEC_TRIM_MULT %X", csd.SEC_TRIM_MULT) ;
-        DBG_PRINTF("\t\t SEC_ERASE_MULT %X", csd.SEC_ERASE_MULT) ;
-        DBG_PRINTF("\t\t SEC_FEATURE_SUPPORT %X", csd.SEC_FEATURE_SUPPORT) ;
-        DBG_PRINTF("\t\t TRIM_MULT %X", csd.TRIM_MULT) ;
-        DBG_PRINTF("\t\t MIN_PERF_DDR_R_8_52 %X", csd.MIN_PERF_DDR_R_8_52) ;
-        DBG_PRINTF("\t\t MIN_PERF_DDR_W_8_52 %X", csd.MIN_PERF_DDR_W_8_52) ;
-        DBG_PRINTF("\t\t PWR_CL_200_130 %X", csd.PWR_CL_200_130) ;
-        DBG_PRINTF("\t\t PWR_CL_200_195 %X", csd.PWR_CL_200_195) ;
-        DBG_PRINTF("\t\t PWR_CL_DDR_52_195 %X", csd.PWR_CL_DDR_52_195) ;
-        DBG_PRINTF("\t\t PWR_CL_DDR_52_360 %X", csd.PWR_CL_DDR_52_360) ;
-        DBG_PRINTF("\t\t INI_TIMEOUT_AP %X", csd.INI_TIMEOUT_AP) ;
-        DBG_PRINT_HEX("\t\t CORRECTLY_PRG_SECTORS_NUM",
-                      csd.CORRECTLY_PRG_SECTORS_NUM,
-                      4) ;
-        DBG_PRINTF("\t\t BKOPS_STATUS %X", csd.BKOPS_STATUS) ;
-        DBG_PRINTF("\t\t POWER_OFF_LONG_TIME %X", csd.POWER_OFF_LONG_TIME) ;
-        DBG_PRINTF("\t\t GENERIC_CMD6_TIME %X", csd.GENERIC_CMD6_TIME) ;
-        DBG_PRINT_HEX("\t\t CACHE_SIZE", csd.CACHE_SIZE, 4) ;
-        DBG_PRINTF("\t\t PWR_CL_DDR_200_360 %X", csd.PWR_CL_DDR_200_360) ;
-        DBG_PRINT_HEX("\t\t FIRMWARE_VERSION", csd.FIRMWARE_VERSION, 8) ;
-        DBG_PRINT_HEX("\t\t DEVICE_VERSION", csd.DEVICE_VERSION, 2) ;
-        DBG_PRINTF("\t\t OPTIMAL_TRIM_UNIT_SIZE %X", csd.OPTIMAL_TRIM_UNIT_SIZE) ;
-        DBG_PRINTF("\t\t OPTIMAL_WRITE_SIZE %X", csd.OPTIMAL_WRITE_SIZE) ;
-        DBG_PRINTF("\t\t OPTIMAL_READ_SIZE %X", csd.OPTIMAL_READ_SIZE) ;
-        DBG_PRINTF("\t\t PRE_EOL_INFO %X", csd.PRE_EOL_INFO) ;
-        DBG_PRINTF("\t\t DEVICE_LIFE_TIME_EST_TYP_A %X",
-                   csd.DEVICE_LIFE_TIME_EST_TYP_A) ;
-        DBG_PRINTF("\t\t DEVICE_LIFE_TIME_EST_TYP_B %X",
-                   csd.DEVICE_LIFE_TIME_EST_TYP_B) ;
-        DBG_PRINT_HEX("\t\t VENDOR_PROPRIETARY_HEALTH_REPORT",
-                      csd.VENDOR_PROPRIETARY_HEALTH_REPORT,
-                      32) ;
-        DBG_PRINT_HEX("\t\t NUMBER_OF_FW_SECTORS_CORRECTLY_PROGRAMMED",
-                      csd.NUMBER_OF_FW_SECTORS_CORRECTLY_PROGRAMMED,
-                      4) ;
-        DBG_PRINTF("\t\t CMDQ_DEPTH %X", csd.CMDQ_DEPTH) ;
-        DBG_PRINTF("\t\t CMDQ_SUPPORT %X", csd.CMDQ_SUPPORT) ;
-        DBG_PRINTF("\t\t BARRIER_SUPPORT %X", csd.BARRIER_SUPPORT) ;
-        DBG_PRINT_HEX("\t\t FFU_ARG", csd.FFU_ARG, 4) ;
-        DBG_PRINTF("\t\t OPERATION_CODE_TIMEOUT %X", csd.OPERATION_CODE_TIMEOUT) ;
-        DBG_PRINTF("\t\t FFU_FEATURES %X", csd.FFU_FEATURES) ;
-        DBG_PRINTF("\t\t SUPPORTED_MODES %X", csd.SUPPORTED_MODES) ;
-        DBG_PRINTF("\t\t EXT_SUPPORT %X", csd.EXT_SUPPORT) ;
-        DBG_PRINTF("\t\t LARGE_UNIT_SIZE_M1 %X", csd.LARGE_UNIT_SIZE_M1) ;
-        DBG_PRINTF("\t\t CONTEXT_CAPABILITIES %X", csd.CONTEXT_CAPABILITIES) ;
-        DBG_PRINTF("\t\t TAG_RES_SIZE %X", csd.TAG_RES_SIZE) ;
-        DBG_PRINTF("\t\t TAG_UNIT_SIZE %X", csd.TAG_UNIT_SIZE) ;
-        DBG_PRINTF("\t\t DATA_TAG_SUPPORT %X", csd.DATA_TAG_SUPPORT) ;
-        DBG_PRINTF("\t\t MAX_PACKED_WRITES %X", csd.MAX_PACKED_WRITES) ;
-        DBG_PRINTF("\t\t MAX_PACKED_READS %X", csd.MAX_PACKED_READS) ;
-        DBG_PRINTF("\t\t BKOPS_SUPPORT %X", csd.BKOPS_SUPPORT) ;
-        DBG_PRINTF("\t\t HPI_FEATURES %X", csd.HPI_FEATURES) ;
-        DBG_PRINTF("\t\t S_CMD_SET %X", csd.S_CMD_SET) ;
-        DBG_PRINTF("\t\t EXT_SECURITY_ERR %X", csd.EXT_SECURITY_ERR) ;
-    }
-#endif
     return true ;
+}
+
+void MMC_fine(void)
+{
+    HAL_MMC_DeInit(&sdmmc) ;
 }
 
 void mmc_iniz_io(void)
@@ -381,19 +115,102 @@ bool mmc_fine_io(void)
     return false ;
 }
 
+bool mmc_wait(void)
+{
+    bool esito = false ;
+
+    while ( true ) {
+        HAL_MMC_CardStateTypeDef cs = HAL_MMC_GetCardState(&sdmmc) ;
+
+        if ( sdmmc.ErrorCode ) {
+            DBG_ERR ;
+            break ;
+        }
+        else if ( HAL_MMC_CARD_PROGRAMMING == cs ) {
+            HAL_Delay(10) ;
+        }
+        else {
+            DBG_PRINTF("%s -> %08X", __func__, cs) ;
+            esito = true ;
+            break ;
+        }
+    }
+
+    return esito ;
+}
+
+/*
+    Argument:
+        [31]    Reliable Write Request
+        [30]    0: non-packed
+        [29]    tag request
+        [28:25] context ID
+        [24]    forced programming
+        [23:16] set to 0
+        [15:0]  number of blocks
+    oppure:
+        [31]    set to 0
+        [30]    1 packed
+        [29:16] set to 0
+        [15:0]  number of blocks
+*/
+
+bool mmc_cmd23(
+    bool reliable,
+    bool packed,
+    uint32_t num_blocchi)
+{
+    uint32_t arg = num_blocchi ;
+    if ( packed ) {
+        arg |= 1 << 30 ;
+    }
+    else if ( reliable ) {
+        arg |= (uint32_t) (1 << 31) ;
+    }
+
+    SDMMC_CmdInitTypeDef cmdinit ;
+
+    cmdinit.Argument = arg ;
+    cmdinit.CmdIndex = SDMMC_CMD_SET_BLOCK_COUNT ;
+    cmdinit.Response = SDMMC_RESPONSE_SHORT ;
+    cmdinit.WaitForInterrupt = SDMMC_WAIT_NO ;
+    cmdinit.CPSM = SDMMC_CPSM_ENABLE ;
+    (void) SDMMC_SendCommand(sdmmc.Instance, &cmdinit) ;
+
+    /* Check for error conditions */
+    return SDMMC_ERROR_NONE == SDMMC_GetCmdResp1(sdmmc.Instance,
+                                                 SDMMC_CMD_SET_BLOCK_COUNT,
+                                                 SDMMC_CMDTIMEOUT) ;
+}
+
 bool MMC_leggi(
     uint32_t blocco,
+    uint32_t num_blocchi,
     void * dati)
 {
     bool esito = false ;
 
     do {
         mmc_iniz_io() ;
-        if ( HAL_MMC_ReadBlocks_DMA(&sdmmc, dati, blocco, 1) != HAL_OK ) {
+#if 1
+        if ( HAL_MMC_ReadBlocks_DMA(&sdmmc,
+                                    dati, blocco, num_blocchi) != HAL_OK ) {
+            DBG_ERR ;
+            break ;
+        }
+#else
+        // Alternativa (usata con rpmb)
+        if ( !mmc_cmd23(false, false, num_blocchi) ) {
             DBG_ERR ;
             break ;
         }
 
+        if ( mmc_readblocks_dma(&sdmmc, dati, blocco,
+                                num_blocchi) != HAL_OK ) {
+            DBG_ERR ;
+            break ;
+        }
+#endif
         esito = mmc_fine_io() ;
 #ifdef STAMPA_ROBA
         if ( esito ) {
@@ -405,16 +222,37 @@ bool MMC_leggi(
     return esito ;
 }
 
+bool mmc_leggi(
+    uint32_t blocco,
+    void * dati)
+{
+    bool esito = false ;
+
+    do {
+        mmc_iniz_io() ;
+        if ( mmc_readblocks_dma(&sdmmc, dati, blocco, 1) != HAL_OK ) {
+            DBG_ERR ;
+            break ;
+        }
+
+        esito = mmc_fine_io() ;
+    } while ( false ) ;
+
+    return esito ;
+}
+
 bool MMC_scrivi(
     uint32_t blocco,
+    uint32_t num_blocchi,
     const void * dati)
 {
     bool esito = false ;
 
     do {
         mmc_iniz_io() ;
-        if ( HAL_MMC_WriteBlocks_DMA(&sdmmc, CONST_CAST(dati), blocco,
-                                     1) != HAL_OK ) {
+        if ( HAL_MMC_WriteBlocks_DMA(&sdmmc,
+                                     CONST_CAST(dati), blocco,
+                                     num_blocchi) != HAL_OK ) {
             DBG_ERR ;
             break ;
         }
@@ -425,6 +263,26 @@ bool MMC_scrivi(
             DBG_PRINT_HEX("mmc <- ", dati, MMC_BLOCKSIZE) ;
         }
 #endif
+    } while ( false ) ;
+
+    return esito ;
+}
+
+bool mmc_scrivi(
+    uint32_t blocco,
+    const void * dati)
+{
+    bool esito = false ;
+
+    do {
+        mmc_iniz_io() ;
+        if ( mmc_writeblocks_dma(&sdmmc, CONST_CAST(dati), blocco,
+                                 1) != HAL_OK ) {
+            DBG_ERR ;
+            break ;
+        }
+
+        esito = mmc_fine_io() ;
     } while ( false ) ;
 
     return esito ;
@@ -444,17 +302,16 @@ bool MMC_trim(
 
         while ( true ) {
             HAL_MMC_CardStateTypeDef cs = HAL_MMC_GetCardState(&sdmmc) ;
+
             if ( sdmmc.ErrorCode ) {
                 DBG_ERR ;
             }
+            else if ( HAL_MMC_CARD_PROGRAMMING == cs ) {
+                HAL_Delay(10) ;
+            }
             else {
-                if ( HAL_MMC_CARD_PROGRAMMING == cs ) {
-                    HAL_Delay(10) ;
-                }
-                else {
-                    DBG_PRINTF("%s -> %08X", __func__, cs) ;
-                    break ;
-                }
+                DBG_PRINTF("%s -> %08X", __func__, cs) ;
+                break ;
             }
         }
 
@@ -565,6 +422,9 @@ bool MMC_access(MMC_PART part)
     } ;
 
     switch ( part ) {
+    case MMC_PART_RPMB:
+        u.arg.value = PARTITION_ACCESS_RPMB ;
+        break ;
     case MMC_PART_BOOT_1:
         u.arg.value = PARTITION_ACCESS_B_1 ;
         break ;
@@ -579,7 +439,12 @@ bool MMC_access(MMC_PART part)
     }
     {
         uint32_t errorstate = SDMMC_CmdSwitch(sdmmc.Instance, u.x) ;
-        esito = errorstate == HAL_MMC_ERROR_NONE ;
+        if ( HAL_MMC_ERROR_NONE == errorstate ) {
+            // The SWITCH command response is of type R1b, therefore, the host
+            // should read the Device status, using SEND_STATUS command, after the
+            // busy signal is de-asserted, to check the result of the SWITCH operation.
+            esito = mmc_wait() ;
+        }
     }
 esci:
     return esito ;
