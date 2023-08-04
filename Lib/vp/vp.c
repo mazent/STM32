@@ -17,6 +17,7 @@ bool VP_ini(S_VP * vp)
 
         vp->val = 0 ;
         vp->crc = CRC_1021_v( CRC_INI, &vp->val, sizeof(uint32_t) ) ;
+        vp->_ = 0 ;
 
         return false ;
     }
@@ -40,6 +41,7 @@ void VP_incrm(S_VP * vp)
 {
     ++vp->val ;
     vp->crc = CRC_1021_v( CRC_INI, &vp->val, sizeof(uint32_t) ) ;
+    vp->_ = 0 ;
 }
 
 void VP_nuovo(
@@ -47,7 +49,8 @@ void VP_nuovo(
     uint32_t val)
 {
     vp->val = val ;
-    vp->crc = CRC_1021_v( CRC_INI, &vp->val, sizeof(uint32_t) ) ;
+    vp->crc = CRC_1021_v( CRC_INI, &val, sizeof(uint32_t) ) ;
+    vp->_ = 0 ;
 }
 
 #if 0

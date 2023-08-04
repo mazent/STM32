@@ -12,6 +12,20 @@
 typedef struct {
     uint32_t val ;
     uint16_t crc ;
+    /*
+     * Vedi AN5342 - Rev 3 - pag 5
+     *
+     * Su H7 la ram ha ecc per cui:
+     *     The ECC is computed on data word
+     *     ...
+     *     On an incomplete access, the ECC does not write the value immediately
+     *     ...
+     *     a write operation is not to be completed in case of reset
+     *     ...
+     *     The workaround for this limitation is to write a dummy incomplete
+     *     word write after each regular one
+     */
+    uint16_t _ ;
 } S_VP ;
 
 // Se non valido imposta 0 e torna falso

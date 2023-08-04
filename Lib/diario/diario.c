@@ -1,7 +1,6 @@
 #include "utili.h"
-#define USA_DIARIO
 #include "diario.h"
-#include "cmsis_rtos/cmsis_os.h"
+#include "../cmsis_rtos/cmsis_os.h"
 
 #ifdef DDB_QUANDO
 // "%08X) " + livello + a capo + null
@@ -24,7 +23,7 @@ static const char LVL_DEBUG[] = "DBG" ;
 
 static osThreadId idTHD = NULL ;
 static osMailQId idMQ = NULL ;
-static DDB_LEVEL level = DDB_L_NONE ;
+static DDB_LEVEL level = DDB_NONE ;
 
 typedef struct {
 #ifdef DDB_QUANDO
@@ -72,16 +71,16 @@ static void diario(void * v)
 
             const char * slev = "???" ;
             switch ( riga->level ) {
-            case DDB_L_ERROR:
+            case DDB_ERROR:
                 slev = LVL_ERROR ;
                 break ;
-            case DDB_L_WARNING:
+            case DDB_WARNING:
                 slev = LVL_WARNING ;
                 break ;
-            case DDB_L_INFO:
+            case DDB_INFO:
                 slev = LVL_INFO ;
                 break ;
-            case DDB_L_DEBUG:
+            case DDB_DEBUG:
                 slev = LVL_DEBUG ;
                 break ;
             default:

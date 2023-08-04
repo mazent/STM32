@@ -1,9 +1,9 @@
 #define STAMPA_DBG
 #include "utili.h"
+#include "priv_av1.h"
 
-#ifndef DESCRITTORE_MIO
+extern CRC_HandleTypeDef hcrc ;
 
-#include "fwh.h"
 
 static bool h_valido(const commonHeader * pD)
 {
@@ -25,7 +25,18 @@ static uint32_t fw_crc32(
     void * /*bin*/,
     uint32_t /*dim*/) ;
 
-bool app_valida(const uint32_t dove)
+/**
+ *
+ * @param dove[in] indirizzo da controllare
+ * @param vi[out]  vettore delle interruzioni
+ * @return		   torna true se all'indirizzo indicato c'e' una
+ *                 immagine valida (*vi contiene l'indirizzo del vettore
+ *                 delle interruzioni)
+ */
+
+bool app_valida(
+    uint32_t dove,
+    uint32_t * vi)
 {
     bool esito = false ;
 
@@ -63,6 +74,7 @@ bool app_valida(const uint32_t dove)
         }
 
         esito = true ;
+        *vi = dove ;
     } while ( false ) ;
 
     return esito ;
@@ -171,7 +183,8 @@ static uint32_t fw_crc32(
 
 #include "stm32h7xx_hal.h"
 
-static CRC_HandleTypeDef hcrc = {
+static const CRC_HandleTypeDef fw_crc = {
+    .State = HAL_CRC_STATE_RESET,
     .Instance = CRC,
     .Init = {
         .DefaultPolynomialUse = DEFAULT_POLYNOMIAL_ENABLE,
@@ -195,6 +208,7 @@ static uint32_t fw_crc32(
     CONTROLLA( HAL_OK == HAL_CRC_DeInit(&hcrc) ) ;
 
     do {
+        hcrc = fw_crc ;
         if ( HAL_CRC_Init(&hcrc) != HAL_OK ) {
             DBG_ERR ;
             break ;
@@ -258,4 +272,4 @@ void app_iniz(void)
 
 #endif
 
-#endif
+

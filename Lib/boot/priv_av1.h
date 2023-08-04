@@ -1,11 +1,12 @@
 #ifndef LIB_BOOT_FWH_H_
 #define LIB_BOOT_FWH_H_
 
-#ifndef DESCRITTORE_MIO
+/*
+ * Uno degli header di Badanai
+ */
 
 // Il vettore delle interruzioni viene allungato a:
 #define DIM_VI      1024
-
 
 // Indirizzi
 // ------------------------
@@ -20,7 +21,6 @@
 // APPLICATION_TYPE
 #define APPTYPE_BL          1
 #define APPTYPE_MAINAPP     2
-#define APPTYPE_SERVICEAPP  3
 
 /*
  * In ordine di apparizione nel fw:
@@ -93,9 +93,11 @@ typedef struct commonHeader {
     uint8_t reserved[84] ;
 } commonHeader ;
 
-bool app_valida(uint32_t dove) ;
+bool app_valida(
+    uint32_t dove,
+    uint32_t * vi) ;
 
-#endif
+
 
 #else
 #   warning fwh.h incluso

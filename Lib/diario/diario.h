@@ -13,27 +13,27 @@
 
 typedef enum {
     // In ordine crescente di verbosita'
-    DDB_L_NONE,
-    DDB_L_ERROR,
-    DDB_L_WARNING,
-    DDB_L_INFO,
-    DDB_L_DEBUG
+    DDB_NONE,
+    DDB_ERROR,
+    DDB_WARNING,
+    DDB_INFO,
+    DDB_DEBUG
 } DDB_LEVEL ;
 
-bool DDB_iniz(DDB_LEVEL) ;
+bool DDB_iniz(DDB_LEVEL /*a*/) ;
 
 void DDB_level(DDB_LEVEL) ;
 
-void DDB_puts(DDB_LEVEL, const char *) ;
+void DDB_puts(DDB_LEVEL /*b*/, const char * /*a*/) ;
 
-void DDB_printf(DDB_LEVEL,
-                const char *,
+void DDB_printf(DDB_LEVEL /*b*/,
+                const char * /*a*/,
                 ...) ;
 
-void DDB_print_hex(DDB_LEVEL,
-                   const char *,
-                   const void *,
-                   int) ;
+void DDB_print_hex(DDB_LEVEL /*d*/,
+                   const char * /*a*/,
+                   const void * /*b*/,
+                   int /*c*/) ;
 
 // Interfaccia verso lo strato che trasmette/salva
 extern void ddb_scrivi(
@@ -43,42 +43,21 @@ extern void ddb_scrivi(
 // Macro utili
 // -------------------------------
 // Il livello fissato a compile-time permette di eliminare
-// totalmente le stampe dal codice, ma esse possono essere
-// eliminate localmente sul singolo file
-#ifndef USA_DIARIO
-#undef DDB_LIV
-#define DDB_LIV        DDB_LIV_NONE
-#endif
-
+// totalmente le stampe dal codice
 #if DDB_LIV >= DDB_LIV_ERR
-#define DDB_ERROR(f, ...)       DDB_printf(DDB_L_ERROR, f, ## __VA_ARGS__)
-#define DDB_ERR                 DDB_printf(DDB_L_ERROR, "ERR %s %d", \
+#define DDB_ERROR(f, ...)       DDB_printf(DDB_ERROR, f, ## __VA_ARGS__)
+#define DDB_ERR                 DDB_printf(DDB_ERROR, "%s %d", \
                                            __FILE__, \
                                            __LINE__)
-#define DDB_ASSERT(x)         \
-    do {                  \
-        if ( !(x) ) {     \
-        	DDB_printf(DDB_L_ERROR, "ASSERT %s %d",   \
-								   __FILE__,          \
-								   __LINE__) ;        \
-        }                 \
-    } while ( false )
 
 #else
 #define DDB_ERROR(f, ...)
 #define DDB_ERR
-#define DDB_ASSERT(x)
 #endif
-#define DDB_CONTROLLA(x)        \
-    do {                \
-        if ( !(x) ) {   \
-            DDB_ERR ;   \
-        }               \
-    } while ( false )
 
 #if DDB_LIV >= DDB_LIV_WARN
-#define DDB_WARNING(f, ...)     DDB_printf(DDB_L_WARNING, f, ## __VA_ARGS__)
-#define DDB_WRN                 DDB_printf(DDB_L_WARNING, "%s %d", \
+#define DDB_WARNING(f, ...)     DDB_printf(DDB_WARNING, f, ## __VA_ARGS__)
+#define DDB_WRN                 DDB_printf(DDB_WARNING, "%s %d", \
                                            __FILE__, \
                                            __LINE__)
 #else
@@ -87,8 +66,8 @@ extern void ddb_scrivi(
 #endif
 
 #if DDB_LIV >= DDB_LIV_INFO
-#define DDB_INFO(f, ...)        DDB_printf(DDB_L_INFO, f, ## __VA_ARGS__)
-#define DDB_INF                 DDB_printf(DDB_L_INFO, "%s %d", \
+#define DDB_INFO(f, ...)        DDB_printf(DDB_INFO, f, ## __VA_ARGS__)
+#define DDB_INF                 DDB_printf(DDB_INFO, "%s %d", \
                                            __FILE__, \
                                            __LINE__)
 #else
@@ -97,29 +76,17 @@ extern void ddb_scrivi(
 #endif
 
 #if DDB_LIV >= DDB_LIV_DBG
-#define DDB_DEBUG(f, ...)       DDB_printf(DDB_L_DEBUG, f, ## __VA_ARGS__)
-#define DDB_PRINT_HEX(t, x, d)  DDB_print_hex(DDB_L_DEBUG, t, x, d)
-#define DDB_DBG                 DDB_printf(DDB_L_DEBUG, "%s %d", \
+#define DDB_DEBUG(f, ...)       DDB_printf(DDB_DEBUG, f, ## __VA_ARGS__)
+#define DDB_PRINT_HEX(t, x, d)  DDB_print_hex(DDB_DEBUG, t, x, d)
+#define DDB_DBG                 DDB_printf(DDB_DEBUG, "%s %d", \
                                            __FILE__, \
                                            __LINE__)
-#define DDB_FUN                 DDB_puts(DDB_L_DEBUG, __func__)
-#define DDB_PUTS(a)             DDB_puts(DDB_L_DEBUG, a)
 #else
 #define DDB_DEBUG(f, ...)
 #define DDB_PRINT_HEX(t, x, d)
 #define DDB_DBG
-#define DDB_FUN
-#define DDB_PUTS(a)
 #endif
-// condizionate
-#   define DDB_PRN(c, p)    \
-    if ( c ) {               \
-        DDB_DEBUG p ;       \
-    }
 
-#   define DDB_PUT(c, p)    \
-    if ( c ) {               \
-        DDB_PUTS(p) ;       \
-    }
-
+#else
+#   warning diario.h incluso
 #endif

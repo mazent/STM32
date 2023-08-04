@@ -1,12 +1,12 @@
 #define STAMPA_DBG
 #include "utili.h"
-
-#ifdef DESCRITTORE_MIO
-
-#include "boot.h"
+#include "av.h"
 #include "stm32h7xx_hal.h"
 
-static CRC_HandleTypeDef hcrc = {
+extern CRC_HandleTypeDef hcrc ;
+
+static const CRC_HandleTypeDef av0_crc = {
+    .State = HAL_CRC_STATE_RESET,
     .Instance = CRC,
     .Init = {
         .DefaultPolynomialUse = DEFAULT_POLYNOMIAL_ENABLE,
@@ -19,11 +19,16 @@ static CRC_HandleTypeDef hcrc = {
 
 #pragma section=".intvec"
 
-bool app_valida(const uint32_t dove)
+bool app_valida(
+    uint32_t dove,
+    uint32_t * vi)
 {
     bool esito = false ;
 
+    CONTROLLA( HAL_OK == HAL_CRC_DeInit(&hcrc) ) ;
+
     do {
+    	// il descrittore viene dopo l'iv
         const uint32_t desc = dove + __section_size(".intvec") ;
 
         const S_DESCRITTORE * pD = CPOINTER(desc) ;
@@ -37,6 +42,7 @@ bool app_valida(const uint32_t dove)
             break ;
         }
 
+        hcrc = av0_crc ;
         if ( HAL_CRC_Init(&hcrc) != HAL_OK ) {
             DBG_ERR ;
             break ;
@@ -50,11 +56,8 @@ bool app_valida(const uint32_t dove)
         }
 
         esito = true ;
+        *vi = dove ;
     } while ( false ) ;
-
-    CONTROLLA( HAL_OK == HAL_CRC_DeInit(&hcrc) ) ;
 
     return esito ;
 }
-
-#endif
