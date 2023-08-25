@@ -167,7 +167,7 @@
 #define CAN_CLASSIC_MAX_DLC               8  // maximal allowed DLC value in CAN FD
 
 // size of the list buffering RX Messages in Software Memory (not M_CAN or Messag RAM) before they are checked for correctness
-#define RX_MESSAGE_LIST_ENTRIES     64
+#define RX_MESSAGE_LIST_ENTRIES     10
 // size of the list buffering TX Event FIFO elements in Software Memory (not M_CAN or Messag RAM) before they are checked for correctness
 #define TX_EVENT_FIFO_LIST_ENTRIES  32
 
@@ -305,6 +305,11 @@ typedef struct
      tx_buff_config_struct tx_config;      // TX Buffer Configuration
      boolean is_m_ttcan_node;              // FALSE: M_CAN Node, TRUE: M_TTCAN Node
      internal_test_struct internal_test;
+     // MZ
+     boolean autotx;
+     // https://e2e.ti.com/support/interface-group/interface/f/interface-forum/1127339/tcan4550-q1-loopback-test
+     boolean lback_abil;
+     boolean lback_intrnl;
 } can_struct;
 
 // CAN Message ID Type

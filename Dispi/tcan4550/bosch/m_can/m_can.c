@@ -55,19 +55,19 @@ static void scrivi_cccr(M_CAN_CCCR_union cccr_reg)
 
 static boolean cccr_set_and_check(M_CAN_CCCR_union reg_value)
 {
-	M_CAN_CCCR_union read_back_value ;
+    M_CAN_CCCR_union read_back_value ;
 
-	reg_value.bits.CSR = 0 ;
+    reg_value.bits.CSR = 0 ;
     reg_set(get_can_struct(), ADR_M_CAN_CCCR, reg_value.value) ;
 
     // check written value
     read_back_value.value = reg_get(get_can_struct(), ADR_M_CAN_CCCR) ;
     read_back_value.bits.CSR = 0 ;
-    if (read_back_value.value == reg_value.value) {
+    if ( read_back_value.value == reg_value.value ) {
         return TRUE ;
     }
     else {
-        if (ERROR_PRINT) {
+        if ( ERROR_PRINT ) {
             DBG_PRINTF(
                 "[Error] cccr_set_and_check: w_value= 0x%8.8x, r_value= 0x%8.8x",
                 reg_value.value,
@@ -77,16 +77,15 @@ static boolean cccr_set_and_check(M_CAN_CCCR_union reg_value)
     }
 }
 
-
 /* Print M_CAN Version from core release register */
-void m_can_print_version(can_struct *can_ptr)
+void m_can_print_version(can_struct * can_ptr)
 {
 #ifdef DBG_ABIL
     // M_CAN core release register value
     M_CAN_CREL_union crel ;
 
     // read the registers
-    crel.value = IORD_32DIRECT(can_ptr->base, ADR_M_CAN_CREL ) ;
+    crel.value = IORD_32DIRECT(can_ptr->base, ADR_M_CAN_CREL) ;
 
     // print the register contents
     DBG_PRINTF("%d.%d.%d from ",
@@ -94,24 +93,32 @@ void m_can_print_version(can_struct *can_ptr)
     DBG_PRINTF("%2.2x.%2.2x.201%1.1x",
                crel.bits.DAY, crel.bits.MON, crel.bits.YEAR) ;
 #else
-    INUTILE(can_ptr);
+    INUTILE(can_ptr) ;
 #endif
 }
 
 /* Write to can register */
-void reg_set(can_struct *can_ptr, uint16_t reg_addr_offset, uint32_t reg_value)
+void reg_set(
+    can_struct * can_ptr,
+    uint16_t reg_addr_offset,
+    uint32_t reg_value)
 {
     IOWR_32DIRECT(can_ptr->base, reg_addr_offset, reg_value) ;
 }
 
 /* Read from can register */
-uint32_t reg_get(can_struct *can_ptr, uint16_t reg_addr_offset)
+uint32_t reg_get(
+    can_struct * can_ptr,
+    uint16_t reg_addr_offset)
 {
-    return (uint32_t)IORD_32DIRECT(can_ptr->base, reg_addr_offset) ;
+    return (uint32_t) IORD_32DIRECT(can_ptr->base, reg_addr_offset) ;
 }
 
 /* Add a value to a register (Read -> Add -> Write Back) */
-void reg_add(can_struct *can_ptr, uint16_t reg_addr_offset, uint16_t add_value)
+void reg_add(
+    can_struct * can_ptr,
+    uint16_t reg_addr_offset,
+    uint16_t add_value)
 {
     // declare
     uint16_t can_reg_val ;
@@ -124,9 +131,10 @@ void reg_add(can_struct *can_ptr, uint16_t reg_addr_offset, uint16_t add_value)
 }
 
 /* Write to can register and check write by Readback */
-boolean reg_set_and_check(can_struct *can_ptr,
-                          uint16_t reg_addr_offset,
-                          uint32_t reg_value)
+boolean reg_set_and_check(
+    can_struct * can_ptr,
+    uint16_t reg_addr_offset,
+    uint32_t reg_value)
 {
     uint32_t read_back_value ;
 
@@ -134,11 +142,11 @@ boolean reg_set_and_check(can_struct *can_ptr,
 
     // check written value
     read_back_value = reg_get(can_ptr, reg_addr_offset) ;
-    if (read_back_value == reg_value) {
+    if ( read_back_value == reg_value ) {
         return TRUE ;
     }
     else {
-        if (ERROR_PRINT) {
+        if ( ERROR_PRINT ) {
             DBG_PRINTF(
                 "[Error] reg_set_and_check: can_id= %d, reg_addr= 0x%3.3x, w_value= 0x%8.8x, r_value= 0x%8.8x",
                 can_ptr->id,
@@ -151,7 +159,7 @@ boolean reg_set_and_check(can_struct *can_ptr,
 }
 
 /* set the init bit in M_CAN instance */
-void m_can_set_init(can_struct *can_ptr)
+void m_can_set_init(can_struct * can_ptr)
 {
     // M_CAN is set into init mode (CCCR.INIT := 1).
 
@@ -159,7 +167,7 @@ void m_can_set_init(can_struct *can_ptr)
     cccr_reg.value = reg_get(can_ptr, ADR_M_CAN_CCCR) ;    // init with current value
 
     // check if init bit is not yet set
-    if (cccr_reg.bits.INIT == 0) {
+    if ( cccr_reg.bits.INIT == 0 ) {
         // not yet set => SET INIT
         cccr_reg.bits.INIT = 1 ;     // Initialization
 
@@ -170,7 +178,7 @@ void m_can_set_init(can_struct *can_ptr)
         // check if init is already active (is synced to CCLK and back to HCLK domain)
         do {
             cccr_reg.value = reg_get(can_ptr, ADR_M_CAN_CCCR) ;
-        } while (cccr_reg.bits.INIT == 0) ;
+        } while ( cccr_reg.bits.INIT == 0 ) ;
 
         // DEBUG
         //DBG_PRINTF("%d", can_ptr->id);
@@ -178,7 +186,7 @@ void m_can_set_init(can_struct *can_ptr)
 }
 
 /* reset the init bit in M_CAN instance */
-void m_can_reset_init(can_struct *can_ptr)
+void m_can_reset_init(can_struct * can_ptr)
 {
     // M_CAN is reset from init mode (CCCR.INIT := 0).
 
@@ -186,7 +194,7 @@ void m_can_reset_init(can_struct *can_ptr)
     cccr_reg.value = reg_get(can_ptr, ADR_M_CAN_CCCR) ;    // init with current value
 
     // check if init bit is not yet reset
-    if (cccr_reg.bits.INIT == 1) {
+    if ( cccr_reg.bits.INIT == 1 ) {
         // not yet reset => RESET INIT
         cccr_reg.bits.INIT = 0 ;     // Initialization
 
@@ -197,12 +205,12 @@ void m_can_reset_init(can_struct *can_ptr)
         // check if init is already inactive (is synced to CCLK and back to HCLK domain)
         do {
             cccr_reg.value = reg_get(can_ptr, ADR_M_CAN_CCCR) ;
-        } while (cccr_reg.bits.INIT == 1) ;
+        } while ( cccr_reg.bits.INIT == 1 ) ;
     }
 }
 
 /* set configuration change enable for CAN instance */
-void m_can_set_config_change_enable(can_struct *can_ptr)
+void m_can_set_config_change_enable(can_struct * can_ptr)
 {
     // M_CAN is set into the configuration change enable mode.
 
@@ -221,7 +229,7 @@ void m_can_set_config_change_enable(can_struct *can_ptr)
 }
 
 /* reset configuration change enable for CAN instance (init not reset!) */
-void m_can_reset_config_change_enable(can_struct *can_ptr)
+void m_can_reset_config_change_enable(can_struct * can_ptr)
 {
     // M_CAN CCE (configuration change enable) is reset.
     // Attention: After returning from this function, the M_CAN is still in init-Mode (i.e. init='1')
@@ -239,13 +247,13 @@ void m_can_reset_config_change_enable(can_struct *can_ptr)
 }
 
 /* reset configuration change enable AND reset init bit for CAN instance */
-void m_can_reset_config_change_enable_and_reset_init(can_struct *can_ptr)
+void m_can_reset_config_change_enable_and_reset_init(can_struct * can_ptr)
 {
     // M_CAN CCE (configuration change enable) is reset.
     // M_CAN INIT is reset ==> this means the CAN instance is connected to the CAN bus!
 
-	// MZ
-	m_can_reset_config_change_enable(can_ptr) ;
+    // MZ
+    m_can_reset_config_change_enable(can_ptr) ;
 
     /* 1. reset init bit */
     m_can_reset_init(can_ptr) ;
@@ -256,7 +264,7 @@ void m_can_reset_config_change_enable_and_reset_init(can_struct *can_ptr)
 }
 
 /* Set Nominal Bit Timing of CAN instance (Arbitration Phase) */
-boolean m_can_set_bit_timing_nominal(can_struct *can_ptr)
+boolean m_can_set_bit_timing_nominal(can_struct * can_ptr)
 {
     /* Description:
      *  - Configure Nominal Bit Timing (Arbitration Phase)
@@ -274,20 +282,20 @@ boolean m_can_set_bit_timing_nominal(can_struct *can_ptr)
     bt_reg.value = 0 ;       // init with 0
 
     bt_reg.bits.NTSEG2 = can_ptr->bt_config.nominal.phase_seg2 - 1 ; // The time segment after  the sample point
-    bt_reg.bits.NTSEG1 = can_ptr->bt_config.nominal.phase_seg1 +
-                         can_ptr->bt_config.nominal.prop_seg - 1 ;                                       // The time segment before the sample point
+    bt_reg.bits.NTSEG1 = can_ptr->bt_config.nominal.phase_seg1
+                         + can_ptr->bt_config.nominal.prop_seg - 1 ;                                     // The time segment before the sample point
     bt_reg.bits.NSJW = can_ptr->bt_config.nominal.sjw - 1 ;         // (Re) Synchronization Jump Width
     bt_reg.bits.NBRP = can_ptr->bt_config.nominal.brp - 1 ;         // Bit Rate Prescaler
 
-    if (reg_set_and_check(can_ptr, ADR_M_CAN_NBTP, bt_reg.value) == TRUE) {
-        if (DEBUG_PRINT) {
+    if ( reg_set_and_check(can_ptr, ADR_M_CAN_NBTP, bt_reg.value) == TRUE ) {
+        if ( DEBUG_PRINT ) {
             DBG_PRINTF(" M_CAN_%d: Nominal Bit Rate configured correctly.",
                        can_ptr->id) ;
         }
         return TRUE ;
     }
     else {
-        if (ERROR_PRINT) {
+        if ( ERROR_PRINT ) {
             DBG_PRINTF(" M_CAN_%d: Nominal Bit Rate configuration ERROR!",
                        can_ptr->id) ;
         }
@@ -296,7 +304,7 @@ boolean m_can_set_bit_timing_nominal(can_struct *can_ptr)
 }
 
 /* Set Data Bit Timing of CAN instance (Data Phase) */
-boolean m_can_set_bit_timing_data(can_struct *can_ptr)
+boolean m_can_set_bit_timing_data(can_struct * can_ptr)
 {
     /* Description:
      *  - Configure Data Bit Timing (Data Phase)
@@ -316,8 +324,8 @@ boolean m_can_set_bit_timing_data(can_struct *can_ptr)
     tdcr_reg.value = 0 ;         // init with 0
 
     bt_reg.bits.DTSEG2 = can_ptr->bt_config.data.phase_seg2 - 1 ; // The time segment after  the sample point
-    bt_reg.bits.DTSEG1 = can_ptr->bt_config.data.phase_seg1 +
-                         can_ptr->bt_config.data.prop_seg - 1 ;                                    // The time segment before the sample point
+    bt_reg.bits.DTSEG1 = can_ptr->bt_config.data.phase_seg1
+                         + can_ptr->bt_config.data.prop_seg - 1 ;                                  // The time segment before the sample point
     bt_reg.bits.DSJW = can_ptr->bt_config.data.sjw - 1 ;         // (Re) Synchronization Jump Width
     bt_reg.bits.DBRP = can_ptr->bt_config.data.brp - 1 ;         // Bit Rate Prescaler
     bt_reg.bits.TDC = can_ptr->bt_config.data.tdc ;              // Transceiver Delay Compensation
@@ -328,14 +336,14 @@ boolean m_can_set_bit_timing_data(can_struct *can_ptr)
                             bt_reg.value) == TRUE) &&
          (reg_set_and_check(can_ptr, ADR_M_CAN_TDCR,
                             tdcr_reg.value) == TRUE) ) {
-        if (DEBUG_PRINT) {
+        if ( DEBUG_PRINT ) {
             DBG_PRINTF(" M_CAN_%d: Data Bit Rate configured correctly.",
                        can_ptr->id) ;
         }
         return TRUE ;
     }
     else {
-        if (ERROR_PRINT) {
+        if ( ERROR_PRINT ) {
             DBG_PRINTF(" M_CAN_%d: Data Bit Rate configuration ERROR!",
                        can_ptr->id) ;
         }
@@ -344,7 +352,7 @@ boolean m_can_set_bit_timing_data(can_struct *can_ptr)
 }
 
 /* Set Nominal and Data Bit Timing and CAN mode (FD, Classic) */
-void m_can_set_bit_timing(can_struct *can_ptr)
+void m_can_set_bit_timing(can_struct * can_ptr)
 {
     /*
      * Description: sets the nominal bit timing
@@ -356,7 +364,7 @@ void m_can_set_bit_timing(can_struct *can_ptr)
      */
 
     // check if M_CAN is in configuration change enable mode before setting the bit timings
-#ifndef NDEBUG	// Posso stampare
+#ifndef NDEBUG  // Posso stampare
     M_CAN_CCCR_union cccr_reg ;
     cccr_reg.value = reg_get(can_ptr, ADR_M_CAN_CCCR) ;
     assert_print_error(
@@ -367,7 +375,7 @@ void m_can_set_bit_timing(can_struct *can_ptr)
     m_can_set_bit_timing_nominal(can_ptr) ;
 
     // Set Bit Timing of CAN instance for Data Phase (if FD is enabled)
-    if (can_ptr->bt_config.fd_ena) {
+    if ( can_ptr->bt_config.fd_ena ) {
         m_can_set_bit_timing_data(can_ptr) ;
     }
 
@@ -376,11 +384,12 @@ void m_can_set_bit_timing(can_struct *can_ptr)
 }
 
 /* Initialize Interrupt Registers */
-void m_can_interrupt_init(can_struct *can_ptr,
-                          uint32_t ir_line0_select,
-                          uint32_t ir_line1_select,
-                          uint32_t tx_buffer_transmission_ir_enable,
-                          uint32_t tx_buffer_cancel_finished_ir_enable)
+void m_can_interrupt_init(
+    can_struct * can_ptr,
+    uint32_t ir_line0_select,
+    uint32_t ir_line1_select,
+    uint32_t tx_buffer_transmission_ir_enable,
+    uint32_t tx_buffer_cancel_finished_ir_enable)
 {
     /* Description: Enable Interrupts and Interrupt-Line (only Line0 available in this FPGA Demo)
      *
@@ -401,14 +410,15 @@ void m_can_interrupt_init(can_struct *can_ptr,
 
     // an interrupt flag can only be assigned to ir_line0 or ir_line1 (e.g. assignment of an ir_flag to both ir_lines at the same is NOT possible)
     assert_print_error(
-         (ir_line0_select & ir_line1_select) == 0,
-        "Interrupt flags cannot be assigned to both interrupt lines at the same time." ) ;
+        (ir_line0_select & ir_line1_select) == 0,
+        "Interrupt flags cannot be assigned to both interrupt lines at the same time.") ;
 
     // check if only valid interrupt flags are selected (avoid setting of reserved bit in IR register)
     assert_print_error(
-         ( (ir_line0_select +
-            ir_line1_select) | INTERRUPT_ALL_SIGNALS ) == INTERRUPT_ALL_SIGNALS,
-        "Invalid interrupt bits set in the int_line_select parameter." ) ;
+        ( (ir_line0_select
+           + ir_line1_select) | INTERRUPT_ALL_SIGNALS ) ==
+        INTERRUPT_ALL_SIGNALS,
+        "Invalid interrupt bits set in the int_line_select parameter.") ;
 
     // Derive content for Interrupt Enable register
     // - Interrupts assigned to ir_line0/1 are enabled
@@ -433,11 +443,11 @@ void m_can_interrupt_init(can_struct *can_ptr,
     // disable all interrupt lines
     ir_line_enable_reg = ILE_DISABLE_INTERRUPT_LINES ;
     // enable interrupt line 0: if ir_line0_select contains interrupt flags => enable interrupt line0
-    if (ir_line0_select != 0) {
+    if ( ir_line0_select != 0 ) {
         ir_line_enable_reg += ILE_ENABLE_INTERRUPT_LINE_0 ;
     }
     // enable interrupt line 1: if ir_line1_select contains interrupt flags => enable interrupt line1
-    if (ir_line1_select != 0) {
+    if ( ir_line1_select != 0 ) {
         ir_line_enable_reg += ILE_ENABLE_INTERRUPT_LINE_1 ;
     }
 
@@ -461,7 +471,7 @@ void m_can_interrupt_init(can_struct *can_ptr,
 }
 
 /* Enable the CAN mode: Classical, FD, FD with Bit Rate Switch */
-void m_can_enable_CAN_mode(can_struct *can_ptr)
+void m_can_enable_CAN_mode(can_struct * can_ptr)
 {
     // M_CAN CC Control Register (CCCR)
     M_CAN_CCCR_union cccr_reg ;
@@ -470,7 +480,7 @@ void m_can_enable_CAN_mode(can_struct *can_ptr)
     cccr_reg.value = reg_get(can_ptr, ADR_M_CAN_CCCR) ;
 
     // FD Operation enable/disable
-    if (can_ptr->bt_config.fd_ena) {
+    if ( can_ptr->bt_config.fd_ena ) {
         cccr_reg.bits.FDOE = 1 ;
     }
     else {
@@ -479,26 +489,48 @@ void m_can_enable_CAN_mode(can_struct *can_ptr)
 
     // BRS enable/disable
     // Hint: The M_CAN IP evalutes the BRSE-Bit only if FDOE=1
-    if (can_ptr->bt_config.brs_ena) {
+    if ( can_ptr->bt_config.brs_ena ) {
         cccr_reg.bits.BRSE = 1 ;
     }
     else {
         cccr_reg.bits.BRSE = 0 ;
     }
 
+    if ( can_ptr->autotx ) {
+        cccr_reg.bits.DAR = 0 ;
+    }
+    else {
+        cccr_reg.bits.DAR = 1 ;
+    }
+
+    if ( can_ptr->lback_abil ) {
+        cccr_reg.bits.TEST = 1 ;
+
+        if ( can_ptr->lback_intrnl ) {
+            cccr_reg.bits.MON = 1 ;
+        }
+    }
+
     // write back modified register value
     //MZ reg_set_and_check(can_ptr, ADR_M_CAN_CCCR, cccr_reg.value) ;
     cccr_set_and_check(cccr_reg) ;
+
+    if ( can_ptr->lback_abil ) {
+        M_CAN_TEST_union test ;
+        test.value = reg_get(can_ptr, ADR_M_CAN_TEST) ;
+        test.bits.LBCK = 1 ;
+        reg_set_and_check(can_ptr, ADR_M_CAN_TEST, test.value) ;
+    }
 }
 
 /* Convert DLC of the can frame into a payload length in byte */
 int convert_DLC_to_data_length(uint16_t dlc)
 {
-    if (dlc <= 8) {
+    if ( dlc <= 8 ) {
         return dlc ;
     }
     else {
-        switch (dlc) {
+        switch ( dlc ) {
         case 9:
             return 12 ;
         case 10:
@@ -515,13 +547,13 @@ int convert_DLC_to_data_length(uint16_t dlc)
             return 64 ;
         default:
             // error, dlc has invalid value!
-            if (ERROR_PRINT) {
+            if ( ERROR_PRINT ) {
                 DBG_PRINTF("ERROR: DLC (= %" PRIu16 ") has invalid value!",
                            dlc) ;
             }
             assert_print_error(
-                 (dlc <= CAN_FD_MAX_DLC),
-                "convert_DLC_to_data_length called with a DLC > CAN_FD_MAX_DLC !" ) ;
+                (dlc <= CAN_FD_MAX_DLC),
+                "convert_DLC_to_data_length called with a DLC > CAN_FD_MAX_DLC !") ;
             return 0 ;
         } // switch
     }
@@ -531,7 +563,7 @@ int convert_DLC_to_data_length(uint16_t dlc)
 uint16_t convert_element_size_to_data_length(
     data_field_size_enum data_field_size)
 {
-    switch (data_field_size) {
+    switch ( data_field_size ) {
     case BYTE8:
         return 8 ;
     case BYTE12:
@@ -550,7 +582,7 @@ uint16_t convert_element_size_to_data_length(
         return 64 ;
     default:
         // error, data_field_size has invalid value!
-        if (ERROR_PRINT) {
+        if ( ERROR_PRINT ) {
             DBG_PRINTF("ERROR: data_field_size (= %d) has invalid value!",
                        data_field_size) ;
         }
@@ -563,10 +595,11 @@ uint16_t convert_element_size_to_data_length(
 } // function convert
 
 /* Copy RX-Message from Message RAM to the Msg Data Structure given as Pointer */
-void m_can_copy_msg_from_msg_ram(can_struct *can_ptr,
-                                 uint32_t msg_addr_in_msg_ram,
-                                 can_msg_struct *msg_ptr,
-                                 rx_info_struct rx_info)
+void m_can_copy_msg_from_msg_ram(
+    can_struct * can_ptr,
+    uint32_t msg_addr_in_msg_ram,
+    can_msg_struct * msg_ptr,
+    rx_info_struct rx_info)
 {
     int i ;           // word counter
     uint32_t ram_word ;  // help variable, the currently read out Message RAM word
@@ -581,17 +614,17 @@ void m_can_copy_msg_from_msg_ram(can_struct *can_ptr,
     msg_ptr->rx_info = rx_info ;  // copy rx information (e.g. rx buffer type)
 
     // loop through Msg. RAM words of RX Buffer Element
-    while (bytes_to_read > 0) {
+    while ( bytes_to_read > 0 ) {
         ram_word = IORD_32DIRECT(msg_addr_in_msg_ram,
                                  i * M_CAN_RAM_WORD_WIDTH_IN_BYTE) ;                   // Read current Msg. RAM word
 
-        if (i == 0) {       // Msg. RAM word T0
+        if ( i == 0 ) {       // Msg. RAM word T0
             // extract ID Type and Msg.ID
             if ( (ram_word & RX_BUF_XTD) == 0 ) {
                 msg_ptr->idtype = standard_id ;
                 msg_ptr->id =
-                    (uint32_t)( (ram_word &
-                                 RX_BUF_STDID_MASK) >> RX_BUF_STDID_SHIFT ) ;
+                    (uint32_t) ( (ram_word
+                                  & RX_BUF_STDID_MASK) >> RX_BUF_STDID_SHIFT ) ;
             }
             else {
                 msg_ptr->idtype = extended_id ;
@@ -607,14 +640,14 @@ void m_can_copy_msg_from_msg_ram(can_struct *can_ptr,
             }
 
             // extract: ESI Bit
-            if ( (ram_word & (uint32_t)RX_BUF_ESI) == 0 ) {
+            if ( (ram_word & (uint32_t) RX_BUF_ESI) == 0 ) {
                 msg_ptr->esi = FALSE ;
             }
             else {
                 msg_ptr->esi = TRUE ;
             }
         }
-        else if (i == 1) {   // Msg. RAM word T1
+        else if ( i == 1 ) { // Msg. RAM word T1
             // extract DLC
             msg_ptr->dlc = (ram_word & RX_BUF_DLC_MASK) >> RX_BUF_DLC_SHIFT ;
 
@@ -657,9 +690,10 @@ void m_can_copy_msg_from_msg_ram(can_struct *can_ptr,
 } // function
 
 /* Copy TX-Message into Message RAM */
-void m_can_write_msg_to_msg_ram(can_struct *can_ptr,
-                                uint32_t msg_addr_in_msg_ram,
-                                can_msg_struct *msg_ptr)
+void m_can_write_msg_to_msg_ram(
+    can_struct * can_ptr,
+    uint32_t msg_addr_in_msg_ram,
+    can_msg_struct * msg_ptr)
 {
     // msg_addr_in_msg_ram: start address of TX Element in Msg.RAM
 
@@ -673,19 +707,19 @@ void m_can_write_msg_to_msg_ram(can_struct *can_ptr,
         "Direction of the message not properly set in SW. Message has to be Tx Message with direction=tx_dir") ;
 
     // T0
-    if (msg_ptr->idtype == standard_id) {
+    if ( msg_ptr->idtype == standard_id ) {
         ram_word = msg_ptr->id << TX_BUF_STDID_SHIFT ;        // shift Standard Identifier to position 28..18
     }
     else {
         ram_word = msg_ptr->id + TX_BUF_XTD ;                 // EXT ID + set EXT-ID Bit
     }
 
-    if (msg_ptr->remote == TRUE) {
+    if ( msg_ptr->remote == TRUE ) {
         ram_word = ram_word + TX_BUF_RTR ;
     }
 
-    if (msg_ptr->esi == TRUE) {
-        ram_word = ram_word + (uint32_t)TX_BUF_ESI ;
+    if ( msg_ptr->esi == TRUE ) {
+        ram_word = ram_word + (uint32_t) TX_BUF_ESI ;
     }
 
     IOWR_32DIRECT(msg_addr_in_msg_ram,
@@ -695,18 +729,18 @@ void m_can_write_msg_to_msg_ram(can_struct *can_ptr,
     // T1
     ram_word = (msg_ptr->dlc << TX_BUF_DLC_SHIFT) & TX_BUF_DLC_MASK ;
 
-    if (msg_ptr->fdf == TRUE) {
+    if ( msg_ptr->fdf == TRUE ) {
         ram_word = ram_word + TX_BUF_FDF ;
     }
 
-    if (msg_ptr->brs == TRUE) {
+    if ( msg_ptr->brs == TRUE ) {
         ram_word = ram_word + TX_BUF_BRS ;
     }
 
-    if (msg_ptr->efc == TRUE) {
+    if ( msg_ptr->efc == TRUE ) {
         ram_word = ram_word + TX_BUF_EFC ;
-        ram_word = ram_word +
-                   ( (msg_ptr->mm << TX_BUF_MM_SHIFT) & TX_BUF_MM_MASK ) ;
+        ram_word = ram_word
+                   + ( (msg_ptr->mm << TX_BUF_MM_SHIFT) & TX_BUF_MM_MASK ) ;
     }
 
     IOWR_32DIRECT(msg_addr_in_msg_ram,
@@ -718,11 +752,11 @@ void m_can_write_msg_to_msg_ram(can_struct *can_ptr,
 #ifndef MRAM_OTTIMIZZATA
     curr_payload_word = 0 ;
 
-    while (payload_bytes_to_write > 0) {
-        ram_word = (msg_ptr->data[(curr_payload_word << 2) + 0] <<  0) +
-                   (msg_ptr->data[(curr_payload_word << 2) + 1] <<  8) +
-                   (msg_ptr->data[(curr_payload_word << 2) + 2] << 16) +
-                   (msg_ptr->data[(curr_payload_word << 2) + 3] << 24) ;
+    while ( payload_bytes_to_write > 0 ) {
+        ram_word = (msg_ptr->data[(curr_payload_word << 2) + 0] << 0)
+                   + (msg_ptr->data[(curr_payload_word << 2) + 1] << 8)
+                   + (msg_ptr->data[(curr_payload_word << 2) + 2] << 16)
+                   + (msg_ptr->data[(curr_payload_word << 2) + 3] << 24) ;
         IOWR_32DIRECT(msg_addr_in_msg_ram,
                       (curr_payload_word + 2) * M_CAN_RAM_WORD_WIDTH_IN_BYTE,
                       ram_word) ;                                                                         // Write T2 to RAM
@@ -733,7 +767,9 @@ void m_can_write_msg_to_msg_ram(can_struct *can_ptr,
     }
 #else
     // MZ
-    mcan_copia_in_mram(msg_addr_in_msg_ram + 2 * M_CAN_RAM_WORD_WIDTH_IN_BYTE, msg_ptr->data, payload_bytes_to_write) ;
+    mcan_copia_in_mram(msg_addr_in_msg_ram + 2 * M_CAN_RAM_WORD_WIDTH_IN_BYTE,
+                       msg_ptr->data,
+                       payload_bytes_to_write) ;
 #endif
     // update message statistics
     update_msg_statistics_at_mram_access(can_ptr, msg_ptr) ;
@@ -773,19 +809,20 @@ void m_can_rx_dedicated_buffers_init(
     reg_set_and_check(can_ptr, ADR_M_CAN_RXESC, rxesc_reg.value) ; // write configuration to M_CAN
 
     // store element size also in CAN structure
-    can_ptr->elem_size_word.rx_buffer = RX_BUF_ELEM_HEADER_WORD +
-                                        (convert_element_size_to_data_length(
-                                             dedicated_rx_buffer_data_field_size)
-                                         >>
-                                         2) ;                                                                                                    // data field size is a multiple of 4
+    can_ptr->elem_size_word.rx_buffer = RX_BUF_ELEM_HEADER_WORD
+                                        + (convert_element_size_to_data_length(
+                                               dedicated_rx_buffer_data_field_size)
+                                           >>
+                                           2) ;                                                                                                  // data field size is a multiple of 4
 }
 
 /* Initialize an RX FIFO in the M_CAN */
-void m_can_rx_fifo_init(can_struct *can_ptr,
-                        int rx_fifo_number,
-                        int fifo_size_elems,
-                        int fifo_watermark,
-                        data_field_size_enum fifo_data_field_size)
+void m_can_rx_fifo_init(
+    can_struct * can_ptr,
+    int rx_fifo_number,
+    int fifo_size_elems,
+    int fifo_watermark,
+    data_field_size_enum fifo_data_field_size)
 {
     /* Description: Rx FIFO Configuration for RX_FIFO_0 and RX_FIFO_1
      * Parameters: - can_ptr:         pointer to the M_CAN node, where the configuration should be applied
@@ -798,8 +835,8 @@ void m_can_rx_fifo_init(can_struct *can_ptr,
 
     // rx_fifo_number has to be either 0 or 1, otherwise program aborts
     assert_print_error(
-         (rx_fifo_number == 0 || rx_fifo_number == 1),
-        "Invalid Rx FIFO Number. M_CAN can configure only Rx FIFO0 and Rx FIFO1 !!" ) ;
+        (rx_fifo_number == 0 || rx_fifo_number == 1),
+        "Invalid Rx FIFO Number. M_CAN can configure only Rx FIFO0 and Rx FIFO1 !!") ;
 
     // use two variables (FIFO_0, FIFO_1) as the configuration registers may be different in a future M_CAN Version
     M_CAN_RXF0C_union rxf0c_reg ;
@@ -807,7 +844,7 @@ void m_can_rx_fifo_init(can_struct *can_ptr,
     uint32_t rel_start_addr_word ;
 
     // RX FIFO Configuration
-    if (rx_fifo_number == 0) {
+    if ( rx_fifo_number == 0 ) {
         // RX_FIFO_0 ============================
 
         // calculate start address, that is relative to Message_RAM Base, convert it to a word address for the M_CAN
@@ -822,7 +859,7 @@ void m_can_rx_fifo_init(can_struct *can_ptr,
         rxf0c_reg.bits.F0SA = rel_start_addr_word ; // Rx FIFO Start Address
         reg_set_and_check(can_ptr, ADR_M_CAN_RXF0C, rxf0c_reg.value) ;
     }
-    else if (rx_fifo_number == 1) {
+    else if ( rx_fifo_number == 1 ) {
         // RX_FIFO_1 ============================
 
         // calculate start address, that is relative to Message_RAM Base, convert it to a word address for the M_CAN
@@ -845,27 +882,30 @@ void m_can_rx_fifo_init(can_struct *can_ptr,
     rxesc_reg.value = reg_get(can_ptr, ADR_M_CAN_RXESC) ; // load current value
 
     // configure and store data field size
-    if (rx_fifo_number == 0) { // RX_FIFO_0
+    if ( rx_fifo_number == 0 ) { // RX_FIFO_0
         rxesc_reg.bits.F0DS = fifo_data_field_size ;
         // additionally store RX BUFFER element size also in CAN structure
-        can_ptr->elem_size_word.rx_fifo0 = RX_BUF_ELEM_HEADER_WORD +
-                                           (convert_element_size_to_data_length(
-                                                fifo_data_field_size) >> 2) ;                                                        // data field size is a multiple of 4
+        can_ptr->elem_size_word.rx_fifo0 = RX_BUF_ELEM_HEADER_WORD
+                                           + (
+            convert_element_size_to_data_length(
+                fifo_data_field_size) >> 2) ;                                                                                        // data field size is a multiple of 4
     }
-    else if (rx_fifo_number == 1) {   // RX_FIFO_1
+    else if ( rx_fifo_number == 1 ) { // RX_FIFO_1
         rxesc_reg.bits.F1DS = fifo_data_field_size ;
         // additionally store RX BUFFER element size also in CAN structure
-        can_ptr->elem_size_word.rx_fifo1 = RX_BUF_ELEM_HEADER_WORD +
-                                           (convert_element_size_to_data_length(
-                                                fifo_data_field_size) >> 2) ;                                                        // data field size is a multiple of 4
+        can_ptr->elem_size_word.rx_fifo1 = RX_BUF_ELEM_HEADER_WORD
+                                           + (
+            convert_element_size_to_data_length(
+                fifo_data_field_size) >> 2) ;                                                                                        // data field size is a multiple of 4
     }
 
     reg_set_and_check(can_ptr, ADR_M_CAN_RXESC, rxesc_reg.value) ;
 }
 
 /* Copy Message from Dedicated Rx buffer to the Software Message List */
-void m_can_rx_dedicated_buffer_copy_msg_to_msg_list(can_struct *can_ptr,
-                                                    int ded_buffer_index)
+void m_can_rx_dedicated_buffer_copy_msg_to_msg_list(
+    can_struct * can_ptr,
+    int ded_buffer_index)
 {
     /* Description: copies a message from a dedicated Rx buffer into a message list in software
      *
@@ -877,9 +917,9 @@ void m_can_rx_dedicated_buffer_copy_msg_to_msg_list(can_struct *can_ptr,
     rx_info_struct rx_info ;
 
     // Calculate RAM address where RX Msg is located
-    ram_read_addr = can_ptr->mram_sa.RXBC_RBSA +
-                    (ded_buffer_index * can_ptr->elem_size_word.rx_buffer *
-                     M_CAN_RAM_WORD_WIDTH_IN_BYTE) ;
+    ram_read_addr = can_ptr->mram_sa.RXBC_RBSA
+                    + (ded_buffer_index * can_ptr->elem_size_word.rx_buffer
+                       * M_CAN_RAM_WORD_WIDTH_IN_BYTE) ;
 
     // store information regarding the origin of the message
     rx_info.rx_via = DEDICATED_RX_BUFFER ;
@@ -890,8 +930,9 @@ void m_can_rx_dedicated_buffer_copy_msg_to_msg_list(can_struct *can_ptr,
 }
 
 /* Copy all Messages from RX FIFO_i to the Software Message List */
-unsigned int m_can_rx_fifo_copy_msg_to_msg_list(can_struct *can_ptr,
-                                                int rx_fifo_number)
+unsigned int m_can_rx_fifo_copy_msg_to_msg_list(
+    can_struct * can_ptr,
+    int rx_fifo_number)
 {
     /* Description
      * - ALL messages that are currently in the RX_FIFO are copied to rx_msg_list.
@@ -908,8 +949,8 @@ unsigned int m_can_rx_fifo_copy_msg_to_msg_list(can_struct *can_ptr,
 
     // rx_fifo_number has to be either 0 or 1, otherwise program aborts
     assert_print_error(
-         (rx_fifo_number == 0 || rx_fifo_number == 1),
-        "Invalid Rx FIFO Number. M_CAN can configure only Rx FIFO0 and Rx FIFO1 !!" ) ;
+        (rx_fifo_number == 0 || rx_fifo_number == 1),
+        "Invalid Rx FIFO Number. M_CAN can configure only Rx FIFO0 and Rx FIFO1 !!") ;
 
     M_CAN_RXF0S_union rxf0s_reg ;
     M_CAN_RXF1S_union rxf1s_reg ;
@@ -917,7 +958,7 @@ unsigned int m_can_rx_fifo_copy_msg_to_msg_list(can_struct *can_ptr,
     int msgs_read = 0 ; // number of messages read from FIFO
     rx_info_struct rx_info ;
 
-    switch (rx_fifo_number) {
+    switch ( rx_fifo_number ) {
     case 0:     /* ========= do processing of messages in Rx FIFO 0 ========= */
 
         // read Rx FIFO 0 Status
@@ -925,14 +966,14 @@ unsigned int m_can_rx_fifo_copy_msg_to_msg_list(can_struct *can_ptr,
 
         // read ALL the messages from the RX FIFO 0
         // while the Fill Level is !=0 read messages
-        while (rxf0s_reg.bits.F0FL) {
+        while ( rxf0s_reg.bits.F0FL ) {
             msgs_read++ ;
 
             // Calculate RAM address where RX Msg is located
-            ram_read_addr = can_ptr->mram_sa.RXF0C_F0SA +
-                            (rxf0s_reg.bits.F0GI *
-                             can_ptr->elem_size_word.rx_fifo0 *
-                             M_CAN_RAM_WORD_WIDTH_IN_BYTE) ;
+            ram_read_addr = can_ptr->mram_sa.RXF0C_F0SA
+                            + (rxf0s_reg.bits.F0GI
+                               * can_ptr->elem_size_word.rx_fifo0
+                               * M_CAN_RAM_WORD_WIDTH_IN_BYTE) ;
 
             // store information regarding the origin of the message
             rx_info.rx_via = FIFO_0 ;
@@ -942,7 +983,7 @@ unsigned int m_can_rx_fifo_copy_msg_to_msg_list(can_struct *can_ptr,
             copy_msg_from_msg_ram_to_msg_list(can_ptr, ram_read_addr, rx_info) ;
 
             //DEBUG:
-            if (DEBUG_PRINT) {
+            if ( DEBUG_PRINT ) {
                 DBG_PRINTF(
                     "[M_CAN_%d] RX_FIFO_%d new Msg, Copied Msg. at FIFO_GetIndex=%d to MsgList (F0FL=%d, F0PI=%d)",
                     can_ptr->id,
@@ -967,14 +1008,14 @@ unsigned int m_can_rx_fifo_copy_msg_to_msg_list(can_struct *can_ptr,
 
         // read ALL the messages from the RX FIFO 1
         // while the Fill Level is !=0 read messages
-        while (rxf1s_reg.bits.F1FL) {
+        while ( rxf1s_reg.bits.F1FL ) {
             msgs_read++ ;
 
             // Calculate RAM address where RX Msg is located
-            ram_read_addr = can_ptr->mram_sa.RXF1C_F1SA +
-                            (rxf1s_reg.bits.F1GI *
-                             can_ptr->elem_size_word.rx_fifo1 *
-                             M_CAN_RAM_WORD_WIDTH_IN_BYTE) ;
+            ram_read_addr = can_ptr->mram_sa.RXF1C_F1SA
+                            + (rxf1s_reg.bits.F1GI
+                               * can_ptr->elem_size_word.rx_fifo1
+                               * M_CAN_RAM_WORD_WIDTH_IN_BYTE) ;
 
             // store information regarding the origin of the message
             rx_info.rx_via = FIFO_1 ;
@@ -984,7 +1025,7 @@ unsigned int m_can_rx_fifo_copy_msg_to_msg_list(can_struct *can_ptr,
             copy_msg_from_msg_ram_to_msg_list(can_ptr, ram_read_addr, rx_info) ;
 
             //DEBUG:
-            if (DEBUG_PRINT) {
+            if ( DEBUG_PRINT ) {
                 DBG_PRINTF(
                     "[M_CAN_%d] RX_FIFO_%d new Msg, Copied Msg. at FIFO_GetIndex=%d to MsgList (F1FL=%d, F1PI=%d)",
                     can_ptr->id,
@@ -1011,11 +1052,12 @@ unsigned int m_can_rx_fifo_copy_msg_to_msg_list(can_struct *can_ptr,
 } // function m_can_rx_fifo_msg_read_to_msg_list
 
 /* Configure Transmit-Buffer Section */
-void m_can_tx_buffer_init(can_struct *can_ptr,
-                          boolean FIFO_true_QUEUE_false,
-                          unsigned int fifo_queue_size,
-                          unsigned int ded_buffers_number,
-                          data_field_size_enum data_field_size)
+void m_can_tx_buffer_init(
+    can_struct * can_ptr,
+    boolean FIFO_true_QUEUE_false,
+    unsigned int fifo_queue_size,
+    unsigned int ded_buffers_number,
+    data_field_size_enum data_field_size)
 {
     /* Description: Tx Buffers Configuration. Tx FIFO/Queue and deidcated Tx buffers.
      * Parameters:
@@ -1035,8 +1077,8 @@ void m_can_tx_buffer_init(can_struct *can_ptr,
 
     // check for erroneous configuration
     assert_print_error(
-         (ded_buffers_number + fifo_queue_size) <= MAX_TX_BUFFER_ELEMS,
-        "TX Buffer Config: More elements configured than existing!! " ) ;
+        (ded_buffers_number + fifo_queue_size) <= MAX_TX_BUFFER_ELEMS,
+        "TX Buffer Config: More elements configured than existing!! ") ;
 
     // Populate values into global structure. This global structure is used in some M_CAN test functions.
     can_ptr->tx_config.FIFO_true_QUEUE_false = FIFO_true_QUEUE_false ; // Tx fifo operation
@@ -1053,7 +1095,7 @@ void m_can_tx_buffer_init(can_struct *can_ptr,
     txbc_reg.bits.TBSA = rel_start_addr_word ;   // Tx Buffers Start Address
     txbc_reg.bits.NDTB = ded_buffers_number ;    // Number of Dedicated Transmit Buffers
     txbc_reg.bits.TFQS = fifo_queue_size ;       // Transmit FIFO/Queue Size
-    if (FIFO_true_QUEUE_false) {
+    if ( FIFO_true_QUEUE_false ) {
         txbc_reg.bits.TFQM = 0 ;                 // Tx FIFO  Operation
     }
     else {
@@ -1073,13 +1115,13 @@ void m_can_tx_buffer_init(can_struct *can_ptr,
     reg_set_and_check(can_ptr, ADR_M_CAN_TXESC, txesc_reg.value) ;
 
     // store element size also in CAN structure
-    can_ptr->elem_size_word.tx_buffer = TX_BUF_ELEM_HEADER_WORD +
-                                        (convert_element_size_to_data_length(
-                                             data_field_size) >> 2) ;                                                        // data field size is a multiple of 4
+    can_ptr->elem_size_word.tx_buffer = TX_BUF_ELEM_HEADER_WORD
+                                        + (convert_element_size_to_data_length(
+                                               data_field_size) >> 2) ;                                                      // data field size is a multiple of 4
 } // function m_can_tx_buf_ini()
 
 /* Get the number of Free Elements in TX FIFO */
-uint16_t m_can_tx_fifo_get_num_of_free_elems(can_struct *can_ptr)
+uint16_t m_can_tx_fifo_get_num_of_free_elems(can_struct * can_ptr)
 {
     /* Description: Returns the number of consecutive free TX FIFO elements, range 0 to 32.
      * This value is not provided by the M_CAN for a TX QUEUE (value provided by M_CAN is then 0).
@@ -1099,8 +1141,9 @@ uint16_t m_can_tx_fifo_get_num_of_free_elems(can_struct *can_ptr)
 }
 
 /* Check if a Transmit buffer has a pending TX Request */
-boolean m_can_tx_is_tx_buffer_req_pending(can_struct *can_ptr,
-                                          int tx_buff_index)
+boolean m_can_tx_is_tx_buffer_req_pending(
+    can_struct * can_ptr,
+    int tx_buff_index)
 {
     /* Description:
      * return value: TRUE:  TX buffer "tx_buff_index" has a  pending tx request
@@ -1127,9 +1170,10 @@ boolean m_can_tx_is_tx_buffer_req_pending(can_struct *can_ptr,
 }
 
 /* Copy Transmit Message to TX buffer - NO CHECK is performed if the buffer has already a pending tx request, NO Transmission is requested */
-void m_can_tx_write_msg_to_tx_buffer(can_struct *can_ptr,
-                                     can_msg_struct *tx_msg_ptr,
-                                     int tx_buff_index)
+void m_can_tx_write_msg_to_tx_buffer(
+    can_struct * can_ptr,
+    can_msg_struct * tx_msg_ptr,
+    int tx_buff_index)
 {
     /* Description:
      * - copies a message to the message buffer (in Message RAM)
@@ -1140,16 +1184,18 @@ void m_can_tx_write_msg_to_tx_buffer(can_struct *can_ptr,
     uint32_t ram_write_addr = 0 ;
 
     // Calculate RAM address where next Dedicated TX Msg has to be located
-    ram_write_addr = can_ptr->mram_sa.TXBC_TBSA +
-                     (tx_buff_index * can_ptr->elem_size_word.tx_buffer *
-                      M_CAN_RAM_WORD_WIDTH_IN_BYTE) ;
+    ram_write_addr = can_ptr->mram_sa.TXBC_TBSA
+                     + (tx_buff_index * can_ptr->elem_size_word.tx_buffer
+                        * M_CAN_RAM_WORD_WIDTH_IN_BYTE) ;
 
     // Copy TX-Message into Message RAM
     m_can_write_msg_to_msg_ram(can_ptr, ram_write_addr, tx_msg_ptr) ;
 }
 
 /* Request Transmission of TX Message in TX buffer - NO CHECK is performed if the buffer has already a pending tx request */
-void m_can_tx_msg_request_tx(can_struct *can_ptr, int tx_buff_index)
+void m_can_tx_msg_request_tx(
+    can_struct * can_ptr,
+    int tx_buff_index)
 {
     /* Description:
      * - request of transmission for a tx_buffer
@@ -1166,9 +1212,10 @@ void m_can_tx_msg_request_tx(can_struct *can_ptr, int tx_buff_index)
 }
 
 /* Copy Transmit Message to TX buffer and request Transmission - NO CHECK is performed if the buffer has already a pending tx request*/
-void m_can_tx_write_msg_to_tx_buffer_and_request_tx(can_struct *can_ptr,
-                                                    can_msg_struct *tx_msg_ptr,
-                                                    int tx_buff_index)
+void m_can_tx_write_msg_to_tx_buffer_and_request_tx(
+    can_struct * can_ptr,
+    can_msg_struct * tx_msg_ptr,
+    int tx_buff_index)
 {
     /* Description:
      * - copies a message to the message buffer (in Message RAM) and requests its transmission
@@ -1183,9 +1230,10 @@ void m_can_tx_write_msg_to_tx_buffer_and_request_tx(can_struct *can_ptr,
 }
 
 /* Copy Tx Message to dedicated TX buffer and Request transmission - it CHECKs if buffer is free */
-int m_can_tx_dedicated_msg_transmit(can_struct *can_ptr,
-                                    can_msg_struct *tx_msg_ptr,
-                                    int tx_buff_index)
+int m_can_tx_dedicated_msg_transmit(
+    can_struct * can_ptr,
+    can_msg_struct * tx_msg_ptr,
+    int tx_buff_index)
 {
     /* Description:
      * return value: number of tx requests set: 0= tx_buffer has a pending request, nothing requested
@@ -1195,7 +1243,7 @@ int m_can_tx_dedicated_msg_transmit(can_struct *can_ptr,
     int msgs_sent ;
 
     /* Check if a Transmit buffer has a pending TX Request */
-    if (m_can_tx_is_tx_buffer_req_pending(can_ptr, tx_buff_index) == FALSE) {
+    if ( m_can_tx_is_tx_buffer_req_pending(can_ptr, tx_buff_index) == FALSE ) {
         // NO pending request for this message buffer => write msg to buffer and request it
         // Copy Transmit Message to tx buffer and request it - NO CHECK if buffer free or not!
         m_can_tx_write_msg_to_tx_buffer_and_request_tx(can_ptr,
@@ -1212,8 +1260,9 @@ int m_can_tx_dedicated_msg_transmit(can_struct *can_ptr,
 }
 
 /* Copy Tx Message into FIFO/Queue and Request transmission */
-int m_can_tx_fifo_queue_msg_transmit(can_struct *can_ptr,
-                                     can_msg_struct *tx_msg_ptr)
+int m_can_tx_fifo_queue_msg_transmit(
+    can_struct * can_ptr,
+    can_msg_struct * tx_msg_ptr)
 {
     /* Description
      *  can_ptr      : copy message to this node
@@ -1231,7 +1280,7 @@ int m_can_tx_fifo_queue_msg_transmit(can_struct *can_ptr,
     // check if FIFO/QUEUE is full
     //    HINT: Checking txfqs.bits.TFFL (Free Level) does not work in case of QUEUE!
     //          Therefore here Full Flag is checked.
-    if (txfqs.bits.TFQF == 0) {
+    if ( txfqs.bits.TFQF == 0 ) {
         // FIFO/Queue NOT FULL
         // Copy Transmit Message to tx buffer AND request it - NO CHECK if buffer free or not!
         m_can_tx_write_msg_to_tx_buffer_and_request_tx(can_ptr,
@@ -1248,7 +1297,9 @@ int m_can_tx_fifo_queue_msg_transmit(can_struct *can_ptr,
 } // function m_an_tx_fifo_queue_msg_write()
 
 /* Cancel a Tx buffer transmission request */
-void m_can_tx_buffer_request_cancelation(can_struct * can_ptr, int tx_buf_index)
+void m_can_tx_buffer_request_cancelation(
+    can_struct * can_ptr,
+    int tx_buf_index)
 {
     /* Description: request the cancellation for ONE Tx buffer
      *
@@ -1267,8 +1318,9 @@ void m_can_tx_buffer_request_cancelation(can_struct * can_ptr, int tx_buf_index)
 }
 
 /* Checks if a Tx buffer cancellation request has been finished or not */
-boolean m_can_tx_buffer_is_cancelation_finshed(can_struct *can_ptr,
-                                               int tx_buf_index)
+boolean m_can_tx_buffer_is_cancelation_finshed(
+    can_struct * can_ptr,
+    int tx_buf_index)
 {
     /* Description: tells if a Tx buffer cancellation request is complete or not
      *
@@ -1288,7 +1340,7 @@ boolean m_can_tx_buffer_is_cancelation_finshed(can_struct *can_ptr,
     txbcf_reg = reg_get(can_ptr, ADR_M_CAN_TXBCF) ;
 
     // check if cancellation bit for tx_buf_index is set
-    if (txbcf_reg & mask) {
+    if ( txbcf_reg & mask ) {
         return TRUE ;    // cancellation is finished
     }
     else {
@@ -1297,8 +1349,9 @@ boolean m_can_tx_buffer_is_cancelation_finshed(can_struct *can_ptr,
 }
 
 /* Checks if a Tx buffer transmission has occurred or not */
-boolean m_can_tx_buffer_transmission_occured(can_struct *can_ptr,
-                                             int tx_buf_index)
+boolean m_can_tx_buffer_transmission_occured(
+    can_struct * can_ptr,
+    int tx_buf_index)
 {
     /* Description: tells if a Tx buffer transmission has occurred or not
      *
@@ -1317,7 +1370,7 @@ boolean m_can_tx_buffer_transmission_occured(can_struct *can_ptr,
     mask = 1 << tx_buf_index ;
     txbto_reg = reg_get(can_ptr, ADR_M_CAN_TXBTO) ;
 
-    if (txbto_reg & mask) {
+    if ( txbto_reg & mask ) {
         return TRUE ;    // tx buffer transmission occurred
     }
     else {
@@ -1326,11 +1379,12 @@ boolean m_can_tx_buffer_transmission_occured(can_struct *can_ptr,
 }
 
 /* Configures the Global Filter Settings (GFC Register) */
-void m_can_global_filter_configuration(can_struct *can_ptr,
-                                       GFC_accept_non_matching_frames_enum anfs,
-                                       GFC_accept_non_matching_frames_enum anfe,
-                                       boolean rrfs,
-                                       boolean rrfe)
+void m_can_global_filter_configuration(
+    can_struct * can_ptr,
+    GFC_accept_non_matching_frames_enum anfs,
+    GFC_accept_non_matching_frames_enum anfe,
+    boolean rrfs,
+    boolean rrfe)
 {
     /* Description: Global Filter Configuration (GFC)
      * Parameters:
@@ -1348,17 +1402,17 @@ void m_can_global_filter_configuration(can_struct *can_ptr,
     gfc_reg.bits.ANFS = anfs ;   // accept non matching frames standard
     gfc_reg.bits.ANFE = anfe ;   // accept non matching frames extended
 
-    if (rrfs == TRUE) {
+    if ( rrfs == TRUE ) {
         gfc_reg.bits.RRFS = 1 ;  //  1 = Reject all remote frames with 11-bit std IDs
     }
-    else if (rrfs == FALSE) {
+    else if ( rrfs == FALSE ) {
         gfc_reg.bits.RRFS = 0 ;  //  0 = Filter all remote frames with 11-bit std IDs
     }
 
-    if (rrfe == TRUE) {
+    if ( rrfe == TRUE ) {
         gfc_reg.bits.RRFE = 1 ;  //  1= Reject all remote frames with 29-bit xtd IDs
     }
-    else if (rrfe == FALSE) {
+    else if ( rrfe == FALSE ) {
         gfc_reg.bits.RRFE = 0 ;  //  0 = Filter all remote frames with 29-bit xtd IDs
     }
 
@@ -1367,8 +1421,9 @@ void m_can_global_filter_configuration(can_struct *can_ptr,
 }
 
 /* Configure standard ID filter usage (SIDFC) */
-void m_can_filter_init_standard_id(can_struct *can_ptr,
-                                   unsigned int number_of_filters)
+void m_can_filter_init_standard_id(
+    can_struct * can_ptr,
+    unsigned int number_of_filters)
 {
     /* Description: Configures the register SIDFC for the 11-bit Standard Message ID Filter elements.
      *
@@ -1397,8 +1452,9 @@ void m_can_filter_init_standard_id(can_struct *can_ptr,
 }
 
 /* Configure extended ID filter usage (XIDFC) */
-void m_can_filter_init_extended_id(can_struct *can_ptr,
-                                   unsigned int number_of_filters)
+void m_can_filter_init_extended_id(
+    can_struct * can_ptr,
+    unsigned int number_of_filters)
 {
     /* Description
      * - function configures the register XIDFC for the 29-bit extended message id filter elements.
@@ -1428,12 +1484,13 @@ void m_can_filter_init_extended_id(can_struct *can_ptr,
 }
 
 /* Write a Standard Identifier Filter in Message RAM */
-void m_can_filter_write_standard_id(can_struct *can_ptr,
-                                    int filter_index,
-                                    SFT_Standard_Filter_Type_enum sft,
-                                    Filter_Configuration_enum sfec,
-                                    int sfid1,
-                                    int sfid2)
+void m_can_filter_write_standard_id(
+    can_struct * can_ptr,
+    int filter_index,
+    SFT_Standard_Filter_Type_enum sft,
+    Filter_Configuration_enum sfec,
+    int sfid1,
+    int sfid2)
 {
     /* Description: Writes a 11-bit standard id filter element in the Message RAM
      * Parameters:
@@ -1456,8 +1513,8 @@ void m_can_filter_write_standard_id(can_struct *can_ptr,
     filter_elem.bits.SFT = sft ;        // Standard Filter Type
 
     // calculate address offset inside the standard id filter section of the Message RAM
-    filter_address_offset = filter_index * STD_ID_FILTER_ELEM_SIZE_WORD *
-                            M_CAN_RAM_WORD_WIDTH_IN_BYTE ;
+    filter_address_offset = filter_index * STD_ID_FILTER_ELEM_SIZE_WORD
+                            * M_CAN_RAM_WORD_WIDTH_IN_BYTE ;
     // write filter element to Message RAM
     IOWR_32DIRECT(can_ptr->mram_sa.SIDFC_FLSSA,
                   filter_address_offset,
@@ -1465,12 +1522,13 @@ void m_can_filter_write_standard_id(can_struct *can_ptr,
 }
 
 /* Write Extended ID Filter in Message RAM */
-void m_can_filter_write_extended_id(can_struct *can_ptr,
-                                    int filter_index,
-                                    EFT_Extended_Filter_Type_enum eft,
-                                    Filter_Configuration_enum efec,
-                                    int efid1,
-                                    int efid2)
+void m_can_filter_write_extended_id(
+    can_struct * can_ptr,
+    int filter_index,
+    EFT_Extended_Filter_Type_enum eft,
+    Filter_Configuration_enum efec,
+    int efid1,
+    int efid2)
 {
     /* Description:
      *  - Writes a 29-bit extended id filter element in the Message RAM
@@ -1493,15 +1551,15 @@ void m_can_filter_write_extended_id(can_struct *can_ptr,
     xtd_filter_elem_word_1.value = 0 ;           // init with 0
     xtd_filter_elem_word_1.bits.EFEC = efec ;   // Extended Filter Element Configuration
     xtd_filter_elem_word_1.bits.EFID1 = efid1 ;  // Extended Filter ID 1
-    filter_address_offset_word_1 = filter_index *
-                                   EXT_ID_FILTER_ELEM_SIZE_WORD *
-                                   M_CAN_RAM_WORD_WIDTH_IN_BYTE ;                                              // Address offset for word 1
+    filter_address_offset_word_1 = filter_index
+                                   * EXT_ID_FILTER_ELEM_SIZE_WORD
+                                   * M_CAN_RAM_WORD_WIDTH_IN_BYTE ;                                            // Address offset for word 1
 
     xtd_filter_elem_word_2.value = 0 ;           // init with 0
     xtd_filter_elem_word_2.bits.EFT = eft ;     // Extended Filter Type
     xtd_filter_elem_word_2.bits.EFID2 = efid2 ;  // Extended Filter ID 2
-    filter_address_offset_word_2 = filter_address_offset_word_1 +
-                                   M_CAN_RAM_WORD_WIDTH_IN_BYTE ;                               // Address offset for word 2
+    filter_address_offset_word_2 = filter_address_offset_word_1
+                                   + M_CAN_RAM_WORD_WIDTH_IN_BYTE ;                             // Address offset for word 2
 
     //write first word of the filter element into Message RAM
     IOWR_32DIRECT(can_ptr->mram_sa.XIDFC_FLESA,
@@ -1515,9 +1573,10 @@ void m_can_filter_write_extended_id(can_struct *can_ptr,
 }
 
 /* Tx Event FIFO Configuration */
-void m_can_tx_event_fifo_init(can_struct *can_ptr,
-                              int fifo_size_elems,
-                              int fifo_watermark)
+void m_can_tx_event_fifo_init(
+    can_struct * can_ptr,
+    int fifo_size_elems,
+    int fifo_watermark)
 {
     /* Description: function configures the register TXEFC - Tx Event FIFO Configuration
      *
@@ -1544,7 +1603,7 @@ void m_can_tx_event_fifo_init(can_struct *can_ptr,
 }
 
 /* Copy all Event Elements from TX Event FIFO to the Software Event List */
-int m_can_tx_event_fifo_copy_element_to_tx_event_list(can_struct *can_ptr)
+int m_can_tx_event_fifo_copy_element_to_tx_event_list(can_struct * can_ptr)
 {
     /* Description:
      *  - ALL elements that are currently in Tx Event FIFO are copied to tx_event_list.
@@ -1562,13 +1621,13 @@ int m_can_tx_event_fifo_copy_element_to_tx_event_list(can_struct *can_ptr)
     txefs_reg.value = reg_get(can_ptr, ADR_M_CAN_TXEFS) ;
 
     // read ALL the elements from the Tx Event FIFO
-    while (txefs_reg.bits.EFFL) { // while the Fill Level is !=0 read elements
+    while ( txefs_reg.bits.EFFL ) { // while the Fill Level is !=0 read elements
         tx_event_elements_read++ ;
 
         // Calculate RAM address where Tx Event FIFO element is located, that should be read now
-        ram_read_addr = can_ptr->mram_sa.TXEFC_EFSA +
-                        (txefs_reg.bits.EFGI * TX_EVENT_FIFO_ELEM_SIZE_WORD *
-                         M_CAN_RAM_WORD_WIDTH_IN_BYTE) ;
+        ram_read_addr = can_ptr->mram_sa.TXEFC_EFSA
+                        + (txefs_reg.bits.EFGI * TX_EVENT_FIFO_ELEM_SIZE_WORD
+                           * M_CAN_RAM_WORD_WIDTH_IN_BYTE) ;
 
         /* Copy Tx Event FIFO element from Message RAM to tx_event_list */
         copy_event_element_from_msg_ram_to_tx_event_list(can_ptr, ram_read_addr) ;
@@ -1585,7 +1644,7 @@ int m_can_tx_event_fifo_copy_element_to_tx_event_list(can_struct *can_ptr)
 
 /* Copy a Tx Event FIFO Element from Message RAM to the Tx Event Element Data Structure given as Pointer */
 void m_can_copy_tx_event_element_from_msg_ram(
-    can_struct *can_ptr,
+    can_struct * can_ptr,
     uint32_t msg_addr_in_msg_ram,
     tx_event_element_struct *
     tx_event_element_ptr)
@@ -1606,11 +1665,11 @@ void m_can_copy_tx_event_element_from_msg_ram(
     // Read word_1
     tx_fifo_element_word_1.value = (uint32_t) IORD_32DIRECT(
         msg_addr_in_msg_ram,
-        0 *
-        M_CAN_RAM_WORD_WIDTH_IN_BYTE) ;                                                                             // Read current RAM word
+        0
+        * M_CAN_RAM_WORD_WIDTH_IN_BYTE) ;                                                                           // Read current RAM word
 
     // extract ESI from word_1 - TRUE/FALSE
-    if (tx_fifo_element_word_1.bits.ESI == 0) {
+    if ( tx_fifo_element_word_1.bits.ESI == 0 ) {
         tx_event_element_ptr->esi = FALSE ;
     }
     else {
@@ -1618,12 +1677,12 @@ void m_can_copy_tx_event_element_from_msg_ram(
     }
 
     // extract XTD and Msg.ID from word_1
-    if (tx_fifo_element_word_1.bits.XTD == 0) {
+    if ( tx_fifo_element_word_1.bits.XTD == 0 ) {
         tx_event_element_ptr->idtype = standard_id ;
         tx_event_element_ptr->id =
-            (uint32_t) ( (tx_fifo_element_word_1.bits.ID &
-                          TX_EVENT_FIFO_STDID_MASK) >>
-                         TX_EVENT_FIFO_STDID_SHIFT ) ;
+            (uint32_t) ( (tx_fifo_element_word_1.bits.ID
+                          & TX_EVENT_FIFO_STDID_MASK)
+                         >> TX_EVENT_FIFO_STDID_SHIFT ) ;
     }
     else {
         tx_event_element_ptr->idtype = extended_id ;
@@ -1631,7 +1690,7 @@ void m_can_copy_tx_event_element_from_msg_ram(
     }
 
     // extract RTR from word_1 - TRUE/FALSE
-    if (tx_fifo_element_word_1.bits.RTR == 0) {
+    if ( tx_fifo_element_word_1.bits.RTR == 0 ) {
         tx_event_element_ptr->remote = FALSE ;
     }
     else {
@@ -1641,18 +1700,18 @@ void m_can_copy_tx_event_element_from_msg_ram(
     // Read word_2
     tx_fifo_element_word_2.value = (uint32_t) IORD_32DIRECT(
         msg_addr_in_msg_ram,
-        1 *
-        M_CAN_RAM_WORD_WIDTH_IN_BYTE) ;                                                                             // Read next RAM word
+        1
+        * M_CAN_RAM_WORD_WIDTH_IN_BYTE) ;                                                                           // Read next RAM word
 
     // extract the Message Marker from word_2
     tx_event_element_ptr->mm = tx_fifo_element_word_2.bits.MM ;
 
     // extract the Event Type from word_2
     tx_event_element_ptr->et =
-        (tx_event_fifo_elem_event_type_enum)tx_fifo_element_word_2.bits.ET ;
+        (tx_event_fifo_elem_event_type_enum) tx_fifo_element_word_2.bits.ET ;
 
     // extract FDF from word_2 - TRUE/FALSE
-    if (tx_fifo_element_word_2.bits.FDF == 0) {
+    if ( tx_fifo_element_word_2.bits.FDF == 0 ) {
         tx_event_element_ptr->fdf = FALSE ;
     }
     else {
@@ -1660,7 +1719,7 @@ void m_can_copy_tx_event_element_from_msg_ram(
     }
 
     // extract BRS from word_2 - TRUE/FALSE
-    if (tx_fifo_element_word_2.bits.BRS == 0) {
+    if ( tx_fifo_element_word_2.bits.BRS == 0 ) {
         tx_event_element_ptr->brs = FALSE ;
     }
     else {
@@ -1676,7 +1735,7 @@ void m_can_copy_tx_event_element_from_msg_ram(
 
 /* Configure Time Stamp Usage  AND  Time Out Usage */
 void m_can_timestampcounter_and_timeoutcounter_init(
-    can_struct *can_ptr,
+    can_struct * can_ptr,
     int ts_counter_prescaler,
     tscc_tss_timestamp_select_enum
     ts_select,
@@ -1721,17 +1780,17 @@ void m_can_timestampcounter_and_timeoutcounter_init(
     tocc_reg.value = 0 ;                 // init with 0
     tocc_reg.bits.TOS = to_select ;      // timeout select
     tocc_reg.bits.TOP = to_period ;      // timeout period
-    if (to_counter_enable == TRUE) {
+    if ( to_counter_enable == TRUE ) {
         tocc_reg.bits.ETOC = 1 ;          // enable timeout counter
     }
-    else if (to_counter_enable == FALSE) {
+    else if ( to_counter_enable == FALSE ) {
         tocc_reg.bits.ETOC = 0 ;          // disable timeout counter
     }
     reg_set_and_check(can_ptr, ADR_M_CAN_TOCC, tocc_reg.value) ;
 }
 
 /* Read Time Stamp Value */
-uint32_t m_can_timestamp_read_value(can_struct *can_ptr)
+uint32_t m_can_timestamp_read_value(can_struct * can_ptr)
 {
     // Description : returns the Timestamp Counter value
 
@@ -1744,28 +1803,28 @@ uint32_t m_can_timestamp_read_value(can_struct *can_ptr)
 }
 
 /* Check correctness of Message RAM Partitioning */
-void m_can_check_msg_ram_partitioning(can_struct *can_ptr)
+void m_can_check_msg_ram_partitioning(can_struct * can_ptr)
 {
 #ifdef NDEBUG
-	INUTILE(can_ptr) ;
+    INUTILE(can_ptr) ;
 #else
     int i ;
 
     // Description: Check if the Message RAM Partitioning prepared with defines in m_can.h
     //              is realizable with the given Message RAM size
-    for (i = 0 ; i < CAN_NUMBER_OF_PRESENT_NODES ; ++i) {
+    for ( i = 0 ; i < CAN_NUMBER_OF_PRESENT_NODES ; ++i ) {
         // EXPRESSIONS HAVE TO BE TRUE, otherwise program aborts
         assert_print_error(
-             ( REL_TXBC_END <=
-               ( (can_ptr->mram_size_words * M_CAN_RAM_WORD_WIDTH_IN_BYTE) - 1 ) ),
+            ( REL_TXBC_END <=
+              ( (can_ptr->mram_size_words * M_CAN_RAM_WORD_WIDTH_IN_BYTE) - 1 ) ),
             "M_CAN is configured to use more MessageRAM than allowed by define >RAM_BYTES_PER_M_CAN=%d<!",
-            REL_TXBC_END ) ;
+            REL_TXBC_END) ;
     }
 #endif
 }
 
 /* Init struct that contains Message RAM Partitioning for one CAN node */
-void m_can_init_msg_ram_partitioning(can_struct *can_ptr)
+void m_can_init_msg_ram_partitioning(can_struct * can_ptr)
 {
     // initialize the Start Addresses for all types of elements for a CAN node
     // - ABSOLUTE Start Addresses!
@@ -1783,7 +1842,9 @@ void m_can_init_msg_ram_partitioning(can_struct *can_ptr)
 }
 
 // Function decodes (prints) verbosely the occurred M_CAN Interrupt
-void m_can_ir_print(int m_can_id, int ir_value)
+void m_can_ir_print(
+    int m_can_id,
+    int ir_value)
 {
     M_CAN_IR_union ir_reg_union ;
     ir_reg_union.value = ir_value ;
@@ -1794,105 +1855,107 @@ void m_can_ir_print(int m_can_id, int ir_value)
                m_can_id,
                ir_value) ;
 
-    if (DEBUG_PRINT) {
+    if ( DEBUG_PRINT ) {
         /* decode IR - Interrupt Register with help of a union */
         //  0: false, >0: true
-        if (ir_reg_union.bits.RF0N) {
+        if ( ir_reg_union.bits.RF0N ) {
             DBG_PRINTF(" RF0N (bit 00, Rx FIFO 0 New Message)\n") ;
         }
-        if (ir_reg_union.bits.RF0W) {
+        if ( ir_reg_union.bits.RF0W ) {
             DBG_PRINTF(" RF0W (bit 01, Rx FIFO 0 Watermark Reached)\n") ;
         }
-        if (ir_reg_union.bits.RF0F) {
+        if ( ir_reg_union.bits.RF0F ) {
             DBG_PRINTF(" RF0F (bit 02, Rx FIFO 0 Full)\n") ;
         }
-        if (ir_reg_union.bits.RF0L) {
+        if ( ir_reg_union.bits.RF0L ) {
             DBG_PRINTF(" RF0L (bit 03, Rx FIFO 0 Message Lost)\n") ;
         }
-        if (ir_reg_union.bits.RF1N) {
+        if ( ir_reg_union.bits.RF1N ) {
             DBG_PRINTF(" RF1N (bit 04, Rx FIFO 1 New Message)\n") ;
         }
-        if (ir_reg_union.bits.RF1W) {
+        if ( ir_reg_union.bits.RF1W ) {
             DBG_PRINTF(" RF1W (bit 05, Rx FIFO 1 Watermark Reached)\n") ;
         }
-        if (ir_reg_union.bits.RF1F) {
+        if ( ir_reg_union.bits.RF1F ) {
             DBG_PRINTF(" RF1F (bit 06, Rx FIFO 1 Full)\n") ;
         }
-        if (ir_reg_union.bits.RF1L) {
+        if ( ir_reg_union.bits.RF1L ) {
             DBG_PRINTF(" RF1L (bit 07, Rx FIFO 1 Message Lost)\n") ;
         }
-        if (ir_reg_union.bits.HPM) {
+        if ( ir_reg_union.bits.HPM ) {
             DBG_PRINTF(" HPM  (bit 08, High Priority Message)\n") ;
         }
-        if (ir_reg_union.bits.TC) {
+        if ( ir_reg_union.bits.TC ) {
             DBG_PRINTF(" TC   (bit 09, Transmission Completed)\n") ;
         }
-        if (ir_reg_union.bits.TCF) {
+        if ( ir_reg_union.bits.TCF ) {
             DBG_PRINTF(" TCF  (bit 10, Transmission Cancellation Finished)\n") ;
         }
-        if (ir_reg_union.bits.TFE) {
+        if ( ir_reg_union.bits.TFE ) {
             DBG_PRINTF(" TFE  (bit 11, Tx FIFO Empty)\n") ;
         }
-        if (ir_reg_union.bits.TEFN) {
+        if ( ir_reg_union.bits.TEFN ) {
             DBG_PRINTF(" TEFN (bit 12, Tx Event FIFO New Entry)\n") ;
         }
-        if (ir_reg_union.bits.TEFW) {
+        if ( ir_reg_union.bits.TEFW ) {
             DBG_PRINTF(" TEFW (bit 13, Tx Event FIFO Watermark Reached)\n") ;
         }
-        if (ir_reg_union.bits.TEFF) {
+        if ( ir_reg_union.bits.TEFF ) {
             DBG_PRINTF(" TEFF (bit 14, Tx Event FIFO Full)\n") ;
         }
-        if (ir_reg_union.bits.TEFL) {
+        if ( ir_reg_union.bits.TEFL ) {
             DBG_PRINTF(" TEFL (bit 15, Tx Event FIFO Element Lost)\n") ;
         }
-        if (ir_reg_union.bits.TSW) {
+        if ( ir_reg_union.bits.TSW ) {
             DBG_PRINTF(" TSW  (bit 16, Timestamp Wraparound)\n") ;
         }
-        if (ir_reg_union.bits.MRAF) {
+        if ( ir_reg_union.bits.MRAF ) {
             DBG_PRINTF(" MRAF (bit 17, Unprocessed Message Discarded)\n") ;
         }
-        if (ir_reg_union.bits.TOO) {
+        if ( ir_reg_union.bits.TOO ) {
             DBG_PRINTF(" TOO  (bit 18, Timeout Occurred)\n") ;
         }
-        if (ir_reg_union.bits.DRX) {
+        if ( ir_reg_union.bits.DRX ) {
             DBG_PRINTF(
                 " DRX  (bit 19, Message stored to Dedicated RX Buffer)\n") ;
         }
-        if (ir_reg_union.bits.BEC) {
+        if ( ir_reg_union.bits.BEC ) {
             DBG_PRINTF(" BEC  (bit 20, Bit Error Corrected)\n") ;
         }
-        if (ir_reg_union.bits.BEU) {
+        if ( ir_reg_union.bits.BEU ) {
             DBG_PRINTF(" BEU  (bit 21, Bit Error Uncorrected)\n") ;
         }
-        if (ir_reg_union.bits.ELO) {
+        if ( ir_reg_union.bits.ELO ) {
             DBG_PRINTF(" ELO  (bit 22, Error Logging Overflow)\n") ;
         }
-        if (ir_reg_union.bits.EP) {
+        if ( ir_reg_union.bits.EP ) {
             DBG_PRINTF(" EP   (bit 23, Error Passive)\n") ;
         }
-        if (ir_reg_union.bits.EW) {
+        if ( ir_reg_union.bits.EW ) {
             DBG_PRINTF(" EW   (bit 24, Warning Status)\n") ;
         }
-        if (ir_reg_union.bits.BO) {
+        if ( ir_reg_union.bits.BO ) {
             DBG_PRINTF(" BO   (bit 25, Bus_Off Status)\n") ;
         }
-        if (ir_reg_union.bits.WDI) {
+        if ( ir_reg_union.bits.WDI ) {
             DBG_PRINTF(" WDI  (bit 26, Watchdog Interrupt)\n") ;
         }
-        if (ir_reg_union.bits.PEA) {
+        if ( ir_reg_union.bits.PEA ) {
             DBG_PRINTF(" PEA  (bit 27, Protocol Error in Arbitration Phase)\n") ;
         }
-        if (ir_reg_union.bits.PED) {
+        if ( ir_reg_union.bits.PED ) {
             DBG_PRINTF(" PED  (bit 28, Protocol Error in Data Phase)\n") ;
         }
-        if (ir_reg_union.bits.ARA) {
+        if ( ir_reg_union.bits.ARA ) {
             DBG_PRINTF(" ARA  (bit 29, Access to Reserved Address)\n") ;
         }
     } // if print verbose
 }
 
 /* Check the M_CAN & M_TTCAN Register properties */
-void m_can_register_test(can_struct *can_ptr, boolean reset_value_test_only)
+void m_can_register_test(
+    can_struct * can_ptr,
+    boolean reset_value_test_only)
 {
     /* Description:
      * This test function performs the following tests. Both M_CAN and M_TTCAN registers are tested.
@@ -1930,141 +1993,155 @@ void m_can_register_test(can_struct *can_ptr, boolean reset_value_test_only)
     register_properties m_can_register_properties[] = {
         //name,    addr,             value,            mask_wr,    mask_wp,   m_can, apply_wr, apply_wp
         // MISC ------------------------- 7
-        {"CREL  ", ADR_M_CAN_CREL, DEF_M_CAN_CREL, 0x00000000, 0x00000000, TRUE,
-         FALSE, FALSE },
-        {"ENDN  ", ADR_M_CAN_ENDN, DEF_M_CAN_ENDN, 0x00000000, 0x00000000, TRUE,
-         FALSE, FALSE },
-        {"DBTP  ", ADR_M_CAN_DBTP, DEF_M_CAN_DBTP, 0x00000000, 0x009F1FFF, TRUE,
-         FALSE, TRUE  },
-        {"TEST  ", ADR_M_CAN_TEST, DEF_M_CAN_TEST, 0x00000000, 0x00000070, TRUE,
-         FALSE, FALSE },
-        {"RWD   ", ADR_M_CAN_RWD, DEF_M_CAN_RWD, 0x00000000, 0x0000FFFF, TRUE,
-         FALSE, TRUE  },
+        { "CREL  ", ADR_M_CAN_CREL, DEF_M_CAN_CREL, 0x00000000, 0x00000000,
+          TRUE,
+          FALSE, FALSE },
+        { "ENDN  ", ADR_M_CAN_ENDN, DEF_M_CAN_ENDN, 0x00000000, 0x00000000,
+          TRUE,
+          FALSE, FALSE },
+        { "DBTP  ", ADR_M_CAN_DBTP, DEF_M_CAN_DBTP, 0x00000000, 0x009F1FFF,
+          TRUE,
+          FALSE, TRUE  },
+        { "TEST  ", ADR_M_CAN_TEST, DEF_M_CAN_TEST, 0x00000000, 0x00000070,
+          TRUE,
+          FALSE, FALSE },
+        { "RWD   ", ADR_M_CAN_RWD, DEF_M_CAN_RWD, 0x00000000, 0x0000FFFF, TRUE,
+          FALSE, TRUE  },
         //MZ{"CCCR  ", ADR_M_CAN_CCCR  , DEF_M_CAN_CCCR  , 0x00000011, 0x0000F3C7, TRUE, FALSE, TRUE  }, // INIT bit(RW) has an update delay. Nevertheless, INIT and CCE bits are implicitly checked during configuration change enable. Therefore, omit these the bits from write test.
         // MZ metto falso perche' contiene i bit di protezione!
-        {"CCCR  ", ADR_M_CAN_CCCR, DEF_M_CAN_CCCR, 0x00000011, 0x0000F3C7, TRUE,
-         FALSE, FALSE },
-        {"NBTP  ", ADR_M_CAN_NBTP, DEF_M_CAN_NBTP, 0x00000000, 0xFFFFFF7F, TRUE,
-         FALSE, TRUE  },
+        { "CCCR  ", ADR_M_CAN_CCCR, DEF_M_CAN_CCCR, 0x00000011, 0x0000F3C7,
+          TRUE,
+          FALSE, FALSE },
+        { "NBTP  ", ADR_M_CAN_NBTP, DEF_M_CAN_NBTP, 0x00000000, 0xFFFFFF7F,
+          TRUE,
+          FALSE, TRUE  },
         // Timestamp & Timeout ---------- 4
-        {"TSCC  ", ADR_M_CAN_TSCC, DEF_M_CAN_TSCC, 0x00000000, 0x000F0003, TRUE,
-         FALSE, TRUE  },
-        {"TSCV  ", ADR_M_CAN_TSCV, DEF_M_CAN_TSCV, 0x00000000, 0x00000000, TRUE,
-         FALSE, FALSE },
-        {"TOCC  ", ADR_M_CAN_TOCC, DEF_M_CAN_TOCC, 0x00000000, 0xFFFF0007, TRUE,
-         FALSE, TRUE  },
-        {"TOCV  ", ADR_M_CAN_TOCV, DEF_M_CAN_TOCV, 0x00000000, 0x00000000, TRUE,
-         FALSE, FALSE },
+        { "TSCC  ", ADR_M_CAN_TSCC, DEF_M_CAN_TSCC, 0x00000000, 0x000F0003,
+          TRUE,
+          FALSE, TRUE  },
+        { "TSCV  ", ADR_M_CAN_TSCV, DEF_M_CAN_TSCV, 0x00000000, 0x00000000,
+          TRUE,
+          FALSE, FALSE },
+        { "TOCC  ", ADR_M_CAN_TOCC, DEF_M_CAN_TOCC, 0x00000000, 0xFFFF0007,
+          TRUE,
+          FALSE, TRUE  },
+        { "TOCV  ", ADR_M_CAN_TOCV, DEF_M_CAN_TOCV, 0x00000000, 0x00000000,
+          TRUE,
+          FALSE, FALSE },
         // Misc      -------------------- 3
-        {"ECR   ", ADR_M_CAN_ECR, DEF_M_CAN_ECR, 0x00000000, 0x00000000, TRUE,
-         FALSE, FALSE },
-        {"PSR   ", ADR_M_CAN_PSR, DEF_M_CAN_PSR, 0x00000000, 0x00000000, TRUE,
-         FALSE, FALSE },
-        {"TDCR  ", ADR_M_CAN_TDCR, DEF_M_CAN_TDCR, 0x00000000, 0x00007F7F, TRUE,
-         FALSE, TRUE  },
+        { "ECR   ", ADR_M_CAN_ECR, DEF_M_CAN_ECR, 0x00000000, 0x00000000, TRUE,
+          FALSE, FALSE },
+        { "PSR   ", ADR_M_CAN_PSR, DEF_M_CAN_PSR, 0x00000000, 0x00000000, TRUE,
+          FALSE, FALSE },
+        { "TDCR  ", ADR_M_CAN_TDCR, DEF_M_CAN_TDCR, 0x00000000, 0x00007F7F,
+          TRUE,
+          FALSE, TRUE  },
         // Interrupt -------------------- 4
-        {"IR    ", ADR_M_CAN_IR, DEF_M_CAN_IR, 0x3FFFFFFF, 0x3FFFFFFF, TRUE,
-         FALSE, FALSE },                                                                              // the register is writable. But writing a 1 clears the bit position and so impossible to validate the write. So, omit this register from Write tests
-        {"IE    ", ADR_M_CAN_IE, DEF_M_CAN_IE, 0x3FFFFFFF, 0x3FFFFFFF, TRUE,
-         TRUE, FALSE },
-        {"ILS   ", ADR_M_CAN_ILS, DEF_M_CAN_ILS, 0x3FFFFFFF, 0x3FFFFFFF, TRUE,
-         TRUE, FALSE },
-        {"ILE   ", ADR_M_CAN_ILE, DEF_M_CAN_ILE, 0x00000003, 0x00000003, TRUE,
-         TRUE, FALSE },
+        { "IR    ", ADR_M_CAN_IR, DEF_M_CAN_IR, 0x3FFFFFFF, 0x3FFFFFFF, TRUE,
+          FALSE, FALSE },                                                                             // the register is writable. But writing a 1 clears the bit position and so impossible to validate the write. So, omit this register from Write tests
+        { "IE    ", ADR_M_CAN_IE, DEF_M_CAN_IE, 0x3FFFFFFF, 0x3FFFFFFF, TRUE,
+          TRUE, FALSE },
+        { "ILS   ", ADR_M_CAN_ILS, DEF_M_CAN_ILS, 0x3FFFFFFF, 0x3FFFFFFF, TRUE,
+          TRUE, FALSE },
+        { "ILE   ", ADR_M_CAN_ILE, DEF_M_CAN_ILE, 0x00000003, 0x00000003, TRUE,
+          TRUE, FALSE },
         // Rx Message Handler ----------- 15
-        {"GFC   ", ADR_M_CAN_GFC, DEF_M_CAN_GFC, 0x00000000, 0x0000003F, TRUE,
-         FALSE, TRUE  },
-        {"SIDFC ", ADR_M_CAN_SIDFC, DEF_M_CAN_SIDFC, 0x00000000, 0x00FFFFFC,
-         TRUE, FALSE, TRUE  },
-        {"XIDFC ", ADR_M_CAN_XIDFC, DEF_M_CAN_XIDFC, 0x00000000, 0x007FFFFC,
-         TRUE, FALSE, TRUE  },
-        {"XIDAM ", ADR_M_CAN_XIDAM, DEF_M_CAN_XIDAM, 0x00000000, 0x1FFFFFFF,
-         TRUE, FALSE, TRUE  },
-        {"HPMS  ", ADR_M_CAN_HPMS, DEF_M_CAN_HPMS, 0x00000000, 0x00000000, TRUE,
-         FALSE, FALSE },
-        {"NDAT1 ", ADR_M_CAN_NDAT1, DEF_M_CAN_NDAT1, 0xFFFFFFFF, 0xFFFFFFFF,
-         TRUE, FALSE, FALSE },                                                                         // the register is writable. But writing a 1 clears the bit position and so impossible to validate the write. So, omit this register from write tests
-        {"NDAT2 ", ADR_M_CAN_NDAT2, DEF_M_CAN_NDAT2, 0xFFFFFFFF, 0xFFFFFFFF,
-         TRUE, FALSE, FALSE },                                                                         // the register is writable. But writing a 1 clears the bit position and so impossible to validate the write. So, omit this register from write tests
-        {"RXF0C ", ADR_M_CAN_RXF0C, DEF_M_CAN_RXF0C, 0x00000000, 0xFF7FFFFC,
-         TRUE, FALSE, TRUE  },
-        {"RXF0S ", ADR_M_CAN_RXF0S, DEF_M_CAN_RXF0S, 0x00000000, 0x00000000,
-         TRUE, FALSE, FALSE },
-        {"RXF0A ", ADR_M_CAN_RXF0A, DEF_M_CAN_RXF0A, 0x0000003F, 0x0000003F,
-         TRUE, TRUE, FALSE },
-        {"RXBC  ", ADR_M_CAN_RXBC, DEF_M_CAN_RXBC, 0x00000000, 0x0000FFFC, TRUE,
-         FALSE, TRUE  },
-        {"RXF1C ", ADR_M_CAN_RXF1C, DEF_M_CAN_RXF1C, 0x00000000, 0xFF7FFFFC,
-         TRUE, FALSE, TRUE  },
-        {"RXF1S ", ADR_M_CAN_RXF1S, DEF_M_CAN_RXF1S, 0x00000000, 0x00000000,
-         TRUE, FALSE, FALSE },
-        {"RXF1A ", ADR_M_CAN_RXF1A, DEF_M_CAN_RXF1A, 0x0000003F, 0x0000003F,
-         TRUE,  TRUE, FALSE },
-        {"RXESC ", ADR_M_CAN_RXESC, DEF_M_CAN_RXESC, 0x00000000, 0x00000777,
-         TRUE, FALSE, TRUE  },
+        { "GFC   ", ADR_M_CAN_GFC, DEF_M_CAN_GFC, 0x00000000, 0x0000003F, TRUE,
+          FALSE, TRUE  },
+        { "SIDFC ", ADR_M_CAN_SIDFC, DEF_M_CAN_SIDFC, 0x00000000, 0x00FFFFFC,
+          TRUE, FALSE, TRUE  },
+        { "XIDFC ", ADR_M_CAN_XIDFC, DEF_M_CAN_XIDFC, 0x00000000, 0x007FFFFC,
+          TRUE, FALSE, TRUE  },
+        { "XIDAM ", ADR_M_CAN_XIDAM, DEF_M_CAN_XIDAM, 0x00000000, 0x1FFFFFFF,
+          TRUE, FALSE, TRUE  },
+        { "HPMS  ", ADR_M_CAN_HPMS, DEF_M_CAN_HPMS, 0x00000000, 0x00000000,
+          TRUE,
+          FALSE, FALSE },
+        { "NDAT1 ", ADR_M_CAN_NDAT1, DEF_M_CAN_NDAT1, 0xFFFFFFFF, 0xFFFFFFFF,
+          TRUE, FALSE, FALSE },                                                                        // the register is writable. But writing a 1 clears the bit position and so impossible to validate the write. So, omit this register from write tests
+        { "NDAT2 ", ADR_M_CAN_NDAT2, DEF_M_CAN_NDAT2, 0xFFFFFFFF, 0xFFFFFFFF,
+          TRUE, FALSE, FALSE },                                                                        // the register is writable. But writing a 1 clears the bit position and so impossible to validate the write. So, omit this register from write tests
+        { "RXF0C ", ADR_M_CAN_RXF0C, DEF_M_CAN_RXF0C, 0x00000000, 0xFF7FFFFC,
+          TRUE, FALSE, TRUE  },
+        { "RXF0S ", ADR_M_CAN_RXF0S, DEF_M_CAN_RXF0S, 0x00000000, 0x00000000,
+          TRUE, FALSE, FALSE },
+        { "RXF0A ", ADR_M_CAN_RXF0A, DEF_M_CAN_RXF0A, 0x0000003F, 0x0000003F,
+          TRUE, TRUE, FALSE },
+        { "RXBC  ", ADR_M_CAN_RXBC, DEF_M_CAN_RXBC, 0x00000000, 0x0000FFFC,
+          TRUE,
+          FALSE, TRUE  },
+        { "RXF1C ", ADR_M_CAN_RXF1C, DEF_M_CAN_RXF1C, 0x00000000, 0xFF7FFFFC,
+          TRUE, FALSE, TRUE  },
+        { "RXF1S ", ADR_M_CAN_RXF1S, DEF_M_CAN_RXF1S, 0x00000000, 0x00000000,
+          TRUE, FALSE, FALSE },
+        { "RXF1A ", ADR_M_CAN_RXF1A, DEF_M_CAN_RXF1A, 0x0000003F, 0x0000003F,
+          TRUE, TRUE, FALSE },
+        { "RXESC ", ADR_M_CAN_RXESC, DEF_M_CAN_RXESC, 0x00000000, 0x00000777,
+          TRUE, FALSE, TRUE  },
         // Tx Message Handler ----------- 13
-        {"TXBC  ", ADR_M_CAN_TXBC, DEF_M_CAN_TXBC, 0x00000000, 0x7F3FFFFC, TRUE,
-         FALSE, TRUE  },
-        {"TXFQS ", ADR_M_CAN_TXFQS, DEF_M_CAN_TXFQS, 0x00000000, 0x00000000,
-         TRUE, FALSE, FALSE },
-        {"TXESC ", ADR_M_CAN_TXESC, DEF_M_CAN_TXESC, 0x00000000, 0x00000007,
-         TRUE, FALSE, TRUE  },
-        {"TXBRP ", ADR_M_CAN_TXBRP, DEF_M_CAN_TXBRP, 0x00000000, 0x00000000,
-         TRUE, FALSE, FALSE },
-        {"TXBAR ", ADR_M_CAN_TXBAR, DEF_M_CAN_TXBAR, 0xFFFFFFFF, 0xFFFFFFFF,
-         TRUE, FALSE, FALSE },                                                                         // bits in this register are writable only for those Tx buffers that are configured via TXBC. Omit this register from write tests as this is a special case.
-        {"TXBCR ", ADR_M_CAN_TXBCR, DEF_M_CAN_TXBCR, 0xFFFFFFFF, 0xFFFFFFFF,
-         TRUE, FALSE, FALSE },                                                                         // bits in this register are writable only for those Tx buffers that are configured via TXBC. Omit this register from write tests as this is a special case.
-        {"TXBTO ", ADR_M_CAN_TXBTO, DEF_M_CAN_TXBTO, 0x00000000, 0x00000000,
-         TRUE, FALSE, FALSE },
-        {"TXBCF ", ADR_M_CAN_TXBCF, DEF_M_CAN_TXBCF, 0x00000000, 0x00000000,
-         TRUE, FALSE, FALSE },
-        {"TXBTIE", ADR_M_CAN_TXBTIE, DEF_M_CAN_TXBTIE, 0xFFFFFFFF, 0xFFFFFFFF,
-         TRUE,  TRUE, FALSE },
-        {"TXBCIE", ADR_M_CAN_TXBCIE, DEF_M_CAN_TXBCIE, 0xFFFFFFFF, 0xFFFFFFFF,
-         TRUE,  TRUE, FALSE },
-        {"TXEFC ", ADR_M_CAN_TXEFC, DEF_M_CAN_TXEFC, 0x00000000, 0x3F3FFFFC,
-         TRUE, FALSE, TRUE  },
-        {"TXEFS ", ADR_M_CAN_TXEFS, DEF_M_CAN_TXEFS, 0x00000000, 0x00000000,
-         TRUE, FALSE, FALSE },
-        {"TXEFA ", ADR_M_CAN_TXEFA, DEF_M_CAN_TXEFA, 0x0000001F, 0x0000001F,
-         TRUE,  TRUE, FALSE },
+        { "TXBC  ", ADR_M_CAN_TXBC, DEF_M_CAN_TXBC, 0x00000000, 0x7F3FFFFC,
+          TRUE,
+          FALSE, TRUE  },
+        { "TXFQS ", ADR_M_CAN_TXFQS, DEF_M_CAN_TXFQS, 0x00000000, 0x00000000,
+          TRUE, FALSE, FALSE },
+        { "TXESC ", ADR_M_CAN_TXESC, DEF_M_CAN_TXESC, 0x00000000, 0x00000007,
+          TRUE, FALSE, TRUE  },
+        { "TXBRP ", ADR_M_CAN_TXBRP, DEF_M_CAN_TXBRP, 0x00000000, 0x00000000,
+          TRUE, FALSE, FALSE },
+        { "TXBAR ", ADR_M_CAN_TXBAR, DEF_M_CAN_TXBAR, 0xFFFFFFFF, 0xFFFFFFFF,
+          TRUE, FALSE, FALSE },                                                                        // bits in this register are writable only for those Tx buffers that are configured via TXBC. Omit this register from write tests as this is a special case.
+        { "TXBCR ", ADR_M_CAN_TXBCR, DEF_M_CAN_TXBCR, 0xFFFFFFFF, 0xFFFFFFFF,
+          TRUE, FALSE, FALSE },                                                                        // bits in this register are writable only for those Tx buffers that are configured via TXBC. Omit this register from write tests as this is a special case.
+        { "TXBTO ", ADR_M_CAN_TXBTO, DEF_M_CAN_TXBTO, 0x00000000, 0x00000000,
+          TRUE, FALSE, FALSE },
+        { "TXBCF ", ADR_M_CAN_TXBCF, DEF_M_CAN_TXBCF, 0x00000000, 0x00000000,
+          TRUE, FALSE, FALSE },
+        { "TXBTIE", ADR_M_CAN_TXBTIE, DEF_M_CAN_TXBTIE, 0xFFFFFFFF, 0xFFFFFFFF,
+          TRUE, TRUE, FALSE },
+        { "TXBCIE", ADR_M_CAN_TXBCIE, DEF_M_CAN_TXBCIE, 0xFFFFFFFF, 0xFFFFFFFF,
+          TRUE, TRUE, FALSE },
+        { "TXEFC ", ADR_M_CAN_TXEFC, DEF_M_CAN_TXEFC, 0x00000000, 0x3F3FFFFC,
+          TRUE, FALSE, TRUE  },
+        { "TXEFS ", ADR_M_CAN_TXEFS, DEF_M_CAN_TXEFS, 0x00000000, 0x00000000,
+          TRUE, FALSE, FALSE },
+        { "TXEFA ", ADR_M_CAN_TXEFA, DEF_M_CAN_TXEFA, 0x0000001F, 0x0000001F,
+          TRUE, TRUE, FALSE },
         // M_TTCAN specific registers ---- 17
         // TT Registers have to be at the END of this array!
-        {"TTTMC ", ADR_M_CAN_TTTMC, DEF_M_CAN_TTTMC, 0x00000000, 0x007FFFFC,
-         FALSE, FALSE, TRUE  },
-        {"TTRMC ", ADR_M_CAN_TTRMC, DEF_M_CAN_TTRMC, 0x00000000, 0xDFFFFFFF,
-         FALSE, FALSE, TRUE  },
-        {"TTOCF ", ADR_M_CAN_TTOCF, DEF_M_CAN_TTOCF, 0x00000000, 0x07FFFFFB,
-         FALSE, FALSE, TRUE  },
-        {"TTMLM ", ADR_M_CAN_TTMLM, DEF_M_CAN_TTMLM, 0x00000000, 0x0FFF0FFF,
-         FALSE, FALSE, TRUE  },
-        {"TURCF ", ADR_M_CAN_TURCF, DEF_M_CAN_TURCF, 0x00000000, 0xBFFFFFFF,
-         FALSE, FALSE, FALSE },                                                                         // some bits in this register can be set only on specific conditions and 0 is an illegal value for a few bits. So omitting to keep the test simple and understandable.
-        {"TTOCN ", ADR_M_CAN_TTOCN, DEF_M_CAN_TTOCN, 0x00002FFC, 0x00002FFC,
-         FALSE, FALSE, FALSE },                                                                         // bits NIG, ECS and SGT can be set only on specific conditions. Omitting these bits from normal write test for simplicity of test. So the mask value is set accordingly
-        {"TTGTP ", ADR_M_CAN_TTGTP, DEF_M_CAN_TTGTP, 0xFFFFFFFF, 0xFFFFFFFF,
-         FALSE, FALSE, FALSE },                                                                         // all the bits in this register are write-protected and are writable only on specific conditions. Omit this register from write tests as this is a special case.
-        {"TTTMK ", ADR_M_CAN_TTTMK, DEF_M_CAN_TTTMK, 0x007FFFFF, 0x007FFFFF,
-         FALSE, TRUE, FALSE },
-        {"TTIR  ", ADR_M_CAN_TTIR, DEF_M_CAN_TTIR, 0xFFFFFFFF, 0xFFFFFFFF,
-         FALSE, FALSE, FALSE },                                                                         // the register is writable. But writing a 1 clears the bit position and so impossible to validate the write. Therefore, Mask value omits all the bits from write test.
-        {"TTIE  ", ADR_M_CAN_TTIE, DEF_M_CAN_TTIE, 0x0007FFFF, 0x0007FFFF,
-         FALSE, TRUE, FALSE },
-        {"TTILS ", ADR_M_CAN_TTILS, DEF_M_CAN_TTILS, 0x0007FFFF, 0x0007FFFF,
-         FALSE, TRUE, FALSE },
-        {"TTOST ", ADR_M_CAN_TTOST, DEF_M_CAN_TTOST, 0x00000000, 0x00000000,
-         FALSE, FALSE, FALSE },
-        {"TURNA ", ADR_M_CAN_TURNA, DEF_M_CAN_TURNA, 0x00000000, 0x00000000,
-         FALSE, FALSE, FALSE },
-        {"TTLGT ", ADR_M_CAN_TTLGT, DEF_M_CAN_TTLGT, 0x00000000, 0x00000000,
-         FALSE, FALSE, FALSE },
-        {"TTCTC ", ADR_M_CAN_TTCTC, DEF_M_CAN_TTCTC, 0x00000000, 0x00000000,
-         FALSE, FALSE, FALSE },
-        {"TTCPT ", ADR_M_CAN_TTCPT, DEF_M_CAN_TTCPT, 0x00000000, 0x00000000,
-         FALSE, FALSE, FALSE },
-        {"TTCSM ", ADR_M_CAN_TTCSM, DEF_M_CAN_TTCSM, 0x00000000, 0x00000000,
-         FALSE, FALSE, FALSE },
+        { "TTTMC ", ADR_M_CAN_TTTMC, DEF_M_CAN_TTTMC, 0x00000000, 0x007FFFFC,
+          FALSE, FALSE, TRUE  },
+        { "TTRMC ", ADR_M_CAN_TTRMC, DEF_M_CAN_TTRMC, 0x00000000, 0xDFFFFFFF,
+          FALSE, FALSE, TRUE  },
+        { "TTOCF ", ADR_M_CAN_TTOCF, DEF_M_CAN_TTOCF, 0x00000000, 0x07FFFFFB,
+          FALSE, FALSE, TRUE  },
+        { "TTMLM ", ADR_M_CAN_TTMLM, DEF_M_CAN_TTMLM, 0x00000000, 0x0FFF0FFF,
+          FALSE, FALSE, TRUE  },
+        { "TURCF ", ADR_M_CAN_TURCF, DEF_M_CAN_TURCF, 0x00000000, 0xBFFFFFFF,
+          FALSE, FALSE, FALSE },                                                                        // some bits in this register can be set only on specific conditions and 0 is an illegal value for a few bits. So omitting to keep the test simple and understandable.
+        { "TTOCN ", ADR_M_CAN_TTOCN, DEF_M_CAN_TTOCN, 0x00002FFC, 0x00002FFC,
+          FALSE, FALSE, FALSE },                                                                        // bits NIG, ECS and SGT can be set only on specific conditions. Omitting these bits from normal write test for simplicity of test. So the mask value is set accordingly
+        { "TTGTP ", ADR_M_CAN_TTGTP, DEF_M_CAN_TTGTP, 0xFFFFFFFF, 0xFFFFFFFF,
+          FALSE, FALSE, FALSE },                                                                        // all the bits in this register are write-protected and are writable only on specific conditions. Omit this register from write tests as this is a special case.
+        { "TTTMK ", ADR_M_CAN_TTTMK, DEF_M_CAN_TTTMK, 0x007FFFFF, 0x007FFFFF,
+          FALSE, TRUE, FALSE },
+        { "TTIR  ", ADR_M_CAN_TTIR, DEF_M_CAN_TTIR, 0xFFFFFFFF, 0xFFFFFFFF,
+          FALSE, FALSE, FALSE },                                                                        // the register is writable. But writing a 1 clears the bit position and so impossible to validate the write. Therefore, Mask value omits all the bits from write test.
+        { "TTIE  ", ADR_M_CAN_TTIE, DEF_M_CAN_TTIE, 0x0007FFFF, 0x0007FFFF,
+          FALSE, TRUE, FALSE },
+        { "TTILS ", ADR_M_CAN_TTILS, DEF_M_CAN_TTILS, 0x0007FFFF, 0x0007FFFF,
+          FALSE, TRUE, FALSE },
+        { "TTOST ", ADR_M_CAN_TTOST, DEF_M_CAN_TTOST, 0x00000000, 0x00000000,
+          FALSE, FALSE, FALSE },
+        { "TURNA ", ADR_M_CAN_TURNA, DEF_M_CAN_TURNA, 0x00000000, 0x00000000,
+          FALSE, FALSE, FALSE },
+        { "TTLGT ", ADR_M_CAN_TTLGT, DEF_M_CAN_TTLGT, 0x00000000, 0x00000000,
+          FALSE, FALSE, FALSE },
+        { "TTCTC ", ADR_M_CAN_TTCTC, DEF_M_CAN_TTCTC, 0x00000000, 0x00000000,
+          FALSE, FALSE, FALSE },
+        { "TTCPT ", ADR_M_CAN_TTCPT, DEF_M_CAN_TTCPT, 0x00000000, 0x00000000,
+          FALSE, FALSE, FALSE },
+        { "TTCSM ", ADR_M_CAN_TTCSM, DEF_M_CAN_TTCSM, 0x00000000, 0x00000000,
+          FALSE, FALSE, FALSE },
     } ;
 
     unsigned int i, j, number_of_registers_to_check = 0 ;
@@ -2073,14 +2150,14 @@ void m_can_register_test(can_struct *can_ptr, boolean reset_value_test_only)
     boolean reg_reset_values_ok = TRUE, reg_write_ok = TRUE,
             reg_write_prot_ok = TRUE ;
 
-    if (can_ptr->is_m_ttcan_node == FALSE) {
+    if ( can_ptr->is_m_ttcan_node == FALSE ) {
         // M_CAN register test
         DBG_PRINTF(" M_CAN Version 3.2.x Register Test\n") ;
         DBG_PRINTF(" M_CAN Base_Addr: 0x%08x", can_ptr->base) ;
 
         // this loop counts the number of m_can specific registers
-        for (i = 0 ; i < (int)ARRAYSIZE(m_can_register_properties) ; i++) {
-            if (m_can_register_properties[i].m_can_only == TRUE) {
+        for ( i = 0 ; i < (int) ARRAYSIZE(m_can_register_properties) ; i++ ) {
+            if ( m_can_register_properties[i].m_can_only == TRUE ) {
                 number_of_registers_to_check++ ;
             }
         }
@@ -2089,7 +2166,8 @@ void m_can_register_test(can_struct *can_ptr, boolean reset_value_test_only)
         // M_TTCAN register test
         DBG_PRINTF(" M_TTCAN Version 3.2.x Register Test\n") ;
         DBG_PRINTF(" M_CAN Base_Addr: 0x%08x", can_ptr->base) ;
-        number_of_registers_to_check = (int)ARRAYSIZE(m_can_register_properties) ;
+        number_of_registers_to_check = (int) ARRAYSIZE(
+            m_can_register_properties) ;
     }
 
     /* Test - 1 => Test if the registers contain proper reset values
@@ -2097,10 +2175,10 @@ void m_can_register_test(can_struct *can_ptr, boolean reset_value_test_only)
     DBG_PRINTF(" => Reset value Test: \n") ;
 
     // for all register do...
-    for (i = 0 ; i < number_of_registers_to_check ; i++) {
+    for ( i = 0 ; i < number_of_registers_to_check ; i++ ) {
         value_read_reg = reg_get(can_ptr, m_can_register_properties[i].addr) ;
         expected_value_reg = m_can_register_properties[i].value ;
-        if (value_read_reg != expected_value_reg) {
+        if ( value_read_reg != expected_value_reg ) {
             DBG_PRINTF(
                 "      Read Error:  %s (0x%03x): read: 0x%08x, expected read: 0x%08x)",
                 m_can_register_properties[i].name,
@@ -2111,11 +2189,11 @@ void m_can_register_test(can_struct *can_ptr, boolean reset_value_test_only)
         } // if
     } // for
 
-    if (reg_reset_values_ok == TRUE) {
+    if ( reg_reset_values_ok == TRUE ) {
         DBG_PRINTF("PASS") ;
     }                                                      // Test-1 completed
 
-    if (reset_value_test_only == TRUE) {
+    if ( reset_value_test_only == TRUE ) {
         DBG_PRINTF("\n => Number of registers checked: %u",
                    number_of_registers_to_check) ;
         return ; // after the reset_value_test, do not proceed to the write test
@@ -2127,8 +2205,8 @@ void m_can_register_test(can_struct *can_ptr, boolean reset_value_test_only)
     DBG_PRINTF("\n => Normal writable Bits Test: ") ;
 
     // for all register do...
-    for (i = 0 ; i < number_of_registers_to_check ; i++) {
-        if (m_can_register_properties[i].apply_normal_write_test == TRUE) {
+    for ( i = 0 ; i < number_of_registers_to_check ; i++ ) {
+        if ( m_can_register_properties[i].apply_normal_write_test == TRUE ) {
             // read the value of the register. This value will be restored at the end of test.
             original_value_reg = reg_get(can_ptr,
                                          m_can_register_properties[i].addr) ;
@@ -2136,8 +2214,8 @@ void m_can_register_test(can_struct *can_ptr, boolean reset_value_test_only)
             /* this loop runs twice
              *  - run 1: write '1' to all Normal Writable bits and check if write was possible
              *  - run 2: write '0' to all Normal Writable bits and check if write was possible */
-            for (j = 0 ; j < 2 ; j++) {
-                if (j == 0) { // loop run-1
+            for ( j = 0 ; j < 2 ; j++ ) {
+                if ( j == 0 ) { // loop run-1
                     set_value_reg =
                         m_can_register_properties[i].mask_check_write ;
                 }
@@ -2155,9 +2233,9 @@ void m_can_register_test(can_struct *can_ptr, boolean reset_value_test_only)
                     .addr) ;                                                                  // read the value that was just written in the register
 
                 // do a bitwise AND with the WRITE Mask and the 'new value read' from register and compare
-                masked_result = read_value_witten_to_reg &
-                                m_can_register_properties[i].mask_check_write ;
-                if (set_value_reg != masked_result) {
+                masked_result = read_value_witten_to_reg
+                                & m_can_register_properties[i].mask_check_write ;
+                if ( set_value_reg != masked_result ) {
                     reg_write_ok = FALSE ;
                     DBG_PRINTF(
                         "\n      Write Error: %s (0x%03x): written: 0x%08x, read: 0x%08x, expected read: 0x%08x",
@@ -2176,7 +2254,7 @@ void m_can_register_test(can_struct *can_ptr, boolean reset_value_test_only)
         } // if RW register
     } //for
 
-    if (reg_write_ok == TRUE) {
+    if ( reg_write_ok == TRUE ) {
         DBG_PRINTF("PASS") ;
     }                                               // Test-2 completed message
 
@@ -2190,8 +2268,9 @@ void m_can_register_test(can_struct *can_ptr, boolean reset_value_test_only)
     DBG_PRINTF("\n => Protected writable Bits Test: ") ;
 
     // for all registers
-    for (i = 0 ; i < number_of_registers_to_check ; i++) {
-        if (m_can_register_properties[i].apply_protected_write_test == TRUE) {
+    for ( i = 0 ; i < number_of_registers_to_check ; i++ ) {
+        if ( m_can_register_properties[i].apply_protected_write_test ==
+             TRUE ) {
             // read the original value in the register. This value will be restored at the end of test
             original_value_reg = reg_get(can_ptr,
                                          m_can_register_properties[i].addr) ;
@@ -2203,8 +2282,8 @@ void m_can_register_test(can_struct *can_ptr, boolean reset_value_test_only)
             *   - run 1: write '1' to all write protected bits and check if write was possible
             *   - run 2: write '0' to all write protected bits and check if write was possible
             */
-            for (j = 0 ; j < 2 ; j++) {
-                if (j == 0) { // loop run-1
+            for ( j = 0 ; j < 2 ; j++ ) {
+                if ( j == 0 ) { // loop run-1
                     set_value_reg =
                         m_can_register_properties[i].mask_check_write_protected ;
                 }
@@ -2222,10 +2301,10 @@ void m_can_register_test(can_struct *can_ptr, boolean reset_value_test_only)
                     .addr) ;                                                                  // read the value that was just written in the register
 
                 // do a bitwise AND with the Write Mask and the 'new value read' from register and compare
-                masked_result = read_value_witten_to_reg &
-                                m_can_register_properties[i].
+                masked_result = read_value_witten_to_reg
+                                & m_can_register_properties[i].
                                 mask_check_write_protected ;
-                if (set_value_reg != masked_result) {
+                if ( set_value_reg != masked_result ) {
                     reg_write_prot_ok = FALSE ;
                     DBG_PRINTF(
                         "\n      Write Error: %s (0x%03x): written: 0x%08x, read: 0x%08x, expected read: 0x%08x",
@@ -2246,7 +2325,7 @@ void m_can_register_test(can_struct *can_ptr, boolean reset_value_test_only)
         } //if
     } //for
 
-    if (reg_write_prot_ok == TRUE) {
+    if ( reg_write_prot_ok == TRUE ) {
         DBG_PRINTF("PASS") ;
     }                                                     // Test-3 completed message
 

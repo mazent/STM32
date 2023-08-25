@@ -1,4 +1,3 @@
-
 /*
  * Si usa la spi per parlare col dispositivo
  */
@@ -124,7 +123,8 @@ bool TCAN_reg_scrivi(
         }
 
         esito =
-            spi_tx( (uint8_t *) &scrivi, TCAN_VAL_POS + numreg * sizeof(uint32_t) ) ;
+            spi_tx( (uint8_t *) &scrivi, TCAN_VAL_POS + numreg
+                    * sizeof(uint32_t) ) ;
     } while ( false ) ;
 
     return esito ;

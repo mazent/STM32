@@ -1,8 +1,8 @@
 /* All needed header files */
- 
+
 /* Copyright (c) 2018, Robert Bosch GmbH, Gerlingen, Germany
 *  All rights reserved.
-*  
+*
 *  Redistribution and use in source and binary forms, with or without
 *  modification, are permitted provided that the following conditions are met:
 *     1. Redistributions of source code must retain the above copyright
@@ -13,7 +13,7 @@
 *     3. Neither the name of the Robert Bosch GmbH nor the
 *        names of its contributors may be used to endorse or promote products
 *        derived from this software without specific prior written permission.
-*  
+*
 *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 *  ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
 *  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -31,7 +31,7 @@
 */
 
 #ifndef M_CAN_INCLUDES_H
-#define M_CAN_INCLUDES_H 
+#define M_CAN_INCLUDES_H
 
 /* Global Definitions */
 #include "global_settings.h"  // has to be included prior to types.h, otherwise the Software doesn't work with Xilinx Microblaze/SDK
@@ -53,60 +53,74 @@
 #include "utili.h"
 //#include "../../cod/tcan4550.h"
 
+// Molto verboso
+//#define STAMPA_REGISTRI
+
 // sostituisce la scrittura a registro con quella a gruppi
 //#define MRAM_OTTIMIZZATA		1
 
 extern void mcan_tx_fifo_empty_cb(void) ;
 extern void mcan_rx_fifo_msg_cb(void) ;
-extern void mcan_copia_in_mram(uint32_t indir, const void * v, int dim) ;
+extern void mcan_copia_in_mram(
+    uint32_t indir,
+    const void * v,
+    int dim) ;
 
-#define CAN_NUMBER_OF_PRESENT_NODES		2
+#define CAN_NUMBER_OF_PRESENT_NODES     2
 
 // sul tcan4550 i registri del m_can partono da qua
-#define REG_BASE		0x1000
+#define REG_BASE        0x1000
 
-extern uint32_t * questo_reg_leggi(uint16_t numreg, uint16_t primo);
+extern uint32_t * questo_reg_leggi(
+    uint16_t numreg,
+    uint16_t primo) ;
 
-static inline uint32_t IORD_32DIRECT(uint32_t base, uint16_t reg)
+static inline uint32_t IORD_32DIRECT(
+    uint32_t base,
+    uint16_t reg)
 {
-	if (base) {
-		// MRAM
-		reg += base ;
-	}
-	else {
-		// Registro
-		reg += REG_BASE ;
-	}
+    if ( base ) {
+        // MRAM
+        reg += base ;
+    }
+    else {
+        // Registro
+        reg += REG_BASE ;
+    }
 
-	uint32_t * pV = questo_reg_leggi(1, reg) ;
-
-	DBG_PRINTF("[%04X] -> 0x%08X", reg, *pV) ;
-
-	return *pV ;
+    uint32_t * pV = questo_reg_leggi(1, reg) ;
+#ifdef STAMPA_REGISTRI
+    DBG_PRINTF("[%04X] -> 0x%08X", reg, *pV) ;
+#endif
+    return *pV ;
 }
 
-extern bool questo_reg_scrivi(uint16_t numreg,                     uint16_t primo,                     const uint32_t * val);
+extern bool questo_reg_scrivi(
+    uint16_t numreg,
+    uint16_t primo,
+    const uint32_t * val) ;
 
-
-static inline void IOWR_32DIRECT(uint32_t base, uint16_t reg, uint32_t value)
+static inline void IOWR_32DIRECT(
+    uint32_t base,
+    uint16_t reg,
+    uint32_t value)
 {
-	if (base) {
-		// MRAM
-		reg += base ;
-	}
-	else {
-		// Registro
-		reg += REG_BASE ;
-	}
-
-	DBG_PRINTF("[%04X] <- 0x%08X", reg, value) ;
-
-	(void) questo_reg_scrivi(1, reg, &value) ;
+    if ( base ) {
+        // MRAM
+        reg += base ;
+    }
+    else {
+        // Registro
+        reg += REG_BASE ;
+    }
+#ifdef STAMPA_REGISTRI
+    DBG_PRINTF("[%04X] <- 0x%08X", reg, value) ;
+#endif
+    (void) questo_reg_scrivi(1, reg, &value) ;
 }
 
 extern void m_can_disable_interrupt(int can_id) ;
 extern void m_can_enable_interrupt(int can_id) ;
-
 
 // ----------------------------------- MZ
 

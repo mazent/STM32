@@ -19,6 +19,9 @@ typedef struct {
 
     bool fd ;
 
+    bool lback;
+    bool lb_intrn;
+
     // Pilota il pin collegato a RST (vero->alto)
     PF_MCAN_RESET_PIN reset_pin ;
 

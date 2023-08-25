@@ -1,10 +1,8 @@
 // Tratto da
 // http://www.bosch-semiconductors.com/ip-modules/can-ip-modules/m-can/
-#define STAMPA_DBG
-#include "utili.h"
+#include "../bosch/global_includes.h"
 #include "../mcan.h"
 #include "bsp.h"
-#include "../bosch/global_includes.h"
 #include "tcan4550.h"
 
 // Costanti
@@ -183,7 +181,9 @@ static uint32_t reg_leggi(uint16_t reg)
     uint32_t * pR = TCAN_reg_leggi(un_mcan->spi_txrx, 1, reg) ;
     if ( pR ) {
         uint32_t val = *pR ;
+#ifdef STAMPA_REGISTRI
         DBG_PRINTF("reg[%04X] -> %08X", reg, val) ;
+#endif
         return val ;
     }
     else {
@@ -200,7 +200,9 @@ static void reg_scrivi(
         DBG_ERR ;
     }
     else {
+#ifdef STAMPA_REGISTRI
         DBG_PRINTF("reg[%04X] <- %08X", reg, val) ;
+#endif
     }
 }
 
@@ -266,7 +268,6 @@ can_global_struct global = {
     .can = {
         // TCAN3
         {
-            .id = 3,
             // TRUE = node enabled/aktive,
             // FALSE = node disabled/does  not TX or RX frames
             .ena = true,
@@ -275,7 +276,7 @@ can_global_struct global = {
             .base = 0,
 
             // local  CAN-Node identifier, e.g. 0 or 2
-            // uint8_t  id;
+            .id = 0,
 
             // global CAN-Node identifier, used to separate Nodes in a
             // multi-board network
@@ -313,13 +314,18 @@ can_global_struct global = {
             // tx_buff_config_struct tx_config;
 
             // FALSE: M_CAN Node, TRUE: M_TTCAN Node
-            .is_m_ttcan_node = false
+            .is_m_ttcan_node = false,
 
-                               // internal_test_struct internal_test;
+            // internal_test_struct internal_test;
+
+            // MZ
+            .autotx = FALSE,
+            .lback_abil = TRUE,
+            .lback_intrnl = TRUE
         },
         // TCAN4
         {
-            .id = 4,
+            .id = 1,
             .ena = true,
 
             .base = 0,
@@ -341,7 +347,12 @@ can_global_struct global = {
             .elem_size_word = CAN_FD_MAX_NO_OF_DATABYTE_PER_FRAME
                               / sizeof(uint32_t),
 
-            .is_m_ttcan_node = false
+            .is_m_ttcan_node = false,
+
+            // MZ
+            .autotx = FALSE,
+            .lback_abil = TRUE,
+            .lback_intrnl = TRUE
         }
     }
 } ;
@@ -542,25 +553,6 @@ static void status_reg(UN_MCAN * _)
 
 #endif
 
-static bool auto_retr_dis(void)
-{
-    union {
-        uint32_t u ;
-        REG_CCCR cccr ;
-    } tmp ;
-
-    tmp.u = reg_leggi(MCAN_CCCR_REG) ;
-    tmp.cccr.CSR = 0 ;
-    tmp.cccr.DAR = 1 ;
-    reg_scrivi(MCAN_CCCR_REG, tmp.u) ;
-
-#ifndef NDEBUG
-    // debug
-    tmp.u = reg_leggi(MCAN_CCCR_REG) ;
-#endif
-    return true ;
-}
-
 bool MCAN_iniz(
     UN_MCAN * pC,
     const MCAN_CFG * nominal,
@@ -641,15 +633,13 @@ bool MCAN_iniz(
 
             m_can_set_config_change_enable(&global.can[pC->indice]) ;
 
-            if ( !auto_retr_dis() ) {
-                DBG_ERR ;
-                break ;
-            }
-
             global.can[pC->indice].bt_config.fd_ena = pC->fd ? TRUE : FALSE ;
             global.can[pC->indice].bt_config.brs_ena = pC->fd ? TRUE : FALSE ;
             global.can[pC->indice].bt_config.nominal = cfg_nmnl ;
             global.can[pC->indice].bt_config.data = cfg_data ;
+
+            global.can[pC->indice].lback_abil = pC->lback ? TRUE : FALSE ;
+            global.can[pC->indice].lback_intrnl = pC->lb_intrn ? TRUE : FALSE ;
 
             m_can_set_bit_timing(&global.can[pC->indice]) ;
 
@@ -922,10 +912,14 @@ void MCAN_isr(UN_MCAN * pC)
 }
 
 void mcan_tx_fifo_empty_cb(void)
-{}
+{
+    DBG_FUN ;
+}
 
 void mcan_rx_fifo_msg_cb(void)
-{}
+{
+    DBG_FUN ;
+}
 
 uint32_t * MCAN_reg_leggi(
     UN_MCAN * pC,
