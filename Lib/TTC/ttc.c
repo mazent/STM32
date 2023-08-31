@@ -19,7 +19,7 @@ static osThreadId idTHD = NULL ;
 
 #define IN_CODA     5
 
-osMessageQDef(trasmetti, IN_CODA, UN_COM *) ;
+osMessageQDef(trasmetti, IN_CODA, UN_TTC *) ;
 static osMessageQId trasmetti = NULL ;
 
 #define INIZIO_TRAMA             0xC5
@@ -42,7 +42,7 @@ static osMessageQId trasmetti = NULL ;
 
 static const uint32_t MINI_DIM = 1 + 1 + sizeof(CMD_T) + 2 ;
 
-static void da_capo(UN_COM * uc)
+static void da_capo(UN_TTC * uc)
 {
     uc->dimRx = 0 ;
     uc->nega = false ;
@@ -64,7 +64,7 @@ static void comTHD(void * v)
             while ( true ) {
                 osEvent event = osMessageGet(trasmetti, 0) ;
                 if ( osEventMessage == event.status ) {
-                    UN_COM * uc = (UN_COM *) event.value.p ;
+                    UN_TTC * uc = (UN_TTC *) event.value.p ;
 
                     CONTROLLA( uc->disp_tx(uc->memTx, uc->dimTx) ) ;
                 }
@@ -77,7 +77,7 @@ static void comTHD(void * v)
 }
 
 static void appendi(
-    UN_COM * uc,
+    UN_TTC * uc,
     uint8_t x)
 {
     uint8_t * mem = uc->memTx ;
@@ -94,7 +94,7 @@ static void appendi(
 }
 
 static void componi(
-    UN_COM * uc,
+    UN_TTC * uc,
     IND_T dst,
     CMD_T cmd,
     const void * p,
@@ -148,7 +148,7 @@ static void componi(
 }
 
 static void invia(
-    UN_COM * uc,
+    UN_TTC * uc,
     IND_T dst,
     CMD_T cmd,
     const void * v,
@@ -182,7 +182,7 @@ static void invia(
  * la funzione nella COM_iniz, ma preferisco che se ne occupi il thd
  */
 
-bool TTC_iniz(UN_COM * uc)
+bool TTC_iniz(UN_TTC * uc)
 {
     bool esito = false ;
 
@@ -252,7 +252,7 @@ bool TTC_iniz(UN_COM * uc)
 }
 
 void TTC_elabora(
-    UN_COM * uc,
+    UN_TTC * uc,
     const uint8_t * dati,
     const uint32_t LETTI)
 {
@@ -340,7 +340,7 @@ void TTC_elabora(
 }
 
 void TTC_risposta(
-    UN_COM * uc,
+    UN_TTC * uc,
     IND_T dst,
     CMD_T cmd,
     const void * v,
@@ -354,7 +354,7 @@ void TTC_risposta(
 }
 
 void TTC_scono(
-    UN_COM * uc,
+    UN_TTC * uc,
     IND_T dst,
     CMD_T cmd)
 {
@@ -366,7 +366,7 @@ void TTC_scono(
 }
 
 void TTC_errore(
-    UN_COM * uc,
+    UN_TTC * uc,
     IND_T dst,
     CMD_T cmd)
 {
@@ -378,7 +378,7 @@ void TTC_errore(
 }
 
 void TTC_domanda(
-    UN_COM * uc,
+    UN_TTC * uc,
     IND_T dst,
     CMD_T cmd,
     const void * v,

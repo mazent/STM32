@@ -49,27 +49,22 @@ typedef struct {
     bool nega ;
     uint32_t dimRx ;
     uint32_t dimTx ;
-} UN_COM ;
+} UN_TTC ;
 
-bool TTC_iniz(UN_COM *) ;
+bool TTC_iniz(UN_TTC *) ;
 
 void TTC_elabora(
-    UN_COM *,
+    UN_TTC *,
     const uint8_t *,
     const uint32_t) ;
 
 // Comandi
-void TTC_domanda(UN_COM *, IND_T, CMD_T, const void *, uint32_t) ;
+void TTC_domanda(UN_TTC *, IND_T, CMD_T, const void *, uint32_t) ;
 
 // Risposte
-void TTC_scono(UN_COM *, IND_T, CMD_T) ;
-void TTC_errore(UN_COM *, IND_T, CMD_T) ;
-void TTC_risposta(UN_COM *, IND_T, CMD_T, const void *, uint32_t) ;
-
-/*
- * Indirizzi noti
- */
-#define IND_DISPO              ( (IND_T) 0x02 )
+void TTC_scono(UN_TTC *, IND_T, CMD_T) ;
+void TTC_errore(UN_TTC *, IND_T, CMD_T) ;
+void TTC_risposta(UN_TTC *, IND_T, CMD_T, const void *, uint32_t) ;
 
 /*
  * Trucco
