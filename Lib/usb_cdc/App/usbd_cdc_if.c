@@ -4,48 +4,44 @@
 #include "usbd_cdc_if.h"
 #include "../usb_uart.h"
 
-#ifndef USB_UART_NO_CIRCO
+#ifdef USB_UART_USA_BUF_CIRC
 #include "circo/circo.h"
+/* Create buffer for reception and transmission           */
+/* It's up to user to redefine and/or remove those define */
+/** Received data over USB are stored in this buffer      */
+static uint8_t UserRxBufferHS[CDC_DATA_HS_IN_PACKET_SIZE] ;
+
 #define MAX_BUFF        APP_RX_DATA_SIZE
 
 static union {
     S_CIRCO c ;
     uint8_t b[sizeof(S_CIRCO) - 1 + MAX_BUFF] ;
 } u ;
+#else
+#define NUM_BUF_RX      4
+static uint8_t blob[NUM_BUF_RX * CDC_DATA_HS_MAX_PACKET_SIZE] ;
+static uint32_t vdim[NUM_BUF_RX] = {
+    0
+} ;
+static uint8_t * vbuf[NUM_BUF_RX] = {
+    blob,
+    blob + CDC_DATA_HS_MAX_PACKET_SIZE,
+    blob + 2 * CDC_DATA_HS_MAX_PACKET_SIZE,
+    blob + 3 * CDC_DATA_HS_MAX_PACKET_SIZE
+} ;
+static int qbuf = 0 ;
+static int rbuf = 0 ;
 #endif
 
-#ifndef USB_UART_NO_CIRCO
 static void cb_vuota(void * v)
 {
     UNUSED(v) ;
 }
 
-#else
-static void cb_vuota(
-    void * v,
-    void * r,
-    uint32_t d)
-{
-    UNUSED(v) ;
-    UNUSED(r) ;
-    UNUSED(d) ;
-}
-
-#endif
-
 static USBU_CALLBACK rx_cb = cb_vuota ;
 static void * cb_arg = NULL ;
 static bool iniz = false ;
 
-/* Create buffer for reception and transmission           */
-/* It's up to user to redefine and/or remove those define */
-/** Received data over USB are stored in this buffer      */
-static uint8_t UserRxBufferHS[CDC_DATA_HS_IN_PACKET_SIZE] ;
-#ifdef USB_UART_NO_CIRCO
-static uint8_t UserRxBufferHS2[CDC_DATA_HS_IN_PACKET_SIZE] ;
-static uint8_t * rx_buf = NULL ;
-static uint32_t rx_flip = 0 ;
-#endif
 
 static USBD_HandleTypeDef hUsbDeviceHS ;
 extern USBD_DescriptorsTypeDef HS_Desc ;
@@ -56,10 +52,10 @@ extern USBD_DescriptorsTypeDef HS_Desc ;
   */
 static int8_t CDC_Init_HS(void)
 {
+#ifdef USB_UART_USA_BUF_CIRC
     USBD_CDC_SetRxBuffer(&hUsbDeviceHS, UserRxBufferHS) ;
-#ifdef USB_UART_NO_CIRCO
-    rx_buf = UserRxBufferHS ;
-    rx_flip = UINTEGER(UserRxBufferHS) ^ UINTEGER(UserRxBufferHS2) ;
+#else
+    USBD_CDC_SetRxBuffer(&hUsbDeviceHS, vbuf[qbuf]) ;
 #endif
     return USBD_OK ;
 }
@@ -260,15 +256,20 @@ static int8_t CDC_Receive_HS(
     uint32_t * Len)
 {
     DDB_DEBUG("%s(,%d)", __func__, (int) *Len) ;
-#ifndef USB_UART_NO_CIRCO
+#ifdef USB_UART_USA_BUF_CIRC
     (void) CIRCO_ins(&u.c, Buf, *Len) ;
-
-    rx_cb(cb_arg) ;
 #else
-    rx_cb(cb_arg, Buf, *Len) ;
-    rx_buf = POINTER( rx_flip ^ UINTEGER(rx_buf) ) ;
-    USBD_CDC_SetRxBuffer(&hUsbDeviceHS, rx_buf) ;
+    INUTILE(Buf);
+
+    vdim[qbuf] = *Len ;
+
+    qbuf++ ;
+    qbuf &= NUM_BUF_RX - 1 ;
+    vdim[qbuf] = 0 ;
+    USBD_CDC_SetRxBuffer(&hUsbDeviceHS, vbuf[qbuf]) ;
 #endif
+    rx_cb(cb_arg) ;
+
     if ( USBD_FAIL == USBD_CDC_ReceivePacket(&hUsbDeviceHS) ) {
         DDB_ERR ;
     }
@@ -292,7 +293,7 @@ bool USBU_iniz(
     void * arg)
 {
     if ( !iniz ) {
-#ifndef USB_UART_NO_CIRCO
+#ifdef USB_UART_USA_BUF_CIRC
         CIRCO_iniz(&u.c, MAX_BUFF) ;
 #endif
         cb_arg = arg ;
@@ -336,14 +337,29 @@ bool USBU_iniz(
     return iniz ;
 }
 
-#ifndef USB_UART_NO_CIRCO
+#ifdef USB_UART_USA_BUF_CIRC
 uint32_t USBU_rx(
     void * rx,
     uint32_t dim)
 {
     return CIRCO_est(&u.c, rx, dim) ;
 }
+#else
+void * USBU_rx(uint32_t * dim)
+{
+    void * rx = NULL ;
 
+    if ( vdim[rbuf] ) {
+        *dim = vdim[rbuf] ;
+        rx = vbuf[rbuf] ;
+        vdim[rbuf] = 0 ;
+
+        rbuf++ ;
+        rbuf &= NUM_BUF_RX - 1 ;
+    }
+
+    return rx ;
+}
 #endif
 
 bool USBU_tx(
