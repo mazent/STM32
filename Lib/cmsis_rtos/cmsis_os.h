@@ -295,9 +295,15 @@ void ose_free(void * /*v*/) ;
 #   define osThreadDef(name, priority, instances, stacksz)  \
     extern const osThreadDef_t os_thread_def_ ## name
 #else                            // define the object
+#ifdef NDEBUG
+#   define osThreadDef(name, priority, instances, stacksz)  \
+    const osThreadDef_t os_thread_def_ ## name = \
+    { (name), (priority), (stacksz), NULL }
+#else
 #   define osThreadDef(name, priority, instances, stacksz)  \
     const osThreadDef_t os_thread_def_ ## name = \
     { (name), (priority), (stacksz), # name }
+#endif
 #endif
 
 /// Access a Thread definition.
@@ -373,8 +379,13 @@ osEvent osWait(uint32_t millisec) ;
 #   define osTimerDef(name, function)  \
     extern const osTimerDef_t os_timer_def_ ## name
 #else                            // define the object
+#ifdef NDEBUG
+#   define osTimerDef(name, function)  \
+    const osTimerDef_t os_timer_def_ ## name = { NULL, (function) }
+#else
 #   define osTimerDef(name, function)  \
     const osTimerDef_t os_timer_def_ ## name = { # name, (function) }
+#endif
 #endif
 
 /// Access a Timer definition.
@@ -620,9 +631,15 @@ osStatus osPoolFree(
 #   define osMessageQDef(name, queue_sz, type)   \
     extern const osMessageQDef_t os_messageQ_def_ ## name
 #else                           // define the object
+#ifdef NDEBUG
+#   define osMessageQDef(name, queue_sz, type)   \
+    const osMessageQDef_t os_messageQ_def_ ## name = \
+    { (queue_sz), sizeof(type), NULL }
+#else
 #   define osMessageQDef(name, queue_sz, type)   \
     const osMessageQDef_t os_messageQ_def_ ## name = \
     { (queue_sz), sizeof(type), # name }
+#endif
 #endif
 
 /// \brief Access a Message Queue Definition.

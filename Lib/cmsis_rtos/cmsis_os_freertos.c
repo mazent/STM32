@@ -1128,9 +1128,16 @@ osEvent osMailGet(
     ma dipendono da freertos
 *********************************************/
 
+static uint32_t tik = 0 ;
+
+uint32_t HAL_GetTick(void)
+{
+    return tik ;
+}
+
 void SysTick_Handler(void)
 {
-    HAL_IncTick() ;
+    tik++ ;
 
 #if INCLUDE_xTaskGetSchedulerState == 1
     if ( xTaskGetSchedulerState() != taskSCHEDULER_NOT_STARTED ) {
