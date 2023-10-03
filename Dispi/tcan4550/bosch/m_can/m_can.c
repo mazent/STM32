@@ -503,19 +503,25 @@ void m_can_enable_CAN_mode(can_struct * can_ptr)
         cccr_reg.bits.DAR = 1 ;
     }
 
-    if ( can_ptr->lback_abil ) {
-        cccr_reg.bits.TEST = 1 ;
+    if ( can_ptr->modo == TCM_RESTR_OP ) {
+        cccr_reg.bits.ASM = 1 ;
+    }
 
-        if ( can_ptr->lback_intrnl ) {
-            cccr_reg.bits.MON = 1 ;
-        }
+    if ( (can_ptr->modo == TCM_INT_LBACK) || (can_ptr->modo == TCM_BUS_MON) ) {
+        cccr_reg.bits.MON = 1 ;
+    }
+
+    if ( (can_ptr->modo == TCM_INT_LBACK) ||
+         (can_ptr->modo == TCM_EXT_LBACK) ) {
+        cccr_reg.bits.TEST = 1 ;
     }
 
     // write back modified register value
     //MZ reg_set_and_check(can_ptr, ADR_M_CAN_CCCR, cccr_reg.value) ;
     cccr_set_and_check(cccr_reg) ;
 
-    if ( can_ptr->lback_abil ) {
+    if ( (can_ptr->modo == TCM_INT_LBACK) ||
+         (can_ptr->modo == TCM_EXT_LBACK) ) {
         M_CAN_TEST_union test ;
         test.value = reg_get(can_ptr, ADR_M_CAN_TEST) ;
         test.bits.LBCK = 1 ;

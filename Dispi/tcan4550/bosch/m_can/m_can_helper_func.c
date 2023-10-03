@@ -276,7 +276,7 @@ void copy_msg_from_msg_ram_to_msg_list(can_struct *can_ptr, uint32_t msg_addr_in
 	msg_list_add_msg_at_tail(can_ptr);
 
 	// MZ: avviso
-	mcan_rx_fifo_msg_cb() ;
+	mcan_rx_fifo_msg_cb(can_ptr->id) ;
 }
 
 

@@ -320,8 +320,7 @@ can_global_struct global = {
 
             // MZ
             .autotx = FALSE,
-            .lback_abil = TRUE,
-            .lback_intrnl = TRUE
+            .modo = TCM_NORMALE
         },
         // TCAN4
         {
@@ -351,8 +350,7 @@ can_global_struct global = {
 
             // MZ
             .autotx = FALSE,
-            .lback_abil = TRUE,
-            .lback_intrnl = TRUE
+            .modo = TCM_NORMALE
         }
     }
 } ;
@@ -638,8 +636,7 @@ bool MCAN_iniz(
             global.can[pC->indice].bt_config.nominal = cfg_nmnl ;
             global.can[pC->indice].bt_config.data = cfg_data ;
 
-            global.can[pC->indice].lback_abil = pC->lback ? TRUE : FALSE ;
-            global.can[pC->indice].lback_intrnl = pC->lb_intrn ? TRUE : FALSE ;
+            global.can[pC->indice].modo = pC->modo ;
 
             m_can_set_bit_timing(&global.can[pC->indice]) ;
 
@@ -740,6 +737,10 @@ bool MCAN_rx(
 
         pRx->extended = extended_id == msg->idtype ;
         pRx->id = msg->id ;
+
+        pRx->fd_format = msg->fdf == TRUE ;
+        pRx->esi = msg->esi == TRUE ;
+
         pRx->dim = convert_DLC_to_data_length(msg->dlc) ;
         if ( pRx->dim ) {
             memcpy(pRx->dati, msg->data, pRx->dim) ;
@@ -911,14 +912,22 @@ void MCAN_isr(UN_MCAN * pC)
     un_mcan = NULL ;
 }
 
-void mcan_tx_fifo_empty_cb(void)
+__WEAK void mcan_tx_fifo_empty_cb(uint8_t id)
 {
-    DBG_FUN ;
+#ifdef DBG_ABIL
+    DBG_PRINTF("%s(%d)", __func__, id) ;
+#else
+    INUTILE(id) ;
+#endif
 }
 
-void mcan_rx_fifo_msg_cb(void)
+__WEAK void mcan_rx_fifo_msg_cb(uint8_t id)
 {
-    DBG_FUN ;
+#ifdef DBG_ABIL
+    DBG_PRINTF("%s(%d)", __func__, id) ;
+#else
+    INUTILE(id) ;
+#endif
 }
 
 uint32_t * MCAN_reg_leggi(

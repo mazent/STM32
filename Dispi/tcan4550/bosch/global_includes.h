@@ -59,8 +59,8 @@
 // sostituisce la scrittura a registro con quella a gruppi
 //#define MRAM_OTTIMIZZATA		1
 
-extern void mcan_tx_fifo_empty_cb(void) ;
-extern void mcan_rx_fifo_msg_cb(void) ;
+extern void mcan_tx_fifo_empty_cb(uint8_t) ;
+extern void mcan_rx_fifo_msg_cb(uint8_t) ;
 extern void mcan_copia_in_mram(
     uint32_t indir,
     const void * v,
