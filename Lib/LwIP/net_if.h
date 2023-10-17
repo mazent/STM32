@@ -18,11 +18,13 @@
  * MAC
  *     Il numero di descrittori ETH_RX_DESC_CNT e ETH_TX_DESC_CNT si trova in
  *     stm32h7xx_hal_conf.h
- *     In particolare ETH_RX_DESC_CNT determina la dimensione della finestra tcp
+ *     In particolare ETH_RX_DESC_CNT determina la dimensione della finestra tcp,
+ *     in quanto bisogna essere in grado di ricevere gli N pacchetti che possono
+ *     essere spediti contemporaneamente
+ *     Invece ETH_TX_DESC_CNT puo' essere basso in quanto lwip spedisce un
+ *     pacchetto alla volta
  *
- *     Gli esempi usano buffer leggermente piu' piccoli per evitare di
- *     occuparla tutta
- *     Se ETH_RX_DESC_CNT=4 allora BUFSIZE=3*1460=4380
+ *     Se ETH_RX_DESC_CNT=4 allora BUFSIZE=TCP_WND=3*1460=4380
  *     Nei .py i valori massimi da usare saranno: "-m 3" o "-d 4380"
  *     NOTA
  *         udp usa la frammentazione ip e non manda ack, per cui:
@@ -117,9 +119,9 @@ uint32_t PHY_id(void) ;
 // Callback
 // ------------------------------------
 
-// Invocata quando il thd e' pronto (o morto)
+// Invocata quando il thd e' pronto
 // Questa e' weak, se volete fatevi la vostra
-void net_start(bool pronto) ;
+void net_start(void) ;
 
 // Invocata quando il phy e' connesso (o sconnesso)
 // Questa e' weak, se volete fatevi la vostra
@@ -245,7 +247,7 @@ bool NET_recvfrom_ini(
     S_NET_IND * ind) ;
 
 /*!
- * Trasmette da un socket udp
+ * Trasmette su un socket udp
  *
  * @param op	handle
  * @param sok	esito di NET_socket
@@ -321,6 +323,57 @@ bool NET_send_ini(
     int sok,
     const void * buf,
     int len) ;
+
+/*!
+ * Aspetta che i socket siano "pronti"
+ *
+ * @param op		handle
+ * @param nfds		il piu' alto descrittore fra tutti gli insiemi + 1
+ * @param readfds	opzionale, pronti in lettura (lettura non bloccante)
+ * @param writefds	opzionale, pronti in scrittura (scrittura non bloccante)
+ * @param exceptfds opzionale, chiusi
+ * @return se vera, NET_risul restituisce:
+ *                  il numero totale di socket pronti (gli *fds sono modificati)
+ *                  -1 se errore
+ */
+
+#ifdef __ICCARM__
+typedef uint32_t fd_set ;
+
+static inline void FD_CLR(
+    int fd,
+    fd_set * set)
+{
+    *set &= NEGA(1 << fd) ;
+}
+
+static inline bool FD_ISSET(
+    int fd,
+    fd_set * set)
+{
+    return 0 != ( (*set) & (1 << fd) ) ;
+}
+
+static inline void FD_SET(
+    int fd,
+    fd_set * set)
+{
+    *set |= 1 << fd ;
+}
+
+static inline void FD_ZERO(fd_set * set)
+{
+    *set = 0 ;
+}
+
+#endif
+
+bool NET_select_ini(
+    NET_OP op,
+    int nfds,
+    fd_set * readfds,
+    fd_set * writefds,
+    fd_set * exceptfds) ;
 
 /*********************************************************************/
 
@@ -497,6 +550,30 @@ static inline int NET_send(
     return scritti ;
 }
 
+static inline int NET_select(
+    int nfds,
+    fd_set * readfds,
+    fd_set * writefds,
+    fd_set * exceptfds,
+    uint32_t to_ms)
+{
+    int pronti = -1 ;
+    if ( 0 == to_ms ) {
+        // polling non disponibile
+    }
+    else {
+        struct _NET_OP op = {
+            NULL
+        } ;
+
+        if ( NET_select_ini(&op, nfds, readfds, writefds, exceptfds) ) {
+            pronti = NET_risul(&op, to_ms) ;
+        }
+    }
+
+    return pronti ;
+}
+
 #endif  // ESEMPI_NET
 
 /*********************************************************************/
@@ -507,11 +584,10 @@ void usa_mpu(void)
 {
 #ifdef USA_CACHE
     SCB_EnableDCache() ;
-#endif
 
-#ifdef USA_CACHE
     // Vedi .icf per le zone
     // Vedi PM0253 - Additional memory access constraints for caches and shared memory
+    // Vedi https://community.st.com/t5/stm32-mcus-products/maintaining-cpu-data-cache-coherence-for-dma-buffers/td-p/95746
     __disable_irq() ;
 
     HAL_MPU_Disable() ;

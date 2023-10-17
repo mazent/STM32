@@ -1,7 +1,6 @@
+//#define STAMPA_DBG
 #include "utili.h"
 #include "cmsis_rtos/cmsis_os.h"
-//#define USA_DIARIO
-#include "diario/diario.h"
 #include "lwip/mem.h"
 #include "lwip/timeouts.h"
 #include "lwip/priv/tcp_priv.h"
@@ -59,7 +58,7 @@ static void tcpip_tcp_timer(void * arg)
     /* timer still needed? */
     if ( tcp_active_pcbs || tcp_tw_pcbs ) {
         /* restart timer */
-        DDB_CONTROLLA( osOK == osTimerStart(tcptim, TCP_TMR_INTERVAL) ) ;
+        CONTROLLA( osOK == osTimerStart(tcptim, TCP_TMR_INTERVAL) ) ;
     }
     else {
         /* disable timer */
@@ -79,7 +78,7 @@ void sys_timeouts_init(void)
 void tcp_timer_needed(void)
 {
     if ( NULL == tcptim ) {
-        DDB_ERR ;
+        DBG_ERR ;
         return ;
     }
 
@@ -87,7 +86,7 @@ void tcp_timer_needed(void)
     if ( !tcpip_tcp_timer_active && (tcp_active_pcbs || tcp_tw_pcbs) ) {
         /* enable and start timer */
         tcpip_tcp_timer_active = true ;
-        DDB_CONTROLLA( osOK == osTimerStart(tcptim, TCP_TMR_INTERVAL) ) ;
+        CONTROLLA( osOK == osTimerStart(tcptim, TCP_TMR_INTERVAL) ) ;
     }
 }
 

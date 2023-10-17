@@ -7,17 +7,53 @@
 /*
  * I messaggi vengono salvati in ram
  *
- * Un task a bassa priorita' li scrive invocando ddb_scrivi,
- * che deve ritornare solo dopo la fine dell'operazione
+ * diario.c
+ *     Un task a bassa priorita' li scrive invocando ddb_scrivi,
+ *     che deve ritornare solo dopo la fine dell'operazione
+ *
+ * diario_ram.c
+ *     I messaggi vengono recuperati e gestiti da qlc
+ *
+ * Esempio:
+       // Abilito le DBG_xxx
+       #define STAMPA_DBG
+       #include "utili.h"
+       ...
+       #if 1
+       // Voglio usare il diario:
+       // 1) elimino le DBG_xxx
+       #undef DBG_PRINTF
+       #undef DBG_PUTS
+       #undef DBG_PRINT_HEX
+       #undef DBG_FUN
+       #undef DBG_QUA
+       #undef DBG_ERR
+       #undef DBG_ASSERT
+
+       // 2) includo e scelgo il livello
+       #define DIARIO_LIV_DBG
+       #include "diario/diario.h"
+
+       // 3) rimappo sul diario
+       #define DBG_PRINTF           DDB_PRINTF
+       #define DBG_PUTS             DDB_PUTS
+       #define DBG_PRINT_HEX        DBG_PRINT_HEX
+       #define DBG_FUN              DDB_FUN
+       #define DBG_QUA              DDB_QUA
+       #define DBG_ERR              DDB_ERR
+       #define DBG_ASSERT           DDB_ASSERT
+
+       #endif
+ *
  */
 
 typedef enum {
     // In ordine crescente di verbosita'
-    DDB_NONE,
-    DDB_ERROR,
-    DDB_WARNING,
-    DDB_INFO,
-    DDB_DEBUG
+    DDB_L_NONE,
+    DDB_L_ERROR,
+    DDB_L_WARNING,
+    DDB_L_INFO,
+    DDB_L_DEBUG
 } DDB_LEVEL ;
 
 bool DDB_iniz(DDB_LEVEL /*a*/) ;
@@ -39,25 +75,57 @@ void DDB_print_hex(DDB_LEVEL /*d*/,
 extern void ddb_scrivi(
     const char *,
     int) ;
+// Interfaccia per recuperare il msg piu' vecchio
+int DDB_leggi(char */*almeno DDB_DIM_MSG*/) ;
 
 // Macro utili
 // -------------------------------
-// Il livello fissato a compile-time permette di eliminare
-// totalmente le stampe dal codice
+// Selezione del livello sul singolo file
+// Definire una di queste prima di includere questo file
+//#define DIARIO_LIV_DBG
+//#define DIARIO_LIV_INFO
+//#define DIARIO_LIV_WARN
+//#define DIARIO_LIV_ERR
+//#define DIARIO_LIV_NONE o anche non definire niente
+
+#define DDB_LIV_DBG         4
+#define DDB_LIV_INFO        3
+#define DDB_LIV_WARN        2
+#define DDB_LIV_ERR         1
+#define DDB_LIV_NONE        0
+
+#ifdef DIARIO_LIV_DBG
+#define DDB_LIV        DDB_LIV_DBG
+#elif defined DIARIO_LIV_INFO
+#define DDB_LIV        DDB_LIV_INFO
+#elif defined DIARIO_LIV_WARN
+#define DDB_LIV        DDB_LIV_WARN
+#elif defined DIARIO_LIV_ERR
+#define DDB_LIV        DDB_LIV_ERR
+#else
+#define DDB_LIV        DDB_LIV_NONE
+#endif
+
 #if DDB_LIV >= DDB_LIV_ERR
-#define DDB_ERROR(f, ...)       DDB_printf(DDB_ERROR, f, ## __VA_ARGS__)
-#define DDB_ERR                 DDB_printf(DDB_ERROR, "%s %d", \
+#define DDB_LIV_ERR_ABIL		1
+#define DDB_ERROR(f, ...)       DDB_printf(DDB_L_ERROR, f, ## __VA_ARGS__)
+#define DDB_ERR                 DDB_printf(DDB_L_ERROR, "%s %d", \
+                                           __FILE__, \
+                                           __LINE__)
+#define DDB_ASSERT              DDB_printf(DDB_L_ERROR, "ASSERT %s %d\n", \
                                            __FILE__, \
                                            __LINE__)
 
 #else
 #define DDB_ERROR(f, ...)
 #define DDB_ERR
+#define DDB_ASSERT
 #endif
 
 #if DDB_LIV >= DDB_LIV_WARN
-#define DDB_WARNING(f, ...)     DDB_printf(DDB_WARNING, f, ## __VA_ARGS__)
-#define DDB_WRN                 DDB_printf(DDB_WARNING, "%s %d", \
+#define DDB_LIV_WARN_ABIL		1
+#define DDB_WARNING(f, ...)     DDB_printf(DDB_L_WARNING, f, ## __VA_ARGS__)
+#define DDB_WRN                 DDB_printf(DDB_L_WARNING, "%s %d", \
                                            __FILE__, \
                                            __LINE__)
 #else
@@ -66,8 +134,9 @@ extern void ddb_scrivi(
 #endif
 
 #if DDB_LIV >= DDB_LIV_INFO
-#define DDB_INFO(f, ...)        DDB_printf(DDB_INFO, f, ## __VA_ARGS__)
-#define DDB_INF                 DDB_printf(DDB_INFO, "%s %d", \
+#define DDB_LIV_INFO_ABIL		1
+#define DDB_INFO(f, ...)        DDB_printf(DDB_L_INFO, f, ## __VA_ARGS__)
+#define DDB_INF                 DDB_printf(DDB_L_INFO, "%s %d", \
                                            __FILE__, \
                                            __LINE__)
 #else
@@ -76,16 +145,27 @@ extern void ddb_scrivi(
 #endif
 
 #if DDB_LIV >= DDB_LIV_DBG
-#define DDB_DEBUG(f, ...)       DDB_printf(DDB_DEBUG, f, ## __VA_ARGS__)
-#define DDB_PRINT_HEX(t, x, d)  DDB_print_hex(DDB_DEBUG, t, x, d)
-#define DDB_DBG                 DDB_printf(DDB_DEBUG, "%s %d", \
+#define DDB_LIV_DBG_ABIL		1
+#define DDB_DEBUG(f, ...)       DDB_printf(DDB_L_DEBUG, f, ## __VA_ARGS__)
+#define DDB_PRINT_HEX(t, x, d)  DDB_print_hex(DDB_L_DEBUG, t, x, d)
+#define DDB_DBG                 DDB_printf(DDB_L_DEBUG, "%s %d", \
                                            __FILE__, \
                                            __LINE__)
+#define DDB_FUN                 DDB_puts(DDB_L_DEBUG, __func__)
+#define DDB_PUTS(a)             DDB_puts(DDB_L_DEBUG, a)
+#define DDB_QUA                 DDB_printf(DDB_L_DEBUG, "QUA %s %d", \
+                                           __FILE__, \
+                                           __LINE__)
+
 #else
 #define DDB_DEBUG(f, ...)
 #define DDB_PRINT_HEX(t, x, d)
 #define DDB_DBG
+#define DDB_FUN
+#define DDB_PUTS(a)
+#define DDB_QUA
 #endif
+#define DDB_PRINTF      DDB_DEBUG
 
 #else
 #   warning diario.h incluso

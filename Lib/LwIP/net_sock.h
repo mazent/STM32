@@ -51,6 +51,8 @@ uint16_t NET_ntohs(uint16_t) ;
 #define ntohl    NET_ntohl
 #define ntohs    NET_ntohs
 
+// https://man7.org/linux/man-pages/man2/socket.2.html
+
 static inline int socket(
     int domain,
     int type,
@@ -82,10 +84,14 @@ static inline int socket(
     return sok ;
 }
 
+// https://man7.org/linux/man-pages/man2/close.2.html
+
 static inline int close(int fd)
 {
     return NET_close(fd) ;
 }
+
+// https://man7.org/linux/man-pages/man2/connect.2.html
 
 static inline int connect(
     int sockfd,
@@ -103,6 +109,8 @@ static inline int connect(
     return NET_connect(sockfd, &ind) ;
 }
 
+// https://man7.org/linux/man-pages/man2/bind.2.html
+
 static inline int bind(
     int sockfd,
     void * sa,
@@ -118,6 +126,8 @@ static inline int bind(
 
     return -1 ;
 }
+
+// https://man7.org/linux/man-pages/man2/recv.2.html
 
 static inline int recvfrom(
     int sockfd,
@@ -142,6 +152,8 @@ static inline int recvfrom(
     return letti ;
 }
 
+// https://man7.org/linux/man-pages/man2/send.2.html
+
 static inline int sendto(
     int sockfd,
     const void * msg,
@@ -163,6 +175,8 @@ static inline int sendto(
     return NET_sendto(sockfd, msg, len, &ind) ;
 }
 
+// https://man7.org/linux/man-pages/man2/listen.2.html
+
 static inline int listen(
     int sockfd,
     int backlog)
@@ -173,6 +187,8 @@ static inline int listen(
 
     return -1 ;
 }
+
+// https://man7.org/linux/man-pages/man2/accept.2.html
 
 static inline int accept(
     int sockfd,
@@ -193,6 +209,8 @@ static inline int accept(
     return sok ;
 }
 
+// https://man7.org/linux/man-pages/man2/recv.2.html
+
 static inline int recv(
     int sockfd,
     void * buf,
@@ -203,6 +221,8 @@ static inline int recv(
     return NET_recv(sockfd, buf, len) ;
 }
 
+// https://man7.org/linux/man-pages/man2/send.2.html
+
 static inline int send(
     int sockfd,
     const void * msg,
@@ -211,6 +231,33 @@ static inline int send(
 {
     INUTILE(flags) ;
     return NET_send(sockfd, msg, len) ;
+}
+
+// https://man7.org/linux/man-pages/man2/select.2.html
+
+#ifdef __ICCARM__
+struct timeval {
+    uint32_t tv_sec ;
+    uint32_t tv_usec ;
+} ;
+#endif
+
+static inline int select(
+    int nfds,
+    fd_set * readfds,
+    fd_set * writefds,
+    fd_set * exceptfds,
+    struct timeval * timeout)
+{
+    uint32_t to ;
+    if ( NULL == timeout ) {
+        to = osWaitForever ;
+    }
+    else {
+        to = timeout->tv_sec * 1000 ;
+        to += timeout->tv_usec / 1000 ;
+    }
+    return NET_select(nfds, readfds, writefds, exceptfds, to) ;
 }
 
 #else

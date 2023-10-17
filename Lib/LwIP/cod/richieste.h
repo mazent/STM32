@@ -14,6 +14,7 @@ typedef enum {
     RT_ACCEPT,
     RT_RECV,
     RT_SEND,
+    RT_SELECT
 } IO_REQ_TYPE ;
 
 typedef struct {
@@ -58,6 +59,11 @@ typedef struct {
 } S_REQ_SEND ;
 
 typedef struct {
+    fd_set * readfds ;
+    fd_set * writefds ;
+    fd_set * exceptfds ;
+} S_REQ_SELECT ;
+typedef struct {
     IO_REQ_TYPE type ;
 
     int sok;
@@ -72,6 +78,7 @@ typedef struct {
         S_REQ_RECV recv ;
         S_REQ_SEND send ;
         S_REQ_CONNECT connect;
+        S_REQ_SELECT select ;
     } ;
 
     uint32_t result ;

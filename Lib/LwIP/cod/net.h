@@ -36,7 +36,6 @@ extern void MAC_fine(void) ;
 extern void netop_iniz(uint32_t) ;
 extern void netop_fine(void) ;
 extern void netop_ric(void) ;
-extern void netop_rx(bool) ;
 
 #else
 #   warning net.h incluso

@@ -3,14 +3,21 @@
  * usage: echoserver <port>
  */
 // cfr http://www.cs.cmu.edu/afs/cs/academic/class/15213-f00/www/class24code/echoserver.c
+
+//#define STAMPA_DBG
 #include "utili.h"
 #include "cmsis_rtos/cmsis_os.h"
-//#define USA_DIARIO
-#include "diario/diario.h"
 #include "net_sock.h"
 #include "lwip/opt.h"
 
-#define BUFSIZE         ( (ETH_RX_DESC_CNT - 1) * TCP_MSS )
+//#define DIARIO_LIV_DBG
+#include "../cod/stampe.h"
+
+#if LWIP_TCP
+
+#define BUFSIZE         TCP_WND
+
+#define USA_SELECT      1
 
 static
 __attribute__( ( section(".dtcm") ) )
@@ -20,18 +27,114 @@ static osThreadId srvTHD = NULL ;
 
 static const int PORTA_ECO = 7 ;
 
+#ifdef USA_SELECT
+
+static void servi_socket(int sok)
+{
+    int pos = 0 ;
+    fd_set leggi ;
+    fd_set scrivi ;
+    fd_set errore ;
+
+    FD_ZERO(&leggi) ;
+    FD_ZERO(&scrivi) ;
+    FD_ZERO(&errore) ;
+
+    int conta = 0 ;
+    while ( true ) {
+        FD_SET(sok, &leggi) ;
+        FD_SET(sok, &errore) ;
+
+        int quanti = select(sok + 1, &leggi, &scrivi, &errore, NULL) ;
+        if ( quanti > 0 ) {
+            if ( FD_ISSET(sok, &errore) ) {
+                DBG_ERR ;
+                break ;
+            }
+
+            if ( FD_ISSET(sok, &leggi) ) {
+                const int letti = recv(sok, buf + pos, BUFSIZE - pos, 0) ;
+                if ( letti <= 0 ) {
+                    DBG_PUTS("ERROR reading from socket") ;
+                    break ;
+                }
+
+                if ( 0 == pos ) {
+                    conta++ ;
+                }
+                pos += letti ;
+                FD_SET(sok, &scrivi) ;
+                DBG_PRINTF("%d) ricevuti %d bytes", conta, letti) ;
+                continue ;
+            }
+
+            if ( FD_ISSET(sok, &scrivi) ) {
+                const int scritti = send(sok, buf, pos, 0) ;
+                if ( scritti < 0 ) {
+                    DBG_PUTS("ERROR writing to socket") ;
+                    break ;
+                }
+                if ( scritti != pos ) {
+                    DBG_ERR ;
+                }
+
+                pos = 0 ;
+                FD_CLR(sok, &scrivi) ;
+                DBG_PRINTF("%d) inviati %d bytes", conta, scritti) ;
+            }
+        }
+        else {
+            DBG_ERR ;
+        }
+    }
+
+    CONTROLLA( 0 == close(sok) ) ;
+}
+
+#else
+
+static void servi_socket(int sok)
+{
+    int conta = 0 ;
+
+    while ( true ) {
+        /* read: read input string from the client */
+        int n = recv(sok, buf, BUFSIZE, 0) ;
+        if ( n <= 0 ) {
+            DBG_PUTS("ERROR reading from socket") ;
+            break ;
+        }
+
+        conta++ ;
+        DBG_PRINTF("%d) ricevuti %d bytes", conta, n) ;
+
+        /* write: echo the input string back to the client */
+        n = send(sok, buf, n, 0) ;
+        if ( n < 0 ) {
+            DBG_PUTS("ERROR writing to socket") ;
+            break ;
+        }
+
+        DBG_PRINTF("%d) inviati %d bytes", conta, n) ;
+    }
+
+    CONTROLLA( 0 == close(sok) ) ;
+}
+
+#endif
+
 static void tcp_eco_srv(void * _)
 {
     int listenfd ; /* listening socket */
 
     INUTILE(_) ;
 
-    DDB_DEBUG("%s %d B", __func__, BUFSIZE) ;
+    DBG_PRINTF("%s %d B", __func__, BUFSIZE) ;
 
     /* socket: create a socket */
     listenfd = socket(AF_INET, SOCK_STREAM, 0) ;
     if ( listenfd < 0 ) {
-        DDB_PUTS("ERROR opening socket") ;
+        DBG_PUTS("ERROR opening socket") ;
     }
 
     /*
@@ -47,60 +150,39 @@ static void tcp_eco_srv(void * _)
     /* bind: associate the listening socket with a port */
     if ( bind( listenfd, (struct sockaddr *) &serveraddr,
                sizeof(serveraddr) ) < 0 ) {
-        DDB_PUTS("ERROR on binding") ;
+        DBG_PUTS("ERROR on binding") ;
     }
 
     /* listen: make it a listening socket ready to accept connection requests */
     if ( listen(listenfd, 1) < 0 ) {
-        DDB_PUTS("ERROR on listen") ;
+        DBG_PUTS("ERROR on listen") ;
     }
 
-    while ( 1 ) {
+    while ( true ) {
         struct sockaddr_in clientaddr ; /* client addr */
         int clientlen ; /* byte size of client's address */
         int connfd ;     /* connection socket */
 
-        DDB_PUTS("attesa connessione ...") ;
+        DBG_PUTS("attesa connessione ...") ;
 
         /* accept: wait for a connection request */
         connfd = accept(listenfd, &clientaddr, &clientlen) ;
         if ( connfd < 0 ) {
-            DDB_PUTS("ERROR on accept") ;
+            DBG_PUTS("ERROR on accept") ;
             break ;
         }
-#if DDB_LIV >= DDB_LIV_DBG
+
         // cinema
+#ifdef DDB_LIV_DBG_ABIL
         uint16_t hport = ntohs(clientaddr.sin_port) ;
-        DDB_DEBUG("%d connesso a %s:%04X", connfd,
+        DBG_PRINTF("%d connesso a %s:%04X", connfd,
                    inet_ntoa(clientaddr.sin_addr),
                    hport) ;
 #endif
-        while ( true ) {
-            /* read: read input string from the client */
-            int n = recv(connfd, buf, BUFSIZE, 0) ;
-            if ( n <= 0 ) {
-                DDB_PUTS("ERROR reading from socket") ;
-                break ;
-            }
-            else {
-                DDB_DEBUG("server received %d bytes", n) ;
-
-                /* write: echo the input string back to the client */
-                n = send(connfd, buf, n, 0) ;
-                if ( n < 0 ) {
-                    DDB_PUTS("ERROR writing to socket") ;
-                    break ;
-                }
-                else {
-                    DDB_DEBUG("inviati %d bytes", n) ;
-                }
-            }
-        }
-
-        DDB_CONTROLLA( 0 == close(connfd) ) ;
+        servi_socket(connfd) ;
     }
 
-    DDB_DBG ;
+    DBG_QUA ;
     srvTHD = NULL ;
     osThreadTerminate(NULL) ;
 }
@@ -110,7 +192,7 @@ void tcp_eco_srv_iniz(void)
     if ( NULL == srvTHD ) {
         osThreadDef(tcp_eco_srv, osPriorityNormal, 0, 800) ;
         srvTHD = osThreadCreate(osThread(tcp_eco_srv), NULL) ;
-        DDB_ASSERT(srvTHD) ;
+        ASSERT(srvTHD) ;
     }
 }
 
@@ -125,15 +207,17 @@ static void tcp_eco_cln(void * _)
 {
     uint32_t tot = 0 ;
     uint16_t i = 0 ;
-    uint32_t inizio, durata ;
-
+#ifdef DBG_ABIL
+    uint32_t inizio ;
+    uint32_t durata ;
+#endif
     INUTILE(_) ;
 
-    DDB_DEBUG("%s %d B", __func__, BUFSIZE) ;
+    DBG_PRINTF("%s %d B", __func__, BUFSIZE) ;
 
     int sok = socket(AF_INET, SOCK_STREAM, 0) ;
     if ( sok < 0 ) {
-        DDB_PUTS("ERROR opening socket") ;
+        DBG_PUTS("ERROR opening socket") ;
         goto esci ;
     }
 
@@ -146,43 +230,43 @@ static void tcp_eco_cln(void * _)
 
     if ( connect( sok, (struct sockaddr *) &serveraddr,
                   sizeof(serveraddr) ) < 0 ) {
-        DDB_PUTS("ERROR on connect") ;
+        DBG_PUTS("ERROR on connect") ;
         goto esci ;
     }
-
+#ifdef DBG_ABIL
     inizio = HAL_GetTick() ;
+#endif
     for ( ; i < quanti ; ++i ) {
         int n = send(sok, dati, dim, 0) ;
         if ( n < 0 ) {
-            DDB_PUTS("ERROR writing to socket") ;
+            DBG_PUTS("ERROR writing to socket") ;
             break ;
         }
-        else {
-            //DDB_DEBUG("inviati %d bytes", n) ;
-        }
+        //DBG_PRINTF("inviati %d bytes", n) ;
 
         n = recv(sok, buf, dim, 0) ;
         if ( n < 0 ) {
-            DDB_PUTS("ERROR reading socket") ;
+            DBG_PUTS("ERROR reading socket") ;
             break ;
         }
-        else {
-            //DDB_DEBUG("ricevuti %d bytes", n) ;
-        }
+        //DBG_PRINTF("ricevuti %d bytes", n) ;
+
         tot += dim ;
     }
+#ifdef DBG_ABIL
     durata = HAL_GetTick() - inizio ;
     if ( i == quanti ) {
         double sec = durata ;
         sec /= 1000.0 ;
         double tput = tot ;
         tput /= sec ;
-        DDB_DEBUG("%u B / %u ms = %.3f B/s", tot, durata, tput) ;
+        DBG_PRINTF("%u / %u = %.3f B/s", tot, durata, tput) ;
     }
+#endif
 esci:
-    DDB_CONTROLLA( 0 == close(sok) ) ;
+    CONTROLLA( 0 == close(sok) ) ;
 
-    DDB_DBG ;
+    DBG_QUA ;
     clnTHD = NULL ;
     osThreadTerminate(NULL) ;
 }
@@ -199,6 +283,22 @@ void tcp_eco_cln_iniz(
 
         osThreadDef(tcp_eco_cln, osPriorityNormal, 0, 800) ;
         clnTHD = osThreadCreate(osThread(tcp_eco_cln), NULL) ;
-        DDB_ASSERT(clnTHD) ;
+        ASSERT(clnTHD) ;
     }
 }
+
+#else
+
+void tcp_eco_srv_iniz(void){}
+
+void tcp_eco_cln_iniz(
+    void * v,
+    uint16_t d,
+    uint16_t q)
+{
+    INUTILE(v) ;
+    INUTILE(d) ;
+    INUTILE(q) ;
+}
+
+#endif      // LWIP_TCP
