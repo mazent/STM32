@@ -51,20 +51,28 @@ typedef struct {
     uint32_t dimTx ;
 } UN_TTC ;
 
-bool TTC_iniz(UN_TTC *) ;
+bool TTC_iniz(UN_TTC * /*uc*/) ;
 
 void TTC_elabora(
-    UN_TTC *,
-    const uint8_t *,
-    const uint32_t) ;
+    UN_TTC * /*uc*/,
+    const uint8_t * /*dati*/,
+    uint32_t /*LETTI*/) ;
 
 // Comandi
-void TTC_domanda(UN_TTC *, IND_T, CMD_T, const void *, uint32_t) ;
+void TTC_domanda(UN_TTC * /*uc*/,
+                 IND_T /*dst*/,
+                 CMD_T /*cmd*/,
+                 const void * /*v*/,
+                 uint32_t /*dim*/) ;
 
 // Risposte
-void TTC_scono(UN_TTC *, IND_T, CMD_T) ;
-void TTC_errore(UN_TTC *, IND_T, CMD_T) ;
-void TTC_risposta(UN_TTC *, IND_T, CMD_T, const void *, uint32_t) ;
+void TTC_scono(UN_TTC * /*uc*/, IND_T /*dst*/, CMD_T /*cmd*/) ;
+void TTC_errore(UN_TTC * /*uc*/, IND_T /*dst*/, CMD_T /*cmd*/) ;
+void TTC_risposta(UN_TTC * /*uc*/,
+                  IND_T /*dst*/,
+                  CMD_T /*cmd*/,
+                  const void * /*v*/,
+                  uint32_t /*dim*/) ;
 
 /*
  * Trucco

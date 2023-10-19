@@ -329,8 +329,8 @@ static uint32_t configura(
                   LAN8742A_IND_WUCSR,
                   tmp) ;
 
-        tmp = read_mmd(REG13_PCS,
-                       LAN8742A_IND_WUCSR) ;
+        CONTROLLA( tmp ==
+                   read_mmd(REG13_PCS, LAN8742A_IND_WUCSR) ) ;
     }
     reg_scrivi(LAN87xx_IRQ_MSK, lanmsk) ;
 

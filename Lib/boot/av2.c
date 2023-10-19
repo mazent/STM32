@@ -201,19 +201,18 @@ static bool hfc_csum(const headerFileCmn * pH)
     return cs == u.cs ;
 }
 
+extern uint16_t CRC_1021_v(
+    uint16_t crc,
+    const void * v,
+    int dim) ;
+
 static bool crc_valido(const headerFW * pH)
 {
-    bool esito = false ;
-
-    INUTILE(pH);
-#if 1
-#warning DA FARE
-#else
-#warning OKKIO
-    esito=true;
-#endif
-
-    return esito ;
+    uint8_t * pData = (uint8_t *) pH + sizeof(headerFW) ;
+    uint32_t numOfBytes = pH->hfc.fileSize - sizeof(headerFW)
+                          - pH->hfc.paddingBytes ;
+    uint16_t expectedCrc = CRC_1021_v(0xAA55, pData, numOfBytes) ;
+    return pH->hfc.fileCrc == expectedCrc ;
 }
 
 /**

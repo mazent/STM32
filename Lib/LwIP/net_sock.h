@@ -53,7 +53,7 @@ uint16_t NET_ntohs(uint16_t) ;
 
 // https://man7.org/linux/man-pages/man2/socket.2.html
 
-static inline int socket(
+static inline int net_socket(
     int domain,
     int type,
     int protocol)
@@ -86,14 +86,14 @@ static inline int socket(
 
 // https://man7.org/linux/man-pages/man2/close.2.html
 
-static inline int close(int fd)
+static inline int net_close(int fd)
 {
     return NET_close(fd) ;
 }
 
 // https://man7.org/linux/man-pages/man2/connect.2.html
 
-static inline int connect(
+static inline int net_connect(
     int sockfd,
     void * sa,
     int addrlen)
@@ -111,7 +111,7 @@ static inline int connect(
 
 // https://man7.org/linux/man-pages/man2/bind.2.html
 
-static inline int bind(
+static inline int net_bind(
     int sockfd,
     void * sa,
     int addrlen)
@@ -129,13 +129,13 @@ static inline int bind(
 
 // https://man7.org/linux/man-pages/man2/recv.2.html
 
-static inline int recvfrom(
+static inline int net_recvfrom(
     int sockfd,
     void * buf,
     int len,
     unsigned int flags,
     void * from,
-    int * fromlen)
+    const int * fromlen)
 {
     S_NET_IND ind ;
     int letti = NET_recvfrom(sockfd, buf, len, &ind) ;
@@ -154,7 +154,7 @@ static inline int recvfrom(
 
 // https://man7.org/linux/man-pages/man2/send.2.html
 
-static inline int sendto(
+static inline int net_sendto(
     int sockfd,
     const void * msg,
     int len,
@@ -177,7 +177,7 @@ static inline int sendto(
 
 // https://man7.org/linux/man-pages/man2/listen.2.html
 
-static inline int listen(
+static inline int net_listen(
     int sockfd,
     int backlog)
 {
@@ -190,10 +190,10 @@ static inline int listen(
 
 // https://man7.org/linux/man-pages/man2/accept.2.html
 
-static inline int accept(
+static inline int net_accept(
     int sockfd,
     void * from,
-    int * fromlen)
+    const int * fromlen)
 {
     S_NET_IND ind ;
     int sok = NET_accept(sockfd, &ind) ;
@@ -211,7 +211,7 @@ static inline int accept(
 
 // https://man7.org/linux/man-pages/man2/recv.2.html
 
-static inline int recv(
+static inline int net_recv(
     int sockfd,
     void * buf,
     int len,
@@ -223,7 +223,7 @@ static inline int recv(
 
 // https://man7.org/linux/man-pages/man2/send.2.html
 
-static inline int send(
+static inline int net_send(
     int sockfd,
     const void * msg,
     int len,
@@ -235,19 +235,17 @@ static inline int send(
 
 // https://man7.org/linux/man-pages/man2/select.2.html
 
-#ifdef __ICCARM__
-struct timeval {
+struct net_timeval {
     uint32_t tv_sec ;
     uint32_t tv_usec ;
 } ;
-#endif
 
-static inline int select(
+static inline int net_select(
     int nfds,
-    fd_set * readfds,
-    fd_set * writefds,
-    fd_set * exceptfds,
-    struct timeval * timeout)
+    sok_set * readfds,
+    sok_set * writefds,
+    sok_set * exceptfds,
+    struct net_timeval * timeout)
 {
     uint32_t to ;
     if ( NULL == timeout ) {
@@ -259,6 +257,28 @@ static inline int select(
     }
     return NET_select(nfds, readfds, writefds, exceptfds, to) ;
 }
+
+#if 0
+// Compatibilita' con net_socket bsd
+// Inutilizzabile se si compila con gcc/clang-tidy
+
+#define accept      net_accept
+#define bind        net_bind
+#define close       net_close
+#define connect     net_connect
+#define listen      net_listen
+#define recv        net_recv
+#define recvfrom    net_recvfrom
+#define select      net_select
+#define send        net_send
+#define sendto      net_sendto
+#define socket      net_socket
+#define fd_set      sok_set
+#define FD_CLR      SS_CLR
+#define FD_ISSET    SS_ISSET
+#define FD_SET      SS_SET
+#define FD_ZERO     SS_ZERO
+#endif
 
 #else
 #   warning net_sock.h incluso

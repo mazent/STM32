@@ -337,43 +337,40 @@ bool NET_send_ini(
  *                  -1 se errore
  */
 
-#ifdef __ICCARM__
-typedef uint32_t fd_set ;
+typedef uint32_t sok_set ;
 
-static inline void FD_CLR(
+static inline void SS_CLR(
     int fd,
-    fd_set * set)
+    sok_set * set)
 {
     *set &= NEGA(1 << fd) ;
 }
 
-static inline bool FD_ISSET(
+static inline bool SS_ISSET(
     int fd,
-    fd_set * set)
+    const sok_set * set)
 {
     return 0 != ( (*set) & (1 << fd) ) ;
 }
 
-static inline void FD_SET(
+static inline void SS_SET(
     int fd,
-    fd_set * set)
+    sok_set * set)
 {
     *set |= 1 << fd ;
 }
 
-static inline void FD_ZERO(fd_set * set)
+static inline void SS_ZERO(sok_set * set)
 {
     *set = 0 ;
 }
 
-#endif
-
 bool NET_select_ini(
     NET_OP op,
     int nfds,
-    fd_set * readfds,
-    fd_set * writefds,
-    fd_set * exceptfds) ;
+    sok_set * readfds,
+    sok_set * writefds,
+    sok_set * exceptfds) ;
 
 /*********************************************************************/
 
@@ -552,9 +549,9 @@ static inline int NET_send(
 
 static inline int NET_select(
     int nfds,
-    fd_set * readfds,
-    fd_set * writefds,
-    fd_set * exceptfds,
+    sok_set * readfds,
+    sok_set * writefds,
+    sok_set * exceptfds,
     uint32_t to_ms)
 {
     int pronti = -1 ;

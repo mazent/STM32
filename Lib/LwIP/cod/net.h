@@ -16,7 +16,7 @@ typedef enum {
     PHY_DUPLEX_AUTO,
 } PHY_DUPLEX ;
 
-extern void PHY_iniz(PHY_SPEED, PHY_DUPLEX) ;
+extern void PHY_iniz(PHY_SPEED /*spid*/, PHY_DUPLEX /*dup*/) ;
 extern void PHY_isr(void) ;
 extern bool PHY_link(void) ;
 

@@ -1,7 +1,5 @@
 //#define STAMPA_DBG
 #include "utili.h"
-//#define USA_DIARIO
-#include "diario/diario.h"
 
 #include "drv.h"
 

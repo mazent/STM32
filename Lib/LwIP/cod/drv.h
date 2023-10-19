@@ -120,7 +120,7 @@ typedef void (*DRV_FREE_CB)(void * /* request data */) ;
 // Invoked by api_ini to alloc an available request
 // In case of problems it returns NULL
 // The callback (optional) will be called when the request will be freed
-S_DRV_REQ * DRV_alloc_wcb(S_DRIVER * /*pDrv*/, DRV_FREE_CB) ;
+S_DRV_REQ * DRV_alloc_wcb(S_DRIVER * /*pDrv*/, DRV_FREE_CB /*free_cb*/) ;
 // Shortcut
 static inline S_DRV_REQ * DRV_alloc(S_DRIVER * pDrv)
 {

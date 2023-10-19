@@ -5,7 +5,9 @@
 
 #include <stdio.h>
 
+#ifndef BYTE_ORDER
 #define BYTE_ORDER      LITTLE_ENDIAN
+#endif
 
 #define LWIP_CHKSUM_ALGORITHM       2
 

@@ -123,7 +123,7 @@ static bool mac_valido(void)
 
     do {
         // voglio lo stesso nonce
-        if ( memcmp(rpmb_req.nonce, rpmb_rsp.nonce, DIM_NONCE) ) {
+        if ( 0 != memcmp(rpmb_req.nonce, rpmb_rsp.nonce, DIM_NONCE) ) {
             DBG_ERR ;
             break ;
         }
@@ -144,7 +144,7 @@ static bool mac_valido(void)
         }
 
         // voglio lo stesso mac
-        if ( memcmp(mac, rpmb_rsp.mac, HASH256_DIM) ) {
+        if ( 0 != memcmp(mac, rpmb_rsp.mac, HASH256_DIM) ) {
             DBG_ERR ;
             break ;
         }
@@ -300,6 +300,7 @@ static bool programming_of_the_authentication_key(void)
             DBG_PUTS("OPERATION_OK") ;
             esito = true ;
             break ;
+        // NOLINTNEXTLINE(bugprone-branch-clone)
         case RES_GENERAL_FAILURE:
             DBG_PUTS("GENERAL_FAILURE") ;
             break ;
@@ -411,6 +412,7 @@ static bool reading_of_the_counter_value(void)
                 DBG_PRINTF("write counter = %u", wc) ;
             }
             break ;
+        // NOLINTNEXTLINE(bugprone-branch-clone)
         case RES_GENERAL_FAILURE:
             DBG_PUTS("GENERAL_FAILURE") ;
             break ;
@@ -454,7 +456,7 @@ bool rpmb_leggi(
 {
     bool esito = false ;
 
-    DBG_PRINTF("%s(%u)", __func__, blocco) ;
+    DBG_PRINTF("%s(%u)", __func__, (unsigned) blocco) ;
 
     do {
         // segnalo errore di altro tipo
@@ -482,6 +484,7 @@ bool rpmb_leggi(
 
         switch ( ultimo_result ) {
         // it first checks the address
+        // NOLINTNEXTLINE(bugprone-branch-clone)
         case RES_ADDRESS_FAILURE:
             break ;
         case RES_AUTH_FAILURE:
@@ -542,7 +545,7 @@ bool rpmb_scrivi(
 {
     bool esito = false ;
 
-    DBG_PRINTF("%s(%u)", __func__, blocco) ;
+    DBG_PRINTF("%s(%u)", __func__, (unsigned) blocco) ;
 
     do {
         // segnalo errore di altro tipo
@@ -610,6 +613,7 @@ bool rpmb_scrivi(
 
         switch ( ultimo_result ) {
         // Next the address is checked ...
+        // NOLINTNEXTLINE(bugprone-branch-clone)
         case RES_ADDRESS_FAILURE:
             break ;
         // ...  the two MAC’s are different
@@ -620,6 +624,7 @@ bool rpmb_scrivi(
             break ;
         // The data from the request are written to the address indicated in the request and the write counter is incremented by 1
         // If write fails then returned result is ...
+        // NOLINTNEXTLINE(bugprone-branch-clone)
         case RES_WRITE_FAILURE:
             wc++ ;
             break ;

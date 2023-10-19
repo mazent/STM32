@@ -163,6 +163,7 @@ static void invia(
 
     componi(uc, dst, cmd, v, dim) ;
 
+    // NOLINTNEXTLINE(bugprone-branch-clone)
     if ( osOK != osMessagePut(trasmetti, (uint32_t) uc, osWaitForever) ) {
         DBG_ERR ;
     }
@@ -254,7 +255,7 @@ bool TTC_iniz(UN_TTC * uc)
 void TTC_elabora(
     UN_TTC * uc,
     const uint8_t * dati,
-    const uint32_t LETTI)
+    uint32_t LETTI)
 {
     uint8_t * Dati = (uint8_t *) uc->memRx ;
 

@@ -59,9 +59,9 @@ typedef struct {
 } S_REQ_SEND ;
 
 typedef struct {
-    fd_set * readfds ;
-    fd_set * writefds ;
-    fd_set * exceptfds ;
+    sok_set * readfds ;
+    sok_set * writefds ;
+    sok_set * exceptfds ;
 } S_REQ_SELECT ;
 typedef struct {
     IO_REQ_TYPE type ;

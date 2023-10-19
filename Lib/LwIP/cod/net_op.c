@@ -206,7 +206,7 @@ static void rt_close(
     UN_SOCK * pS = NULL ;
 
     if ( sok & ID_SOCK_REM ) {
-        int rem = sok & NEGA(ID_SOCK_REM) ;
+        int rem = sok & ~ID_SOCK_REM ;
         pS = vRem + rem ;
     }
     else {
@@ -373,7 +373,7 @@ static bool leggibile(int sok)
     UN_SOCK * pS = NULL ;
 
     if ( sok & ID_SOCK_REM ) {
-        int rem = sok & NEGA(ID_SOCK_REM) ;
+        int rem = sok & ~ID_SOCK_REM ;
         pS = vRem + rem ;
     }
     else {
@@ -388,7 +388,7 @@ static bool scrivibile(int sok)
     UN_SOCK * pS = NULL ;
 
     if ( sok & ID_SOCK_REM ) {
-        int rem = sok & NEGA(ID_SOCK_REM) ;
+        int rem = sok & ~ID_SOCK_REM ;
         pS = vRem + rem ;
     }
     else {
@@ -417,7 +417,7 @@ static bool errorabile(int sok)
     UN_SOCK * pS = NULL ;
 
     if ( sok & ID_SOCK_REM ) {
-        int rem = sok & NEGA(ID_SOCK_REM) ;
+        int rem = sok & ~ID_SOCK_REM ;
         pS = vRem + rem ;
     }
     else {
@@ -428,7 +428,7 @@ static bool errorabile(int sok)
 }
 
 static int select_qlc(
-    fd_set * set,
+    sok_set * set,
     PF_SELECT qlc)
 {
     int quanti = 0 ;
@@ -455,17 +455,17 @@ static int select_qlc(
     return quanti ;
 }
 
-static int select_read(fd_set * set)
+static int select_read(sok_set * set)
 {
     return select_qlc(set, leggibile) ;
 }
 
-static int select_write(fd_set * set)
+static int select_write(sok_set * set)
 {
     return select_qlc(set, scrivibile) ;
 }
 
-static int select_error(fd_set * set)
+static int select_error(sok_set * set)
 {
     return select_qlc(set, errorabile) ;
 }
@@ -516,7 +516,7 @@ static bool questa_select(
     IO_REQ_TYPE rt,
     S_REQUEST_DATA * rd)
 {
-    fd_set * set = NULL ;
+    sok_set * set = NULL ;
 
     switch ( rt ) {
     case RT_RECV:
@@ -528,6 +528,8 @@ static bool questa_select(
         break ;
     case RT_SEND:
         set = rd->select.writefds ;
+        break ;
+    default:
         break ;
     }
 
@@ -803,7 +805,7 @@ bool NET_close_ini(
         }
         if ( sok >= LWIP_P_NUM_SOCK ) {
             // Potrebbe essere remoto
-            int rem = sok & NEGA(ID_SOCK_REM) ;
+            int rem = sok & ~ID_SOCK_REM ;
             if ( (rem < 0) || (rem >= LWIP_P_NUM_SOCK) ) {
                 break ;
             }
@@ -1229,7 +1231,7 @@ bool NET_recv_ini(
         }
         if ( sok >= LWIP_P_NUM_SOCK ) {
             // Potrebbe essere remoto
-            int rem = sok & NEGA(ID_SOCK_REM) ;
+            int rem = sok & ~ID_SOCK_REM ;
             if ( (rem < 0) || (rem >= LWIP_P_NUM_SOCK) ) {
                 break ;
             }
@@ -1298,7 +1300,7 @@ bool NET_send_ini(
         }
         if ( sok >= LWIP_P_NUM_SOCK ) {
             // Potrebbe essere remoto
-            int rem = sok & NEGA(ID_SOCK_REM) ;
+            int rem = sok & ~ID_SOCK_REM ;
             if ( (rem < 0) || (rem >= LWIP_P_NUM_SOCK) ) {
                 break ;
             }
@@ -1348,9 +1350,9 @@ bool NET_send_ini(
 bool NET_select_ini(
     NET_OP op,
     int nfds,
-    fd_set * readfds,
-    fd_set * writefds,
-    fd_set * exceptfds)
+    sok_set * readfds,
+    sok_set * writefds,
+    sok_set * exceptfds)
 {
     bool esito = false ;
 

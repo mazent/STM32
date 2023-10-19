@@ -33,7 +33,7 @@ static void udp_eco_srv(void * argument)
     /*
      * socket: create the parent socket
      */
-    int sockfd = socket(AF_INET, SOCK_DGRAM, 0) ;
+    int sockfd = net_socket(AF_INET, SOCK_DGRAM, 0) ;
     if ( sockfd < 0 ) {
         DBG_PUTS("ERROR opening socket") ;
         goto fine ;
@@ -50,25 +50,25 @@ static void udp_eco_srv(void * argument)
     serveraddr.sin_port = htons( (unsigned short) PORTA_ECO ) ;
 
     /*
-     * bind: associate the parent socket with a port
+     * net_bind: associate the parent socket with a port
      */
-    if ( bind( sockfd, (struct sockaddr *) &serveraddr,
-               sizeof(serveraddr) ) < 0 ) {
+    if ( net_bind( sockfd, (struct sockaddr *) &serveraddr,
+                   sizeof(serveraddr) ) < 0 ) {
         DBG_PUTS("ERROR on binding") ;
         goto fine ;
     }
 
     while ( 1 ) {
         /*
-         * recvfrom: receive a UDP datagram from a client
+         * net_recvfrom: receive a UDP datagram from a client
          */
         struct sockaddr_in clientaddr = {
             0
         } ;                                       /* client addr */
         int clientlen ;         /* byte size of client's address */
 
-        int n = recvfrom(sockfd, buf, BUFSIZE, 0,
-                         (struct sockaddr *) &clientaddr, &clientlen) ;
+        int n = net_recvfrom(sockfd, buf, BUFSIZE, 0,
+                             (struct sockaddr *) &clientaddr, &clientlen) ;
         if ( n < 0 ) {
             DBG_PUTS("ERROR in recvfrom") ;
             break ;
@@ -83,10 +83,10 @@ static void udp_eco_srv(void * argument)
                    hport) ;
 #endif
         /*
-         * sendto: echo the input back to the client
+         * net_sendto: echo the input back to the client
          */
-        n = sendto(sockfd, buf, n, 0,
-                   (struct sockaddr *) &clientaddr, 0) ;
+        n = net_sendto(sockfd, buf, n, 0,
+                       (struct sockaddr *) &clientaddr, 0) ;
         if ( n < 0 ) {
             DBG_PUTS("ERROR in sendto") ;
             break ;
@@ -126,22 +126,21 @@ static void udp_eco_cln(void * _)
 
     DBG_PRINTF("%s %d B", __func__, BUFSIZE) ;
 
-    int sok = socket(AF_INET, SOCK_DGRAM, 0) ;
+    int sok = net_socket(AF_INET, SOCK_DGRAM, 0) ;
     if ( sok < 0 ) {
         DBG_PUTS("ERROR opening socket") ;
         goto esci ;
     }
 
-    struct sockaddr_in dest, mitt ;
-    int mit_dim ;
+    struct sockaddr_in dest ;
 
     memset( &dest, 0, sizeof(dest) ) ;
     dest.sin_family = AF_INET ;
     dest.sin_addr.s_addr = NET_inet_addr("10.1.20.254") ;
     dest.sin_port = htons( (unsigned short) PORTA_ECO ) ;
 
-    if ( connect( sok, (struct sockaddr *) &dest,
-                  sizeof(dest) ) < 0 ) {
+    if ( net_connect( sok, (struct sockaddr *) &dest,
+                      sizeof(dest) ) < 0 ) {
         DBG_PUTS("ERROR on connect") ;
         goto esci ;
     }
@@ -150,14 +149,16 @@ static void udp_eco_cln(void * _)
     inizio = HAL_GetTick() ;
 #endif
     for ( ; i < quanti ; ++i ) {
-        int n = sendto( sok, dati, dim, 0, &dest, sizeof(dest) ) ;
+        int n = net_sendto( sok, dati, dim, 0, &dest, sizeof(dest) ) ;
         if ( n < 0 ) {
             DBG_PUTS("ERROR in sendto") ;
             break ;
         }
 
         DBG_PUTS("risposta ...") ;
-        n = recvfrom(sok, buf, dim, 0, &mitt, &mit_dim) ;
+        struct sockaddr_in mitt ;
+        int mit_dim ;
+        n = net_recvfrom(sok, buf, dim, 0, &mitt, &mit_dim) ;
         if ( n < 0 ) {
             DBG_PUTS("ERROR in recvfrom") ;
             break ;
@@ -177,7 +178,7 @@ static void udp_eco_cln(void * _)
     }
 #endif
 esci:
-    CONTROLLA( 0 == close(sok) ) ;
+    CONTROLLA( 0 == net_close(sok) ) ;
     DBG_QUA ;
     clnTHD = NULL ;
     osThreadTerminate(NULL) ;

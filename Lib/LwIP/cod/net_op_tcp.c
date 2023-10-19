@@ -437,7 +437,7 @@ void rt_recv(
     DBG_FUN ;
 
     if ( sok & ID_SOCK_REM ) {
-        int rem = sok & NEGA(ID_SOCK_REM) ;
+        int rem = sok & ~ID_SOCK_REM ;
         pS = vRem + rem ;
     }
     else {
@@ -480,7 +480,7 @@ void rt_send(
     DBG_FUN ;
 
     if ( sok & ID_SOCK_REM ) {
-        int rem = sok & NEGA(ID_SOCK_REM) ;
+        int rem = sok & ~ID_SOCK_REM ;
         pS = vRem + rem ;
     }
     else {

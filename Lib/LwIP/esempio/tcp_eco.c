@@ -32,28 +32,28 @@ static const int PORTA_ECO = 7 ;
 static void servi_socket(int sok)
 {
     int pos = 0 ;
-    fd_set leggi ;
-    fd_set scrivi ;
-    fd_set errore ;
+    sok_set leggi ;
+    sok_set scrivi ;
+    sok_set errore ;
 
-    FD_ZERO(&leggi) ;
-    FD_ZERO(&scrivi) ;
-    FD_ZERO(&errore) ;
+    SS_ZERO(&leggi) ;
+    SS_ZERO(&scrivi) ;
+    SS_ZERO(&errore) ;
 
     int conta = 0 ;
     while ( true ) {
-        FD_SET(sok, &leggi) ;
-        FD_SET(sok, &errore) ;
+        SS_SET(sok, &leggi) ;
+        SS_SET(sok, &errore) ;
 
-        int quanti = select(sok + 1, &leggi, &scrivi, &errore, NULL) ;
+        int quanti = net_select(sok + 1, &leggi, &scrivi, &errore, NULL) ;
         if ( quanti > 0 ) {
-            if ( FD_ISSET(sok, &errore) ) {
+            if ( SS_ISSET(sok, &errore) ) {
                 DBG_ERR ;
                 break ;
             }
 
-            if ( FD_ISSET(sok, &leggi) ) {
-                const int letti = recv(sok, buf + pos, BUFSIZE - pos, 0) ;
+            if ( SS_ISSET(sok, &leggi) ) {
+                const int letti = net_recv(sok, buf + pos, BUFSIZE - pos, 0) ;
                 if ( letti <= 0 ) {
                     DBG_PUTS("ERROR reading from socket") ;
                     break ;
@@ -63,13 +63,13 @@ static void servi_socket(int sok)
                     conta++ ;
                 }
                 pos += letti ;
-                FD_SET(sok, &scrivi) ;
+                SS_SET(sok, &scrivi) ;
                 DBG_PRINTF("%d) ricevuti %d bytes", conta, letti) ;
                 continue ;
             }
 
-            if ( FD_ISSET(sok, &scrivi) ) {
-                const int scritti = send(sok, buf, pos, 0) ;
+            if ( SS_ISSET(sok, &scrivi) ) {
+                const int scritti = net_send(sok, buf, pos, 0) ;
                 if ( scritti < 0 ) {
                     DBG_PUTS("ERROR writing to socket") ;
                     break ;
@@ -79,7 +79,7 @@ static void servi_socket(int sok)
                 }
 
                 pos = 0 ;
-                FD_CLR(sok, &scrivi) ;
+                SS_CLR(sok, &scrivi) ;
                 DBG_PRINTF("%d) inviati %d bytes", conta, scritti) ;
             }
         }
@@ -88,7 +88,7 @@ static void servi_socket(int sok)
         }
     }
 
-    CONTROLLA( 0 == close(sok) ) ;
+    CONTROLLA( 0 == net_close(sok) ) ;
 }
 
 #else
@@ -99,7 +99,7 @@ static void servi_socket(int sok)
 
     while ( true ) {
         /* read: read input string from the client */
-        int n = recv(sok, buf, BUFSIZE, 0) ;
+        int n = net_recv(sok, buf, BUFSIZE, 0) ;
         if ( n <= 0 ) {
             DBG_PUTS("ERROR reading from socket") ;
             break ;
@@ -109,7 +109,7 @@ static void servi_socket(int sok)
         DBG_PRINTF("%d) ricevuti %d bytes", conta, n) ;
 
         /* write: echo the input string back to the client */
-        n = send(sok, buf, n, 0) ;
+        n = net_send(sok, buf, n, 0) ;
         if ( n < 0 ) {
             DBG_PUTS("ERROR writing to socket") ;
             break ;
@@ -118,7 +118,7 @@ static void servi_socket(int sok)
         DBG_PRINTF("%d) inviati %d bytes", conta, n) ;
     }
 
-    CONTROLLA( 0 == close(sok) ) ;
+    CONTROLLA( 0 == net_close(sok) ) ;
 }
 
 #endif
@@ -132,7 +132,7 @@ static void tcp_eco_srv(void * _)
     DBG_PRINTF("%s %d B", __func__, BUFSIZE) ;
 
     /* socket: create a socket */
-    listenfd = socket(AF_INET, SOCK_STREAM, 0) ;
+    listenfd = net_socket(AF_INET, SOCK_STREAM, 0) ;
     if ( listenfd < 0 ) {
         DBG_PUTS("ERROR opening socket") ;
     }
@@ -147,14 +147,14 @@ static void tcp_eco_srv(void * _)
     serveraddr.sin_addr.s_addr = htonl(INADDR_ANY) ;
     serveraddr.sin_port = htons( (unsigned short) PORTA_ECO ) ;
 
-    /* bind: associate the listening socket with a port */
-    if ( bind( listenfd, (struct sockaddr *) &serveraddr,
-               sizeof(serveraddr) ) < 0 ) {
+    /* net_bind: associate the listening socket with a port */
+    if ( net_bind( listenfd, (struct sockaddr *) &serveraddr,
+                   sizeof(serveraddr) ) < 0 ) {
         DBG_PUTS("ERROR on binding") ;
     }
 
-    /* listen: make it a listening socket ready to accept connection requests */
-    if ( listen(listenfd, 1) < 0 ) {
+    /* net_listen: make it a listening socket ready to net_accept connection requests */
+    if ( net_listen(listenfd, 1) < 0 ) {
         DBG_PUTS("ERROR on listen") ;
     }
 
@@ -165,8 +165,8 @@ static void tcp_eco_srv(void * _)
 
         DBG_PUTS("attesa connessione ...") ;
 
-        /* accept: wait for a connection request */
-        connfd = accept(listenfd, &clientaddr, &clientlen) ;
+        /* net_accept: wait for a connection request */
+        connfd = net_accept(listenfd, &clientaddr, &clientlen) ;
         if ( connfd < 0 ) {
             DBG_PUTS("ERROR on accept") ;
             break ;
@@ -215,7 +215,7 @@ static void tcp_eco_cln(void * _)
 
     DBG_PRINTF("%s %d B", __func__, BUFSIZE) ;
 
-    int sok = socket(AF_INET, SOCK_STREAM, 0) ;
+    int sok = net_socket(AF_INET, SOCK_STREAM, 0) ;
     if ( sok < 0 ) {
         DBG_PUTS("ERROR opening socket") ;
         goto esci ;
@@ -228,8 +228,8 @@ static void tcp_eco_cln(void * _)
     serveraddr.sin_addr.s_addr = NET_inet_addr("10.1.20.254") ;
     serveraddr.sin_port = htons( (unsigned short) PORTA_ECO ) ;
 
-    if ( connect( sok, (struct sockaddr *) &serveraddr,
-                  sizeof(serveraddr) ) < 0 ) {
+    if ( net_connect( sok, (struct sockaddr *) &serveraddr,
+                      sizeof(serveraddr) ) < 0 ) {
         DBG_PUTS("ERROR on connect") ;
         goto esci ;
     }
@@ -237,14 +237,14 @@ static void tcp_eco_cln(void * _)
     inizio = HAL_GetTick() ;
 #endif
     for ( ; i < quanti ; ++i ) {
-        int n = send(sok, dati, dim, 0) ;
+        int n = net_send(sok, dati, dim, 0) ;
         if ( n < 0 ) {
             DBG_PUTS("ERROR writing to socket") ;
             break ;
         }
         //DBG_PRINTF("inviati %d bytes", n) ;
 
-        n = recv(sok, buf, dim, 0) ;
+        n = net_recv(sok, buf, dim, 0) ;
         if ( n < 0 ) {
             DBG_PUTS("ERROR reading socket") ;
             break ;
@@ -264,7 +264,7 @@ static void tcp_eco_cln(void * _)
     }
 #endif
 esci:
-    CONTROLLA( 0 == close(sok) ) ;
+    CONTROLLA( 0 == net_close(sok) ) ;
 
     DBG_QUA ;
     clnTHD = NULL ;

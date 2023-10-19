@@ -126,7 +126,8 @@ bool mmc_wait(void)
             DBG_ERR ;
             break ;
         }
-        else if ( HAL_MMC_CARD_PROGRAMMING == cs ) {
+
+        if ( HAL_MMC_CARD_PROGRAMMING == cs ) {
             HAL_Delay(10) ;
         }
         else {
