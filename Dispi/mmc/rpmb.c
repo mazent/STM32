@@ -10,6 +10,8 @@
  * Vedi: https://community.st.com/s/question/0D53W00002IeEdQSAV
  */
 
+//#define RPMB_TEST		1
+
 extern bool mmc_wait(void) ;
 extern bool mmc_cmd23(
     bool reliable,
@@ -611,6 +613,7 @@ bool rpmb_scrivi(
             break ;
         }
 
+        // NOLINTNEXTLINE(bugprone-branch-clone)
         switch ( ultimo_result ) {
         // Next the address is checked ...
         // NOLINTNEXTLINE(bugprone-branch-clone)
@@ -672,7 +675,7 @@ bool rpmb_scrivi(
     return esito ;
 }
 
-#if 0
+#ifdef RPMB_TEST
 static void stampa_ures(void)
 {
     switch ( ultimo_result ) {
@@ -754,7 +757,7 @@ void rpmb_iniz(void)
     if ( RES_AUTH_KEY_NOT_PROG == ultimo_result ) {
         CONTROLLA( programming_of_the_authentication_key() ) ;
     }
-#if 0
+#ifdef RPMB_TEST
     //++++++ inizio test
     const uint32_t RPMB_DIM_B = 512 * 1024 ;
     const uint32_t RPMB_DIM_S = RPMB_DIM_B / DIM_DATA ;

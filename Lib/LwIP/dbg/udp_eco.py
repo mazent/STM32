@@ -1,5 +1,6 @@
 import socket
 import struct
+import sys
 
 SC756_HOST = "10.1.20.1"
 SC756_PORT = 7
@@ -39,9 +40,11 @@ class UDP_ECO:
 if __name__ == "__main__":
     import argparse
     import utili
+    import sys
+    import threading
 
     DESCRIZIONE = """
-        Invia eco udp a SC756 (progetto 492)
+        Invia eco udp 
         Alternativa a https://github.com/PavelBansky/EchoTool
     """
 
@@ -64,6 +67,13 @@ if __name__ == "__main__":
         default=10,
         help="numero di echi (negativo -> fine per errore)",
     )
+    argom.add_argument(
+        "-t",
+        "--tempo",
+        type=int,
+        default=0,
+        help="durata della prova in minuti",
+    )
 
     argom.add_argument("-s", "--server", action="store_true", help="server eco (False)")
 
@@ -71,13 +81,20 @@ if __name__ == "__main__":
 
     mss = arghi.mss
     if mss < 0:
-        mss = -mss
+        sys.exit("Errore: mss non valido")
     dim = arghi.dim
     if dim < 0:
-        dim = -dim
-
+        sys.exit("Errore: dim non valido")
+    tempo = arghi.tempo
+    if tempo < 0:
+        sys.exit("Errore: tempo non valido")
+    quanti = arghi.quanti
+    if tempo == 0 and quanti == 0:
+        sys.exit("Errore: tempo/quanti = zero")
+    if tempo > 0:
+        quanti = 0
     if mss == 0 and dim == 0:
-        dim = 100
+        sys.exit("Errore: dim/mss = zero")
 
     if mss > 0:
         # vince lui
@@ -96,6 +113,7 @@ if __name__ == "__main__":
         crono = utili.CRONOMETRO()
 
         eco = UDP_ECO()
+
 
         def fammene(enne):
             bene = 0
@@ -135,6 +153,7 @@ if __name__ == "__main__":
                         bene, sdurata, milli, tput, kib
                     )
                 )
+
 
         def esci_per_errore(errori):
             bene = 0
@@ -178,12 +197,57 @@ if __name__ == "__main__":
                     )
                 )
 
-        if eco.a_posto():
-            quanti = arghi.quanti
 
+        def esci_a_tempo(tempo):
+            bene = 0
+            male = 0
+
+            dati1 = utili.byte_casuali(dim)
+            dati2 = utili.byte_casuali(dim)
+            dati = dati1
+
+            esci = threading.Event()
+
+            def fine():
+                esci.set()
+
+            scade = utili.Periodico(fine)
+            try:
+                scade.avvia(tempo * 60)
+                crono.conta()
+                while not esci.is_set():
+                    if eco.eco(dati):
+                        bene += 1
+                    else:
+                        male += 1
+
+                    if dati is dati1:
+                        dati = dati2
+                    else:
+                        dati = dati1
+            except (KeyboardInterrupt, utili.PROBLEMA):
+                pass
+            durata = crono.durata()
+            eco.chiudi()
+            scade.termina()
+
+            print("Finito con {} errori".format(male))
+            if bene:
+                sdurata = utili.stampaDurata(int(round(durata * 1000.0, 0)))
+                milli = round(1000.0 * durata / bene, 3)
+                tput = round((dim * bene) / durata, 1)
+                kib = round((dim * bene) / (durata * 1024), 1)
+                print(
+                    "Eco: OK {} in {} ({:.3f} ms = {:.1f} B/s = {:.1f} KiB/s)".format(
+                        bene, sdurata, milli, tput, kib
+                    )
+                )
+
+
+        if eco.a_posto():
             if quanti > 0:
                 fammene(quanti)
             elif quanti < 0:
                 esci_per_errore(-quanti)
             else:
-                print("parametro errato")
+                esci_a_tempo(tempo)

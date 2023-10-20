@@ -31,6 +31,8 @@ static MMC_HandleTypeDef sdmmc = {
     }
 } ;
 
+#define USA_RPMB            0
+
 //#define STAMPA_ROBA         1
 
 typedef enum {
@@ -83,7 +85,7 @@ bool MMC_iniz(void)
     stampa_csd() ;
     stampa_ecsd() ;
 
-#if 0
+#if USA_RPMB
     rpmb_iniz() ;
 #endif
 
@@ -193,7 +195,7 @@ bool MMC_leggi(
 
     do {
         mmc_iniz_io() ;
-#if 1
+#if USA_RPMB == 0
         if ( HAL_MMC_ReadBlocks_DMA(&sdmmc,
                                     dati, blocco, num_blocchi) != HAL_OK ) {
             DBG_ERR ;
