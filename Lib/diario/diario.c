@@ -1,20 +1,14 @@
 #include "utili.h"
-#include "diario.h"
+#include "diario_priv.h"
 
-#ifndef DDB_RAM_BASE
-
-#include "cmsis_rtos/cmsis_os.h"
+#if defined (DDB_RAM_BASE) || DDB_NUM_MSG
 
 #ifdef DDB_QUANDO
-// "%08X) " + livello + a capo + null
-#define DIM_MIN     (8 + 1 + 1 + 4 + 2 + 1)
+#define FORMATO     "%010u) %s -"
+#define MSG_POS     (10 + 1 + 1 + 3 + 3)
 #else
-// livello + a capo + null
-#define DIM_MIN     (4 + 2 + 1)
-#endif
-
-#if DDB_DIM_MSG <= DIM_MIN
-#error OKKIO
+#define FORMATO     "%s -"
+#define MSG_POS     (3 + 3)
 #endif
 
 static const char LVL_ERROR[] = "ERR" ;
@@ -22,23 +16,13 @@ static const char LVL_WARNING[] = "WRN" ;
 static const char LVL_INFO[] = "INF" ;
 static const char LVL_DEBUG[] = "DBG" ;
 
-static osThreadId idTHD = NULL ;
-static osMailQId idMQ = NULL ;
 static DDB_LEVEL level = DDB_L_NONE ;
-
-typedef struct {
-#ifdef DDB_QUANDO
-    uint32_t quando ;
-#endif
-    int dim ;
-    DDB_LEVEL level ;
-    char msg[DDB_DIM_MSG] ;
-} DDB_RIGA ;
 
 static void acapo(DDB_RIGA * pR)
 {
     char * msg = pR->msg ;
     int dim = pR->dim ;
+    msg += MSG_POS ;
     if ( msg[dim - 1] == 0x0A ) {
         // Aggiungo lo 0 finale
         pR->dim++ ;
@@ -59,78 +43,41 @@ static void acapo(DDB_RIGA * pR)
     }
 }
 
-static void diario(void * v)
+void ddb_stampa(DDB_RIGA * riga)
 {
-    INUTILE(v) ;
+    int dim = 0 ;
 
-    while ( true ) {
-        osEvent evn = osMailGet(idMQ, osWaitForever) ;
-        if ( osEventMail == evn.status ) {
-            DDB_RIGA * riga = evn.value.p ;
+    acapo(riga) ;
 
-            acapo(riga) ;
-
-            const char * slev = "???" ;
-            switch ( riga->level ) {
-            case DDB_L_ERROR:
-                slev = LVL_ERROR ;
-                break ;
-            case DDB_L_WARNING:
-                slev = LVL_WARNING ;
-                break ;
-            case DDB_L_INFO:
-                slev = LVL_INFO ;
-                break ;
-            case DDB_L_DEBUG:
-                slev = LVL_DEBUG ;
-                break ;
-            default:
-                break ;
-            }
-
-            static char msg[DIM_MIN + DDB_DIM_MSG] ;
-#ifdef DDB_QUANDO
-            int dim = snprintf_(msg,
-                                sizeof(msg),
-                                "%08X) %s - ",
-                                riga->quando,
-                                slev) ;
-
-#else
-            int dim = snprintf_(msg, sizeof(msg), "%s - ", slev) ;
-#endif
-            memcpy_(msg + dim, riga->msg, riga->dim) ;
-            ddb_scrivi(msg, riga->dim + dim) ;
-            (void) osMailFree(idMQ, riga) ;
-        }
+    const char * slev = "???" ;
+    switch ( riga->level ) {
+    case DDB_L_ERROR:
+        slev = LVL_ERROR ;
+        break ;
+    case DDB_L_WARNING:
+        slev = LVL_WARNING ;
+        break ;
+    case DDB_L_INFO:
+        slev = LVL_INFO ;
+        break ;
+    case DDB_L_DEBUG:
+        slev = LVL_DEBUG ;
+        break ;
+    default:
+        break ;
     }
-}
 
-bool DDB_iniz(DDB_LEVEL l)
-{
-    do {
-        if ( NULL == idMQ ) {
-            osMailQDef(messaggi, DDB_NUM_MSG, DDB_RIGA) ;
-            idMQ = osMailCreate(osMailQ(messaggi), NULL) ;
-            ASSERT(idMQ) ;
-            if ( NULL == idMQ ) {
-                break ;
-            }
-        }
-
-        if ( NULL == idTHD ) {
-            osThreadDef(diario, osPriorityIdle, 0, 0) ;
-            idTHD = osThreadCreate(osThread(diario), NULL) ;
-            ASSERT(idTHD) ;
-            if ( NULL == idTHD ) {
-                break ;
-            }
-        }
-
-        level = l ;
-    } while ( false ) ;
-
-    return NULL != idTHD ;
+#ifdef DDB_QUANDO
+    dim = snprintf_(riga->msg,
+                    DDB_DIM_MSG,
+                    FORMATO,
+                    riga->quando,
+                    slev) ;
+#else
+    dim = snprintf_(riga->msg, DDB_DIM_MSG, FORMATO, slev) ;
+#endif
+    riga->msg[dim] = ' ' ;
+    riga->dim += dim ;
 }
 
 void DDB_level(DDB_LEVEL l)
@@ -146,19 +93,22 @@ void DDB_puts(
         return ;
     }
 
-    DDB_RIGA * riga = osMailAlloc(idMQ, 0) ;
+    DDB_RIGA * riga = riga_alloca() ;
     if ( riga ) {
 #ifdef DDB_QUANDO
         riga->quando = DDB_QUANDO() ;
 #endif
-        riga->dim = snprintf_(riga->msg, DDB_DIM_MSG, "%s", c) ;
+        riga->dim = snprintf_(riga->msg + MSG_POS,
+                              DDB_DIM_MSG - MSG_POS,
+                              "%s",
+                              c) ;
 
         if ( riga->dim > 0 ) {
             riga->level = l ;
-            (void) osMailPut(idMQ, riga) ;
+            riga_scrivi(riga) ;
         }
         else {
-            (void) osMailFree(idMQ, riga) ;
+            riga_libera(riga) ;
         }
     }
 }
@@ -172,7 +122,7 @@ void DDB_printf(
         return ;
     }
 
-    DDB_RIGA * riga = osMailAlloc(idMQ, 0) ;
+    DDB_RIGA * riga = riga_alloca() ;
     if ( riga ) {
 #ifdef DDB_QUANDO
         riga->quando = DDB_QUANDO() ;
@@ -181,20 +131,23 @@ void DDB_printf(
 
         va_start(args, fmt) ;
 
-        riga->dim = vsnprintf_(riga->msg, DDB_DIM_MSG, fmt, args) ;
+        riga->dim = vsnprintf_(riga->msg + MSG_POS,
+                               DDB_DIM_MSG - MSG_POS,
+                               fmt,
+                               args) ;
 
         va_end(args) ;
 
-        if ( riga->dim > DDB_DIM_MSG ) {
-            riga->dim = DDB_DIM_MSG - 1 ;
+        if ( riga->dim > DDB_DIM_MSG - MSG_POS ) {
+            riga->dim = DDB_DIM_MSG - MSG_POS - 1 ;
         }
 
         if ( riga->dim > 0 ) {
             riga->level = l ;
-            (void) osMailPut(idMQ, riga) ;
+            riga_scrivi(riga) ;
         }
         else {
-            (void) osMailFree(idMQ, riga) ;
+            riga_libera(riga) ;
         }
     }
 }
@@ -209,65 +162,78 @@ void DDB_print_hex(
         return ;
     }
 
-    DDB_RIGA * riga = osMailAlloc(idMQ, 0) ;
-    if ( riga ) {
+    DDB_RIGA * riga = riga_alloca() ;
+    if ( NULL == riga ) {
+        return ;
+    }
+
 #ifdef DDB_QUANDO
-        riga->quando = DDB_QUANDO() ;
+    riga->quando = DDB_QUANDO() ;
 #endif
-        if ( NULL == v ) {
-            dimv = 0 ;
+    if ( NULL == v ) {
+        dimv = 0 ;
+    }
+
+    const uint8_t * dati = v ;
+    bool esito = false ;
+
+    do {
+        int dim = MSG_POS ;
+        if ( titolo ) {
+            dim += snprintf_(riga->msg + dim,
+                             DDB_DIM_MSG - dim,
+                             "%s ",
+                             titolo) ;
         }
 
-        const uint8_t * msg = v ;
-        bool esito = false ;
+        if ( dim >= DDB_DIM_MSG ) {
+            break ;
+        }
 
-        do {
-            int dim = 0 ;
-            if ( titolo ) {
-                dim += snprintf_(riga->msg + dim,
-                                 DDB_DIM_MSG - dim,
-                                 "%s ",
-                                 titolo) ;
-            }
+        dim += snprintf_(riga->msg + dim, DDB_DIM_MSG - dim, "[%d]: ", dimv) ;
+        if ( dim >= DDB_DIM_MSG ) {
+            break ;
+        }
 
+#ifdef DDB_MAX_HEX
+        dimv = MINI(dimv, DDB_MAX_HEX) ;
+#endif
+        for ( int i = 0 ; i < dimv ; i++ ) {
+            dim += snprintf_(riga->msg + dim,
+                             DDB_DIM_MSG - dim,
+                             "%02X ",
+                             dati[i]) ;
             if ( dim >= DDB_DIM_MSG ) {
                 break ;
             }
-
-            dim += snprintf_(riga->msg + dim, DDB_DIM_MSG - dim, "[%d]: ", dimv) ;
-            if ( dim >= DDB_DIM_MSG ) {
-                break ;
-            }
-
-            for ( int i = 0 ; i < dimv ; i++ ) {
-                dim += snprintf_(riga->msg + dim,
-                                 DDB_DIM_MSG - dim,
-                                 "%02X ",
-                                 msg[i]) ;
-                if ( dim >= DDB_DIM_MSG ) {
-                    break ;
-                }
-            }
-
-            if ( dim > DDB_DIM_MSG ) {
-                dim = DDB_DIM_MSG - 1 ;
-            }
-            riga->dim = dim ;
-
-            esito = true ;
-        } while ( false ) ;
-
-        if ( esito ) {
-            riga->level = l ;
-            (void) osMailPut(idMQ, riga) ;
         }
-        else {
-            (void) osMailFree(idMQ, riga) ;
+
+        if ( dim > DDB_DIM_MSG ) {
+            dim = DDB_DIM_MSG - 1 ;
         }
+        riga->dim = dim - MSG_POS ;
+
+        esito = true ;
+    } while ( false ) ;
+
+    if ( esito ) {
+        riga->level = l ;
+        riga_scrivi(riga) ;
+    }
+    else {
+        riga_libera(riga) ;
     }
 }
 
+bool DDB_iniz(DDB_LEVEL l)
+{
+    level = l ;
+
+    return ddb_iniz() ;
+}
+
 #else
+
 bool DDB_iniz(DDB_LEVEL a)
 {
     INUTILE(a) ;
@@ -303,4 +269,10 @@ void DDB_print_hex(
     INUTILE(d) ;
 }
 
-#endif  // DDB_RAM_BASE
+int DDB_leggi(char * _)
+{
+    INUTILE(_) ;
+    return 0 ;
+}
+
+#endif

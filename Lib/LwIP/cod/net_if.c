@@ -320,9 +320,6 @@ port_netif_output(
     INUTILE(n_if) ;
     assert(osThreadGetId() == tid) ;
 
-    DBG_FUN ;
-    stampa_pbuf(p) ;
-
     if ( !PHY_link() ) {}
     else if ( trasm ) {
         // accodo

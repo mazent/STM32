@@ -7,12 +7,15 @@
 /*
  * I messaggi vengono salvati in ram
  *
- * diario.c
- *     Un task a bassa priorita' li scrive invocando ddb_scrivi,
- *     che deve ritornare solo dopo la fine dell'operazione
- *
- * diario_ram.c
- *     I messaggi vengono recuperati e gestiti da qlc
+ * Due gusti
+ *     1) Un task (a bassa priorita') li scrive invocando ddb_scrivi,
+ *        che deve ritornare solo dopo la fine dell'operazione
+ *        Uso una osMail
+ *     2) I messaggi vengono recuperati con DDB_leggi e gestiti a parte
+ *        Uso una zona di ram
+ * La scelta si esegue usando rispettivamente:
+ *     diario_mail.c
+ *     diario_ram.c
  *
  * Esempio:
        // Abilito le DBG_xxx
@@ -107,7 +110,7 @@ int DDB_leggi(char */*almeno DDB_DIM_MSG*/) ;
 #endif
 
 #if DDB_LIV >= DDB_LIV_ERR
-#define DDB_LIV_ERR_ABIL		1
+#define DDB_LIV_ERR_ABIL        1
 #define DDB_ERROR(f, ...)       DDB_printf(DDB_L_ERROR, f, ## __VA_ARGS__)
 #define DDB_ERR                 DDB_printf(DDB_L_ERROR, "%s %d", \
                                            __FILE__, \
@@ -123,7 +126,7 @@ int DDB_leggi(char */*almeno DDB_DIM_MSG*/) ;
 #endif
 
 #if DDB_LIV >= DDB_LIV_WARN
-#define DDB_LIV_WARN_ABIL		1
+#define DDB_LIV_WARN_ABIL       1
 #define DDB_WARNING(f, ...)     DDB_printf(DDB_L_WARNING, f, ## __VA_ARGS__)
 #define DDB_WRN                 DDB_printf(DDB_L_WARNING, "%s %d", \
                                            __FILE__, \
@@ -134,7 +137,7 @@ int DDB_leggi(char */*almeno DDB_DIM_MSG*/) ;
 #endif
 
 #if DDB_LIV >= DDB_LIV_INFO
-#define DDB_LIV_INFO_ABIL		1
+#define DDB_LIV_INFO_ABIL       1
 #define DDB_INFO(f, ...)        DDB_printf(DDB_L_INFO, f, ## __VA_ARGS__)
 #define DDB_INF                 DDB_printf(DDB_L_INFO, "%s %d", \
                                            __FILE__, \
@@ -145,7 +148,7 @@ int DDB_leggi(char */*almeno DDB_DIM_MSG*/) ;
 #endif
 
 #if DDB_LIV >= DDB_LIV_DBG
-#define DDB_LIV_DBG_ABIL		1
+#define DDB_LIV_DBG_ABIL        1
 #define DDB_DEBUG(f, ...)       DDB_printf(DDB_L_DEBUG, f, ## __VA_ARGS__)
 #define DDB_PRINT_HEX(t, x, d)  DDB_print_hex(DDB_L_DEBUG, t, x, d)
 #define DDB_DBG                 DDB_printf(DDB_L_DEBUG, "%s %d", \
