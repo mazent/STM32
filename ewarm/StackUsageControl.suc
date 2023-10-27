@@ -1,0 +1,12 @@
+call graph root [task] : schiavo[app.o];
+call graph root [task] : comTHD[dtc.o];
+call graph root [task] : diario;
+
+call graph root [interrupt] : SysTick_Handler,SDMMC1_IRQHandler,OTG_HS_IRQHandler,SDMMC1_IRQHandler;
+call graph root [interrupt] : USART6_IRQHandler,DMA1_Stream0_IRQHandler;
+call graph root [interrupt] : EXTI0_IRQHandler,EXTI1_IRQHandler,EXTI9_5_IRQHandler,EXTI15_10_IRQHandler;
+call graph root [interrupt] : FDCAN1_IT0_IRQHandler,FDCAN3_IT0_IRQHandler;
+call graph root [interrupt] : USART1_IRQHandler,USART2_IRQHandler,UART4_IRQHandler;
+
+possible calls comTHD[dtc.o] : usb_callback[app.o],ucdc_iniz[app.o],USBU_rx,USBU_tx;
+possible calls gruppo_matrice: IOE_u21,IOE_u22,IOE_u21_l,IOE_u22_l;
