@@ -87,6 +87,7 @@
 
 // Partenza
 // Con dhcp e/o autoip basta il mac
+// Se c'e' da abilitare il clock, fatelo prima
 bool NET_iniz(
     const uint8_t * mac,
     const uint8_t * ip,
@@ -119,9 +120,11 @@ uint32_t PHY_id(void) ;
 // Callback
 // ------------------------------------
 
-// Invocata quando il thd e' pronto
-// Questa e' weak, se volete fatevi la vostra
+// Invocate quando la rete e' accesa/spenta
+// Sono weak, se volete fatevi le vostre
 void net_start(void) ;
+// Se c'e' da disabilitare il clock, fatelo qua
+void net_stop(void) ;
 
 // Invocata quando il phy e' connesso (o sconnesso)
 // Questa e' weak, se volete fatevi la vostra

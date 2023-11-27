@@ -40,8 +40,8 @@
 #define CHECKSUM_CHECK_UDP  0
 #define CHECKSUM_CHECK_TCP  0
 
-// abilita la NET_fine()
 #ifndef USA_NET_FINE
+// disabilita la NET_fine()
 #   define USA_NET_FINE        0
 #endif
 
@@ -139,13 +139,11 @@ TCP
 // inutile: stacco + riattacco -> stesso indirizzo -> non invoca! #define LWIP_NETIF_EXT_STATUS_CALLBACK    (LWIP_DHCP + LWIP_AUTOIP)
 
 // Statistiche
-#ifdef NDEBUG
+#ifndef LWIP_STATS
 #define LWIP_STATS              0
+#endif
+#ifndef LWIP_STATS_DISPLAY
 #define LWIP_STATS_DISPLAY      0
-#else
-#define LWIP_STATS              1
-// Occorre invocare stats_display()
-#define LWIP_STATS_DISPLAY      1
 #endif
 
 // Infrastructure

@@ -1,5 +1,5 @@
-#define STAMPA_DBG
 #include "utili.h"
+//#define DIARIO_LIV_DBG
 #include "diario/diario.h"
 #include "usbd_cdc_if.h"
 #include "../usb_uart.h"

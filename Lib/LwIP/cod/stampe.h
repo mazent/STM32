@@ -11,6 +11,8 @@
 #undef DBG_QUA
 #undef DBG_ERR
 #undef DBG_ASSERT
+#undef DBG_PRN
+#undef DBG_PUT
 
 // definire prima di includere
 //#define DIARIO_LIV_DBG
@@ -23,6 +25,21 @@
 #define DBG_QUA             DDB_QUA
 #define DBG_ERR             DDB_ERR
 #define DBG_ASSERT          DDB_ASSERT
+
+// condizionate
+#   define DBG_PRN(c, p)    \
+    do {                    \
+        if ( c ) {          \
+            DDB_PRINTF p ;  \
+        }                   \
+    } while ( false )
+
+#   define DBG_PUT(c, p)    \
+    do {                    \
+        if ( c ) {          \
+            DDB_PUTS(p) ;   \
+        }                   \
+    } while ( false )
 
 #endif
 

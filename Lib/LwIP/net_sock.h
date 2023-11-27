@@ -6,7 +6,9 @@
 #define ESEMPI_NET
 #include "net_if.h"
 
+#ifndef INUTILE
 #define INUTILE(x)          (void) ( sizeof(x) )
+#endif
 
 #define AF_INET         2
 #define PF_INET         AF_INET

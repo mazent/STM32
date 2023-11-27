@@ -18,41 +18,40 @@
 extern void phy_reset(void) ;
 extern void phy_stop(void) ;
 
-// senza questa si procede a polling e va male col tempo
+// La trasmissione a polling degrada col tempo
 // https://community.st.com/t5/stm32-mcus-embedded-software/strange-long-eth-transmission/td-p/597629
-#define TX_ASINC    1
 
 //#define STAMPA_ROBA	1
 #define DBG_PBUF_RX     0
-#define DBG_PBUF_TX     0
+#define DBG_PBUF_TX     1
 #define DBG_EVN         1
 
-#define EVN_ESCI        (1 << 0)
-#define EVN_IRQ_PHY     (1 << 1)
-#define EVN_IRQ_TX      (1 << 2)
-#define EVN_IRQ_RX      (1 << 3)
-#define EVN_RIC         (1 << 4)
-//#define EVN_IRQ_ERR     (1 << 5)
+#define EVN_IRQ_PHY     (1 << 0)
+#define EVN_IRQ_TX      (1 << 1)
+#define EVN_IRQ_RX      (1 << 2)
+#define EVN_RIC         (1 << 3)
+//#define EVN_IRQ_ERR     (1 << 4)
+#define EVN_FINE        (1 << 5)
+#define EVN_INIZ        (1 << 6)
 
-#ifdef TX_ASINC
 static bool trasm = false ;
 
 // se occupato, salvo e trasmetto dopo
 #define MAX_LISTA       10
 
-#ifdef LISTA_H_
 static
 __attribute__( ( section(".dtcm") ) )
 union {
     UNA_LISTA s ;
     uint32_t b[MAX_LISTA + 2] ;
 } lstTx ;
-#else
-osMessageQDef(mq_tx, MAX_LISTA, void *) ;
-static osMessageQId mq_tx = NULL ;
-#endif
 
-#endif
+static
+__attribute__( ( section(".dtcm") ) )
+union {
+    UNA_LISTA s ;
+    uint32_t b[MAX_LISTA + 2] ;
+} lstRx ;
 
 #if LWIP_DHCP + LWIP_AUTOIP
 static bool ip_bound = false ;
@@ -60,9 +59,15 @@ static bool ip_bound = false ;
 
 struct netif netif ;
 
-static bool init_pool = false ;
-
 static osThreadId tid = NULL ;
+
+static enum {
+    STT_SPENTO,
+    STT_Q_ACCESO,
+    STT_ACCESO,
+    STT_Q_SPENTO,
+    STT_ERR
+} stato = STT_SPENTO ;
 
 #if LWIP_TCP + LWIP_UDP
 #define ETH_RX_BUFFER_CNT             (2 * ETH_RX_DESC_CNT + 1)
@@ -84,7 +89,6 @@ static
 __attribute__( ( section(".no_cache") ) )
 ETH_TxPacketConfig TxConfig ;
 
-#ifdef TX_ASINC
 static void stampa_tx_desc(void)
 {
 #if 0
@@ -100,12 +104,11 @@ static void stampa_tx_desc(void)
 #endif
 }
 
-#endif
-
 static void stampa_pbuf(const struct pbuf * p)
 {
     INUTILE(p) ;
 #if 1
+#elif 0
     DBG_PRINTF("\t %u", p->tot_len) ;
 #else
     DBG_PRINTF( "\t %u[%u]", p->tot_len, pbuf_clen(p) ) ;
@@ -135,81 +138,6 @@ static void stampa_pbuf(const struct pbuf * p)
 
 #define RXBUFF_T_DIM_BUFF   DCACHE_LINE_ARR(ETH_RX_BUFFER_SIZE)
 
-#if USA_NET_FINE
-
-/*
- * La chiusura prevede di liberare i buffer usati da ETH
- *
- * Per farlo tengo una lista dei buffer allocati
- */
-
-#include "linux_list.h"
-
-typedef struct {
-    struct pbuf_custom pbuf_custom ;
-    struct list_head allocated ;
-    uint8_t buff[RXBUFF_T_DIM_BUFF] ALLINEAMENTO ;
-} RxBuff_t ;
-
-static struct list_head allocated ;
-
-LWIP_MEMPOOL_DECLARE(RX_POOL,
-                     ETH_RX_BUFFER_CNT,
-                     sizeof(RxBuff_t),
-                     "Zero-copy RX PBUF pool")
-
-static void eth_rx_free(void)
-{
-    if ( !list_empty(&allocated) ) {
-        RxBuff_t * cursor ;
-        RxBuff_t * next ;
-#ifdef __ICCARM__
-        list_for_each_entry_safe(cursor,
-                                 RxBuff_t,
-                                 next,
-                                 &allocated,
-                                 allocated) {
-#else
-        list_for_each_entry_safe(cursor, next, &allocated, allocated) {
-#endif
-            list_del(&cursor->allocated) ;
-
-            struct pbuf_custom * custom_pbuf = (struct pbuf_custom *) cursor ;
-            LWIP_MEMPOOL_FREE(RX_POOL, custom_pbuf) ;
-        }
-    }
-}
-
-static void pbuf_free_custom(struct pbuf * p)
-{
-    RxBuff_t * pB = (RxBuff_t *) p ;
-    if ( !list_empty(&allocated) ) {
-        RxBuff_t * cursor ;
-        RxBuff_t * next ;
-#ifdef __ICCARM__
-        list_for_each_entry_safe(cursor,
-                                 RxBuff_t,
-                                 next,
-                                 &allocated,
-                                 allocated) {
-#else
-        list_for_each_entry_safe(cursor, next, &allocated, allocated) {
-#endif
-            if ( cursor == pB ) {
-                list_del(&cursor->allocated) ;
-            }
-        }
-    }
-
-    struct pbuf_custom * custom_pbuf = (struct pbuf_custom *) p ;
-    LWIP_MEMPOOL_FREE(RX_POOL, custom_pbuf) ;
-
-    // vedi esame_cust_pbuf.py
-    DBG_PRN( DBG_PBUF_RX, ("%s %08X", __func__, p) )
-}
-
-#else
-
 typedef struct {
     struct pbuf_custom pbuf_custom ;
     uint8_t buff[RXBUFF_T_DIM_BUFF] ALLINEAMENTO ;
@@ -225,11 +153,16 @@ static void pbuf_free_custom(struct pbuf * p)
     struct pbuf_custom * custom_pbuf = (struct pbuf_custom *) p ;
     LWIP_MEMPOOL_FREE(RX_POOL, custom_pbuf) ;
 
-    // vedi esame_cust_pbuf.py
-    DBG_PRN( DBG_PBUF_RX, ("%s %08X", __func__, p) )
-}
+    // Lo elimino dalla lista: ...
+    uint32_t elem ;
+    // ... il primo
+    CONTROLLA( LST_est(&lstRx.s, &elem) ) ;
+    // ... deve essere lui
+    ASSERT(UINTEGER(p) == elem) ;
 
-#endif
+    // vedi esame_cust_pbuf.py
+    DBG_PRN( DBG_PBUF_RX, ("pbuf_rx_free %08X", p) ) ;
+}
 
 static
 __attribute__( ( section(".no_cache") ) )
@@ -258,6 +191,8 @@ __WEAK void net_bound(const char * _)
 
 __WEAK void net_start(void) {}
 
+__WEAK void net_stop(void) {}
+
 __WEAK void net_link(bool _)
 {
     INUTILE(_) ;
@@ -269,7 +204,6 @@ static void trasmetti(struct pbuf * p)
     DBG_PRN( DBG_PBUF_TX, ("TX %08X[%d]", p, p->tot_len) ) ;
 #else
     //DBG_PRINTF( "TX %u[%u]", p->tot_len, pbuf_clen(p) ) ;
-    DBG_PUTS("TX") ;
     stampa_pbuf(p) ;
 #endif
 
@@ -295,7 +229,6 @@ static void trasmetti(struct pbuf * p)
     TxConfig.TxBuffer = txB ;
     TxConfig.pData = p ;
 
-#ifdef TX_ASINC
     trasm = HAL_OK == HAL_ETH_Transmit_IT(&heth, &TxConfig) ;
     if ( !trasm ) {
         DBG_ERR ;
@@ -304,14 +237,8 @@ static void trasmetti(struct pbuf * p)
     else {
         LINK_STATS_INC(link.xmit) ;
     }
-#else
-    LINK_STATS_INC(link.xmit) ;
-    CONTROLLA( HAL_OK == HAL_ETH_Transmit(&heth, &TxConfig, 1000) ) ;
-    HAL_ETH_ReleaseTxPacket(&heth) ;
-#endif
 }
 
-#ifdef TX_ASINC
 static err_t
 port_netif_output(
     struct netif * n_if,
@@ -321,14 +248,11 @@ port_netif_output(
     assert(osThreadGetId() == tid) ;
 
     if ( !PHY_link() ) {}
-    else if ( trasm ) {
+    else if ( trasm || (LST_quanti(&lstTx.s) > 0) ) {
         // accodo
-        DBG_PRN( DBG_PBUF_TX, ("TX accodo %08X[%d]", p, p->tot_len) ) ;
-#ifdef LISTA_H_
+        // vedi esame_cust_pbuf.py
+        DBG_PRN( DBG_PBUF_TX, ("%08X = pbuf_tx_alloc", p) ) ;
         if ( LST_ins( &lstTx.s, UINTEGER(p) ) ) {
-#else
-        if ( osOK == osMessagePut(mq_tx, UINTEGER(p), 0) ) {
-#endif
             pbuf_ref(p) ;
         }
         else {
@@ -344,48 +268,9 @@ port_netif_output(
     return ERR_OK ;
 }
 
-#else
-static err_t
-port_netif_output(
-    struct netif * n_if,
-    struct pbuf * p)
+static void hw_iniz(void)
 {
-    INUTILE(n_if) ;
-    assert(osThreadGetId() == tid) ;
-
-    if ( PHY_link() ) {
-        trasmetti(p) ;
-    }
-    return ERR_OK ;
-}
-
-#endif
-
-static err_t port_netif_init(struct netif * n_if)
-{
-    n_if->name[0] = 'E' ;
-    n_if->name[1] = 'T' ;
-
-    n_if->linkoutput = port_netif_output ;
-    n_if->output = etharp_output ;
-    n_if->mtu = ETH_MAX_PAYLOAD ;
-    n_if->flags = NETIF_FLAG_BROADCAST | NETIF_FLAG_ETHARP ;
-    //MIB2_INIT_NETIF(netif, snmp_ifType_ethernet_csmacd, 100000000);
-
-    memcpy(n_if->hwaddr, mac, ETH_HWADDR_LEN) ;
-    n_if->hwaddr_len = ETH_HWADDR_LEN ;
-
-#ifdef TX_ASINC
-#ifdef LISTA_H_
-    LST_iniz(&lstTx.s, MAX_LISTA) ;
-#else
-    if ( NULL == mq_tx ) {
-        mq_tx = osMessageCreate(osMessageQ(mq_tx), NULL) ;
-        CONTROLLA(NULL != mq_tx) ;
-    }
-#endif
-#endif
-
+    DBG_FUN ;
     /*
      * In certe schede il reset abilita il clock ETH, per cui
      * bisogna darlo prima di HAL_ETH_Init() e non
@@ -414,6 +299,28 @@ static err_t port_netif_init(struct netif * n_if)
 
     // PHY
     PHY_iniz(PHY_SPEED_AUTO, PHY_DUPLEX_FULL) ;
+}
+
+static err_t port_netif_init(struct netif * n_if)
+{
+    DBG_FUN ;
+
+    n_if->name[0] = 'E' ;
+    n_if->name[1] = 'T' ;
+
+    n_if->linkoutput = port_netif_output ;
+    n_if->output = etharp_output ;
+    n_if->mtu = ETH_MAX_PAYLOAD ;
+    n_if->flags = NETIF_FLAG_BROADCAST | NETIF_FLAG_ETHARP ;
+    //MIB2_INIT_NETIF(netif, snmp_ifType_ethernet_csmacd, 100000000);
+
+    memcpy(n_if->hwaddr, mac, ETH_HWADDR_LEN) ;
+    n_if->hwaddr_len = ETH_HWADDR_LEN ;
+
+    LST_iniz(&lstTx.s, MAX_LISTA) ;
+    LST_iniz(&lstRx.s, MAX_LISTA) ;
+
+    hw_iniz() ;
 
     return ERR_OK ;
 }
@@ -430,7 +337,99 @@ static err_t port_netif_init(struct netif * n_if)
 #error LWIP_NETIF_EXT_STATUS_CALLBACK INUTILE!!!
 #endif
 
-static bool iniz_lwip = false ;
+static void evn_irq_rx(void)
+{
+    struct pbuf * p = NULL ;
+    while ( true ) {
+        if ( HAL_OK != HAL_ETH_ReadData(&heth, (void * *) &p) ) {
+            break ;
+        }
+
+        LINK_STATS_INC(link.recv) ;
+#if DBG_PBUF_RX
+        DBG_PRN( DBG_PBUF_RX, ("\t%08X [%u]", p, p->tot_len) )
+#else
+        stampa_pbuf(p) ;
+#endif
+#ifdef STAMPA_ROBA
+        DBG_PRINT_HEX("\t", p->payload, p->len) ;
+#endif
+        // Conviene consumare subito il dato
+        if ( netif.input(p, &netif) != ERR_OK ) {
+            DBG_ERR ;
+            pbuf_free(p) ;
+        }
+    }
+}
+
+static void evn_irq_tx(void)
+{
+    trasm = false ;
+    stampa_tx_desc() ;
+    HAL_ETH_ReleaseTxPacket(&heth) ;
+
+    uint32_t elem ;
+    if ( LST_est(&lstTx.s, &elem) ) {
+        struct pbuf * p = POINTER(elem) ;
+
+        // vedi esame_cust_pbuf.py
+        DBG_PRN( DBG_PBUF_TX, ("pbuf_tx_free %08X", elem) ) ;
+
+        trasmetti(p) ;
+    }
+}
+
+#if USA_NET_FINE
+
+static void evn_fine(void)
+{
+    if ( PHY_link() ) {
+        MAC_fine() ;
+    }
+
+    CONTROLLA( HAL_OK == HAL_ETH_DeInit(&heth) ) ;
+    phy_stop() ;
+#if LWIP_DHCP
+    dhcp_stop(&netif) ;
+#endif
+#if LWIP_AUTOIP && (LWIP_DHCP_AUTOIP_COOP == 0)
+    autoip_stop(&netif) ;
+#endif
+    netif_set_down(&netif) ;
+    //netif_remove(&netif) ;
+#if LWIP_TCP + LWIP_UDP
+    netop_fine() ;
+#endif
+    // Elimino i buffer che erano in ricezione
+    uint32_t elem ;
+    while ( LST_est(&lstRx.s, &elem) ) {
+        struct pbuf_custom * custom_pbuf = POINTER(elem) ;
+        LWIP_MEMPOOL_FREE(RX_POOL, custom_pbuf) ;
+
+        // vedi esame_cust_pbuf.py
+        DBG_PRN( DBG_PBUF_RX, ("pbuf_rx_free %08X", custom_pbuf) ) ;
+    }
+
+    stato = STT_SPENTO ;
+    net_stop() ;
+}
+
+static void evn_iniz(void)
+{
+    hw_iniz() ;
+    netif_set_up(&netif) ;
+#if LWIP_DHCP
+    dhcp_start(&netif) ;
+#endif
+#if LWIP_AUTOIP && (LWIP_DHCP_AUTOIP_COOP == 0)
+    autoip_start(&netif) ;
+#endif
+
+    stato = STT_ACCESO ;
+    net_start() ;
+}
+
+#endif
 
 static void netTHD(void * argument)
 {
@@ -440,10 +439,7 @@ static void netTHD(void * argument)
 
     netop_iniz(EVN_RIC) ;
 
-    if ( !iniz_lwip ) {
-        iniz_lwip = true ;
-        lwip_init() ;
-    }
+    lwip_init() ;
 
     netif_add(&netif,
               (ip4_addr_t *) &ip,
@@ -464,6 +460,7 @@ static void netTHD(void * argument)
     autoip_start(&netif) ;
 #endif
 
+    stato = STT_ACCESO ;
     net_start() ;
 
     while ( true ) {
@@ -522,11 +519,6 @@ static void netTHD(void * argument)
         if ( osEventSignal != evn.status ) {
             continue ;
         }
-#if USA_NET_FINE
-        if ( EVN_ESCI & evn.value.signals ) {
-            break ;
-        }
-#endif
 #ifdef EVN_IRQ_ERR
         if ( EVN_IRQ_ERR & evn.value.signals ) {
             heth.gState = HAL_ETH_STATE_STARTED ;
@@ -543,27 +535,7 @@ static void netTHD(void * argument)
         if ( EVN_IRQ_RX & evn.value.signals ) {
             DBG_PUT(DBG_EVN, "EVN_IRQ_RX") ;
 
-            struct pbuf * p = NULL ;
-            while ( true ) {
-                if ( HAL_OK != HAL_ETH_ReadData(&heth, (void * *) &p) ) {
-                    break ;
-                }
-
-                LINK_STATS_INC(link.recv) ;
-#if DBG_PBUF_RX
-                DBG_PRN( DBG_PBUF_RX, ("\t%08X [%u]", p, p->tot_len) )
-#else
-                stampa_pbuf(p) ;
-#endif
-#ifdef STAMPA_ROBA
-                DBG_PRINT_HEX("\t", p->payload, p->len) ;
-#endif
-                // Conviene consumare subito il dato
-                if ( netif.input(p, &netif) != ERR_OK ) {
-                    DBG_ERR ;
-                    pbuf_free(p) ;
-                }
-            }
+            evn_irq_rx() ;
         }
 
 #if LWIP_TCP + LWIP_UDP
@@ -573,55 +545,25 @@ static void netTHD(void * argument)
             netop_ric() ;
         }
 #endif
-#ifdef TX_ASINC
         if ( EVN_IRQ_TX & evn.value.signals ) {
             DBG_PUT(DBG_EVN, "EVN_IRQ_TX") ;
-            trasm = false ;
-            stampa_tx_desc() ;
-            HAL_ETH_ReleaseTxPacket(&heth) ;
-#ifdef LISTA_H_
-            uint32_t elem ;
-            if ( LST_est(&lstTx.s, &elem) ) {
-                struct pbuf * p = POINTER(elem) ;
 
-                trasmetti(p) ;
-            }
-#else
-            osEvent msg = osMessageGet(mq_tx, 0) ;
-            if ( osEventMessage == msg.status ) {
-                struct pbuf * p = msg.value.p ;
+            evn_irq_tx() ;
+        }
+#if USA_NET_FINE
+        if ( EVN_FINE & evn.value.signals ) {
+            DBG_PUT(DBG_EVN, "EVN_FINE") ;
 
-                trasmetti(p) ;
-            }
-#endif
+            evn_fine() ;
+        }
+
+        if ( EVN_INIZ & evn.value.signals ) {
+            DBG_PUT(DBG_EVN, "EVN_INIZ") ;
+
+            evn_iniz() ;
         }
 #endif
     }
-#if USA_NET_FINE
-    DBG_QUA ;
-
-    CONTROLLA( HAL_OK == HAL_ETH_DeInit(&heth) ) ;
-    phy_stop() ;
-#if LWIP_DHCP
-    dhcp_stop(&netif) ;
-#endif
-#if LWIP_AUTOIP && (LWIP_DHCP_AUTOIP_COOP == 0)
-    autoip_stop(&netif) ;
-#endif
-    netif_set_down(&netif) ;
-    netif_remove(&netif) ;
-#if LWIP_TCP + LWIP_UDP
-    netop_fine() ;
-#endif
-    eth_rx_free() ;
-
-#if 0
-    // Questa manca
-    lwip_deinit() ;
-#endif
-    tid = NULL ;
-    osThreadTerminate(NULL) ;
-#endif
 }
 
 bool NET_iniz(
@@ -640,11 +582,35 @@ bool NET_iniz(
     static_assert(ETH_TX_DESC_CNT <= MEMP_NUM_FRAG_PBUF, "OKKIO") ;
     static_assert(PBUF_POOL_SIZE > IP_REASS_MAX_PBUFS, "OKKIO") ;
 
+    DBG_FUN ;
+
     do {
-        if ( NULL != tid ) {
+        if ( STT_ERR == stato ) {
             DBG_ERR ;
             break ;
         }
+
+        if ( NULL != tid ) {
+            switch ( stato ) {
+            case STT_SPENTO:
+                esito = true ;
+#if USA_NET_FINE
+                stato = STT_Q_ACCESO ;
+                (void) osSignalSet(tid, EVN_INIZ) ;
+#endif
+                break ;
+            case STT_ACCESO:
+                esito = true ;
+                break ;
+            case STT_Q_ACCESO:
+            case STT_Q_SPENTO:
+            case STT_ERR:
+                DBG_ERR ;
+                break ;
+            }
+            break ;
+        }
+        stato = STT_Q_ACCESO ;
 
         if ( NULL == m ) {
             DBG_ERR ;
@@ -679,13 +645,7 @@ bool NET_iniz(
         memcpy( &gw, _gw, sizeof(gw) ) ;
 #endif
 
-        if ( !init_pool ) {
-            LWIP_MEMPOOL_INIT(RX_POOL) ;
-            init_pool = true ;
-#if USA_NET_FINE
-            INIT_LIST_HEAD(&allocated) ;
-#endif
-        }
+        LWIP_MEMPOOL_INIT(RX_POOL) ;
 
         memset( DMATxDscrTab, 0, sizeof(DMATxDscrTab) ) ;
         memset( DMARxDscrTab, 0, sizeof(DMARxDscrTab) ) ;
@@ -703,14 +663,30 @@ bool NET_iniz(
         esito = NULL != tid ;
     } while ( false ) ;
 
+    if ( !esito ) {
+        stato = STT_ERR ;
+    }
+
     return esito ;
 }
 
 void NET_fine(void)
 {
+    DBG_FUN ;
 #if USA_NET_FINE
-    if ( tid ) {
-        (void) osSignalSet(tid, EVN_ESCI) ;
+    switch ( stato ) {
+    case STT_SPENTO:
+        // Ottimo
+        break ;
+    case STT_ACCESO:
+        stato = STT_Q_SPENTO ;
+        (void) osSignalSet(tid, EVN_FINE) ;
+        break ;
+    case STT_Q_ACCESO:
+    case STT_Q_SPENTO:
+    case STT_ERR:
+        DBG_ERR ;
+        break ;
     }
 #else
     DBG_ERR ;
@@ -760,16 +736,13 @@ void HAL_ETH_RxAllocateCallback(uint8_t * * buff)
 {
     struct pbuf_custom * p = LWIP_MEMPOOL_ALLOC(RX_POOL) ;
     if ( p ) {
-#if USA_NET_FINE
-        RxBuff_t * pB = (RxBuff_t *) p ;
-        INIT_LIST_HEAD(&pB->allocated) ;
-        list_add(&pB->allocated, &allocated) ;
-#endif
+        CONTROLLA( LST_ins( &lstRx.s, UINTEGER(p) ) ) ;
+
         /* Get the buff from the struct pbuf address. */
         *buff = (uint8_t *) p + offsetof(RxBuff_t, buff) ;
 
         // vedi esame_cust_pbuf.py
-        DBG_PRN( DBG_PBUF_RX, ("%08X = %s", p, __func__) )
+        DBG_PRN( DBG_PBUF_RX, ("%08X = pbuf_rx_alloc", p) ) ;
 
         p->custom_free_function = pbuf_free_custom ;
         /* Initialize the struct pbuf.
@@ -831,8 +804,6 @@ void HAL_ETH_ErrorCallback(ETH_HandleTypeDef * h)
 #endif
 }
 
-#ifdef TX_ASINC
-
 void HAL_ETH_TxFreeCallback(uint32_t * buff)
 {
     DBG_PRN( DBG_PBUF_TX, ("TX free %08X", buff) ) ;
@@ -845,12 +816,8 @@ void HAL_ETH_TxCpltCallback(ETH_HandleTypeDef * h)
     (void) osSignalSet(tid, EVN_IRQ_TX) ;
 }
 
-#endif
-
 void ETH_IRQHandler(void)
 {
-    DDB_PUTS("ETH_IRQ") ;
-
     HAL_ETH_IRQHandler(&heth) ;
 }
 
@@ -861,9 +828,9 @@ void PHY_irq(void)
     }
 }
 
-bool is_btp_running(void)
+bool is_net_running(void)
 {
-    return tid != NULL ;
+    return stato == STT_ACCESO ;
 }
 
 uint32_t reg_leggi(uint32_t reg)
@@ -913,6 +880,9 @@ void MAC_iniz(
     ETH_MACConfigTypeDef MACConf = {
         0
     } ;
+
+    DBG_FUN ;
+
     HAL_ETH_GetMACConfig(&heth, &MACConf) ;
     MACConf.DuplexMode =
         fullduplex ? ETH_FULLDUPLEX_MODE : ETH_HALFDUPLEX_MODE ;
@@ -923,40 +893,39 @@ void MAC_iniz(
 #if LWIP_DHCP + LWIP_AUTOIP
     ip_bound = false ;
 #endif
-#ifdef TX_ASINC
     trasm = false ;
-#endif
     // lwip
     netif_set_link_up(&netif) ;
     net_link(true) ;
 }
 
-#ifdef NDEBUG
-static void stampa_diario(void){}
-#else
-static void stampa_diario(void)
-{
-#ifdef DDB_DIM_MSG
-    static
-    __attribute__( ( section(".dtcm") ) )
-    char msg[DDB_DIM_MSG + 100] ;
-
-    while ( true ) {
-        int dim = DDB_leggi(msg) ;
-        if ( dim > 0 ) {
-            printf(msg) ;
-        }
-        else {
-            break ;
-        }
-    }
-#endif
-}
-
-#endif
+//#ifdef NDEBUG
+//static void stampa_diario(void){}
+//#else
+//static void stampa_diario(void)
+//{
+//#ifdef DDB_DIM_MSG
+//    static
+//    __attribute__( ( section(".dtcm") ) )
+//    char msg[DDB_DIM_MSG + 100] ;
+//
+//    while ( true ) {
+//        int dim = DDB_leggi(msg) ;
+//        if ( dim > 0 ) {
+//            printf(msg) ;
+//        }
+//        else {
+//            break ;
+//        }
+//    }
+//#endif
+//}
+//#endif
 
 void MAC_fine(void)
 {
+    DBG_FUN ;
+
     // lwip
     netif_set_link_down(&netif) ;
 
@@ -970,27 +939,17 @@ void MAC_fine(void)
 #endif
 #endif
 
-#ifdef TX_ASINC
-#ifdef LISTA_H_
     uint32_t elem ;
     while ( LST_est(&lstTx.s, &elem) ) {
         struct pbuf * p = POINTER(elem) ;
+
+        // vedi esame_cust_pbuf.py
+        DBG_PRN( DBG_PBUF_TX, ("pbuf_tx_free %08X", elem) ) ;
+
         pbuf_free(p) ;
     }
-#else
-    while ( true ) {
-        osEvent msg = osMessageGet(mq_tx, 0) ;
-        if ( osEventMessage == msg.status ) {
-            pbuf_free( (struct pbuf *) msg.value.p ) ;
-        }
-        else {
-            break ;
-        }
-    }
-#endif
-#endif
 
-    stampa_diario() ;
+    //stampa_diario() ;
 
 #if LWIP_DHCP + LWIP_AUTOIP
     net_bound(NULL) ;

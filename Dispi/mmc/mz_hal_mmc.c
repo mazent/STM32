@@ -546,7 +546,7 @@ HAL_StatusTypeDef HAL_MMC_ReadBlocks(
   */
 HAL_StatusTypeDef HAL_MMC_WriteBlocks(
     MMC_HandleTypeDef * hmmc,
-    uint8_t * pData,
+    const uint8_t * pData,
     uint32_t BlockAdd,
     uint32_t NumberOfBlocks,
     uint32_t Timeout)
@@ -558,7 +558,7 @@ HAL_StatusTypeDef HAL_MMC_WriteBlocks(
     uint32_t data ;
     uint32_t dataremaining ;
     uint32_t add = BlockAdd ;
-    uint8_t * tempbuff = pData ;
+    const uint8_t * tempbuff = pData ;
 
     if ( NULL == pData ) {
         hmmc->ErrorCode |= HAL_MMC_ERROR_PARAM ;
@@ -844,7 +844,7 @@ HAL_StatusTypeDef HAL_MMC_ReadBlocks_IT(
   */
 HAL_StatusTypeDef HAL_MMC_WriteBlocks_IT(
     MMC_HandleTypeDef * hmmc,
-    uint8_t * pData,
+    const uint8_t * pData,
     uint32_t BlockAdd,
     uint32_t NumberOfBlocks)
 {
@@ -1067,7 +1067,7 @@ HAL_StatusTypeDef HAL_MMC_ReadBlocks_DMA(
   */
 HAL_StatusTypeDef HAL_MMC_WriteBlocks_DMA(
     MMC_HandleTypeDef * hmmc,
-    uint8_t * pData,
+    const uint8_t * pData,
     uint32_t BlockAdd,
     uint32_t NumberOfBlocks)
 {
@@ -3544,7 +3544,7 @@ static void MMC_Write_IT(MMC_HandleTypeDef * hmmc)
 {
     uint32_t count ;
     uint32_t data ;
-    uint8_t * tmp = hmmc->pTxBuffPtr ;
+    const uint8_t * tmp = hmmc->pTxBuffPtr ;
 
     if ( hmmc->TxXferSize >= 32U ) {
         /* Write data to SDMMC Tx FIFO */

@@ -6,7 +6,8 @@ if __name__ == '__main__':
     else:
         NOMEF = sys.argv[1]
 
-        pbuf = {}
+        pbuf_rx = {}
+        pbuf_tx = {}
 
         conta = 0
 
@@ -17,27 +18,52 @@ if __name__ == '__main__':
                     break
                 conta += 1
 
-                if 'HAL_ETH_RxAllocateCallback' in riga:
+                if 'pbuf_rx_alloc' in riga:
+                    # %08X = pbuf_rx_alloc
                     elem = riga.strip().split(' ')
                     if len(elem) == 3:
-                        if elem[0] not in pbuf:
-                            pbuf[elem[0]] = 1
+                        if elem[0] not in pbuf_rx:
+                            pbuf_rx[elem[0]] = 1
                         else:
-                            pbuf[elem[0]] += 1
+                            pbuf_rx[elem[0]] += 1
                     else:
                         print('{}) {} invece di 3'.format(conta, len(elem)))
                     continue
 
-                if 'pbuf_free_custom' in riga:
+                if 'pbuf_rx_free' in riga:
+                    # pbuf_rx_free %08X
                     elem = riga.strip().split(' ')
                     if len(elem) == 2:
-                        if elem[1] not in pbuf:
-                            pbuf[elem[1]] = 0
+                        if elem[1] not in pbuf_rx:
+                            pbuf_rx[elem[1]] = 0
                         else:
-                            pbuf[elem[1]] -= 1
+                            pbuf_rx[elem[1]] -= 1
                     else:
                         print('{}) {} invece di 2'.format(conta, len(elem)))
                     continue
 
-        for k, v in pbuf.items():
-            print('{} = {}'.format(k, v))
+                if 'pbuf_tx_alloc' in riga:
+                    elem = riga.strip().split(' ')
+                    if len(elem) == 3:
+                        if elem[0] not in pbuf_tx:
+                            pbuf_tx[elem[0]] = 1
+                        else:
+                            pbuf_tx[elem[0]] += 1
+                    else:
+                        print('{}) {} invece di 3'.format(conta, len(elem)))
+                    continue
+
+                if 'pbuf_tx_free' in riga:
+                    elem = riga.strip().split(' ')
+                    if len(elem) == 2:
+                        if elem[1] not in pbuf_tx:
+                            pbuf_tx[elem[1]] = 0
+                        else:
+                            pbuf_tx[elem[1]] -= 1
+                    else:
+                        print('{}) {} invece di 2'.format(conta, len(elem)))
+                    continue
+
+        print("PBUF RX")
+        for k, v in pbuf_rx.items():
+            print('\t{} = {}'.format(k, v))

@@ -4,7 +4,7 @@
 #include "lwip/tcp.h"
 #include "lwip/udp.h"
 
-extern bool is_btp_running(void) ;
+extern bool is_net_running(void) ;
 
 #define DBG_REQ         0
 
@@ -755,7 +755,7 @@ bool NET_socket_ini(
             break ;
         }
 
-        if ( !is_btp_running() ) {
+        if ( !is_net_running() ) {
             break ;
         }
 
@@ -811,7 +811,7 @@ bool NET_close_ini(
             }
         }
 
-        if ( !is_btp_running() ) {
+        if ( !is_net_running() ) {
             break ;
         }
 
@@ -868,7 +868,7 @@ bool NET_connect_ini(
             break ;
         }
 
-        if ( !is_btp_running() ) {
+        if ( !is_net_running() ) {
             break ;
         }
 
@@ -922,7 +922,7 @@ bool NET_bind_ini(
             break ;
         }
 
-        if ( !is_btp_running() ) {
+        if ( !is_net_running() ) {
             break ;
         }
 
@@ -988,7 +988,7 @@ bool NET_recvfrom_ini(
             break ;
         }
 
-        if ( !is_btp_running() ) {
+        if ( !is_net_running() ) {
             break ;
         }
 
@@ -1057,7 +1057,7 @@ bool NET_sendto_ini(
             break ;
         }
 
-        if ( !is_btp_running() ) {
+        if ( !is_net_running() ) {
             break ;
         }
 
@@ -1124,7 +1124,7 @@ bool NET_listen_ini(
             break ;
         }
 
-        if ( !is_btp_running() ) {
+        if ( !is_net_running() ) {
             break ;
         }
 
@@ -1178,7 +1178,7 @@ bool NET_accept_ini(
             break ;
         }
 
-        if ( !is_btp_running() ) {
+        if ( !is_net_running() ) {
             break ;
         }
 
@@ -1244,7 +1244,7 @@ bool NET_recv_ini(
             break ;
         }
 
-        if ( !is_btp_running() ) {
+        if ( !is_net_running() ) {
             break ;
         }
 
@@ -1313,7 +1313,7 @@ bool NET_send_ini(
             break ;
         }
 
-        if ( !is_btp_running() ) {
+        if ( !is_net_running() ) {
             break ;
         }
 
@@ -1394,7 +1394,7 @@ bool NET_select_ini(
             break ;
         }
 
-        if ( !is_btp_running() ) {
+        if ( !is_net_running() ) {
             break ;
         }
 

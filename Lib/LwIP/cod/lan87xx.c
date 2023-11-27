@@ -4,6 +4,9 @@
 #include "bsp.h"
 #include "cmsis_rtos/cmsis_os.h"
 
+//#define DIARIO_LIV_DBG
+#include "stampe.h"
+
 #define PHY_ID_LAN8742A        0x0007C130
 #define PHY_ID_LAN8720         0x0007C0F0
 

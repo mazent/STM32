@@ -19,7 +19,8 @@
 */
 
 // abilita la NET_fine()
-#define USA_NET_FINE        1
+// OKKIO che poi non capita piu' l'irq di fine tx
+//#define USA_NET_FINE        1
 
 // IPv4
 // --------------------------------------------------------------

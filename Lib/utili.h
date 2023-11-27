@@ -267,15 +267,19 @@ uint32_t HAL_GetTick(void) ;
                                                __FILE__, \
                                                __LINE__)
 // condizionate
-#	define DBG_PRN(c, p)    \
-    if ( c ) {               \
-        DBG_PRINTF p ;       \
-    }
+#   define DBG_PRN(c, p)    \
+    do {                    \
+        if ( c ) {               \
+            DBG_PRINTF p ;       \
+        }                   \
+    } while ( false )
 
-#	define DBG_PUT(c, p)    \
-    if ( c ) {               \
-        DBG_PUTS(p) ;       \
-    }
+#   define DBG_PUT(c, p)    \
+    do {                    \
+        if ( c ) {               \
+            DBG_PUTS(p) ;       \
+        }                   \
+    } while ( false )
 #endif
 
 #else
@@ -287,8 +291,8 @@ uint32_t HAL_GetTick(void) ;
 #   define DBG_ERR
 #   define DBG_ASSERT
 
-#	define DBG_PRN(c, p)
-#	define DBG_PUT(c, p)
+#   define DBG_PRN(c, p)
+#   define DBG_PUT(c, p)
 #endif
 
 // In debug queste stampano (se stampa abilitata)
@@ -310,6 +314,6 @@ uint32_t HAL_GetTick(void) ;
 // Sei inglese? usa queste
 // ==========================================
 
-#define CHECK_IT		CONTROLLA
+#define CHECK_IT        CONTROLLA
 
 #endif
