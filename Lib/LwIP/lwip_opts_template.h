@@ -19,7 +19,7 @@
 */
 
 // abilita la NET_fine()
-// OKKIO che poi non capita piu' l'irq di fine tx
+// LWiP non ha lwip_deinit(), per cui potrebbe non funzionare
 //#define USA_NET_FINE        1
 
 // IPv4

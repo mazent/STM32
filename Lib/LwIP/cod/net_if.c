@@ -23,8 +23,9 @@ extern void phy_stop(void) ;
 
 //#define STAMPA_ROBA	1
 #define DBG_PBUF_RX     0
-#define DBG_PBUF_TX     1
-#define DBG_EVN         1
+#define DBG_PBUF_TX     0
+#define DBG_EVN         0
+#define DBG_LST_RX      0
 
 #define EVN_IRQ_PHY     (1 << 0)
 #define EVN_IRQ_TX      (1 << 1)
@@ -157,6 +158,7 @@ static void pbuf_free_custom(struct pbuf * p)
     uint32_t elem ;
     // ... il primo
     CONTROLLA( LST_est(&lstRx.s, &elem) ) ;
+    DBG_PRN( DBG_LST_RX, ( "lst rx -> %08X = %d", elem, LST_quanti(&lstRx.s) ) ) ;
     // ... deve essere lui
     ASSERT(UINTEGER(p) == elem) ;
 
@@ -173,7 +175,7 @@ static ip4_addr_t ip ;
 static ip4_addr_t msk ;
 static ip4_addr_t gw ;
 
-static ETH_HandleTypeDef heth = {
+static const ETH_HandleTypeDef eth_cfg = {
     .Instance = ETH,
     .Init = {
         .MediaInterface = HAL_ETH_RMII_MODE,
@@ -183,6 +185,7 @@ static ETH_HandleTypeDef heth = {
         .RxBuffLen = RX_BUF_LEN,
     }
 } ;
+static ETH_HandleTypeDef heth ;
 
 __WEAK void net_bound(const char * _)
 {
@@ -247,11 +250,12 @@ port_netif_output(
     INUTILE(n_if) ;
     assert(osThreadGetId() == tid) ;
 
-    if ( !PHY_link() ) {}
+    if ( !PHY_link() ) {
+        DBG_QUA ;
+    }
     else if ( trasm || (LST_quanti(&lstTx.s) > 0) ) {
         // accodo
-        // vedi esame_cust_pbuf.py
-        DBG_PRN( DBG_PBUF_TX, ("%08X = pbuf_tx_alloc", p) ) ;
+        DBG_PRN( DBG_PBUF_TX, ("%08X = pbuf_tx_accoda", p) ) ;
         if ( LST_ins( &lstTx.s, UINTEGER(p) ) ) {
             pbuf_ref(p) ;
         }
@@ -271,6 +275,18 @@ port_netif_output(
 static void hw_iniz(void)
 {
     DBG_FUN ;
+
+    memset( DMATxDscrTab, 0, sizeof(DMATxDscrTab) ) ;
+    memset( DMARxDscrTab, 0, sizeof(DMARxDscrTab) ) ;
+
+    memset( &TxConfig, 0, sizeof(ETH_TxPacketConfig) ) ;
+    TxConfig.Attributes = ETH_TX_PACKETS_FEATURES_CSUM
+                          | ETH_TX_PACKETS_FEATURES_CRCPAD ;
+    TxConfig.ChecksumCtrl = ETH_CHECKSUM_IPHDR_PAYLOAD_INSERT_PHDR_CALC ;
+    TxConfig.CRCPadCtrl = ETH_CRC_PAD_INSERT ;
+
+    heth = eth_cfg ;
+
     /*
      * In certe schede il reset abilita il clock ETH, per cui
      * bisogna darlo prima di HAL_ETH_Init() e non
@@ -318,6 +334,7 @@ static err_t port_netif_init(struct netif * n_if)
     n_if->hwaddr_len = ETH_HWADDR_LEN ;
 
     LST_iniz(&lstTx.s, MAX_LISTA) ;
+    DBG_PRN( DBG_LST_RX, ( "lst rx iniz = %d", LST_quanti(&lstRx.s) ) ) ;
     LST_iniz(&lstRx.s, MAX_LISTA) ;
 
     hw_iniz() ;
@@ -364,18 +381,18 @@ static void evn_irq_rx(void)
 
 static void evn_irq_tx(void)
 {
-    trasm = false ;
     stampa_tx_desc() ;
     HAL_ETH_ReleaseTxPacket(&heth) ;
 
-    uint32_t elem ;
-    if ( LST_est(&lstTx.s, &elem) ) {
-        struct pbuf * p = POINTER(elem) ;
+    if ( !trasm ) {
+        uint32_t elem ;
+        if ( LST_est(&lstTx.s, &elem) ) {
+            struct pbuf * p = POINTER(elem) ;
 
-        // vedi esame_cust_pbuf.py
-        DBG_PRN( DBG_PBUF_TX, ("pbuf_tx_free %08X", elem) ) ;
+            DBG_PRN( DBG_PBUF_TX, ("pbuf_tx_scoda %08X", elem) ) ;
 
-        trasmetti(p) ;
+            trasmetti(p) ;
+        }
     }
 }
 
@@ -400,14 +417,24 @@ static void evn_fine(void)
 #if LWIP_TCP + LWIP_UDP
     netop_fine() ;
 #endif
-    // Elimino i buffer che erano in ricezione
+    // Elimino i buffer che erano in ricezione ...
     uint32_t elem ;
     while ( LST_est(&lstRx.s, &elem) ) {
+        DBG_PRN( DBG_LST_RX, ( "lst rx -> %08X = %d", elem, LST_quanti(&lstRx.s) ) ) ;
+
         struct pbuf_custom * custom_pbuf = POINTER(elem) ;
         LWIP_MEMPOOL_FREE(RX_POOL, custom_pbuf) ;
 
         // vedi esame_cust_pbuf.py
         DBG_PRN( DBG_PBUF_RX, ("pbuf_rx_free %08X", custom_pbuf) ) ;
+    }
+    // ... e in trasmissione
+    while ( LST_est(&lstTx.s, &elem) ) {
+        struct pbuf * p = POINTER(elem) ;
+        pbuf_free(p) ;
+
+        // vedi esame_cust_pbuf.py
+        DBG_PRN( DBG_PBUF_TX, ("pbuf_tx_free %08X", elem) ) ;
     }
 
     stato = STT_SPENTO ;
@@ -647,15 +674,6 @@ bool NET_iniz(
 
         LWIP_MEMPOOL_INIT(RX_POOL) ;
 
-        memset( DMATxDscrTab, 0, sizeof(DMATxDscrTab) ) ;
-        memset( DMARxDscrTab, 0, sizeof(DMARxDscrTab) ) ;
-
-        memset( &TxConfig, 0, sizeof(ETH_TxPacketConfig) ) ;
-        TxConfig.Attributes = ETH_TX_PACKETS_FEATURES_CSUM
-                              | ETH_TX_PACKETS_FEATURES_CRCPAD ;
-        TxConfig.ChecksumCtrl = ETH_CHECKSUM_IPHDR_PAYLOAD_INSERT_PHDR_CALC ;
-        TxConfig.CRCPadCtrl = ETH_CRC_PAD_INSERT ;
-
         osThreadDef(netTHD, osPriorityNormal, 0, 1500) ;
 
         tid = osThreadCreate(osThread(netTHD), NULL) ;
@@ -737,6 +755,7 @@ void HAL_ETH_RxAllocateCallback(uint8_t * * buff)
     struct pbuf_custom * p = LWIP_MEMPOOL_ALLOC(RX_POOL) ;
     if ( p ) {
         CONTROLLA( LST_ins( &lstRx.s, UINTEGER(p) ) ) ;
+        DBG_PRN( DBG_LST_RX, ( "%08X -> lst rx = %d", UINTEGER(p), LST_quanti(&lstRx.s) ) ) ;
 
         /* Get the buff from the struct pbuf address. */
         *buff = (uint8_t *) p + offsetof(RxBuff_t, buff) ;
@@ -808,6 +827,9 @@ void HAL_ETH_TxFreeCallback(uint32_t * buff)
 {
     DBG_PRN( DBG_PBUF_TX, ("TX free %08X", buff) ) ;
     pbuf_free( (struct pbuf *) buff ) ;
+
+    // adesso posso trasmettere
+    trasm = false ;
 }
 
 void HAL_ETH_TxCpltCallback(ETH_HandleTypeDef * h)

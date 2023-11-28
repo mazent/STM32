@@ -28,18 +28,17 @@
  *     Nei .py i valori massimi da usare saranno: "-m 3" o "-d 4380"
  *     NOTA
  *         udp usa la frammentazione ip e non manda ack, per cui:
- *             py udp_eco.py -m 1 -q 10
- *                 Eco: OK 10 in 8ms (0.788 ms = 1852086.8 B/s = 1808.7 KiB/s)
+ *             py udp_eco.py -m 1 -q 1000
+ *                 Eco: OK 1000 in 684ms (0.684 ms = 2133747.7 B/s = 2083.7 KiB/s)
  *         sfruttando i descrittori per ricevere piu' dati aumenta il t.put:
- *             py udp_eco.py -m 3 -q 10
- *                 Eco: OK 10 in 16ms (1.577 ms = 2776650.8 B/s = 2711.6 KiB/s)
+ *             py udp_eco.py -m 3 -q 1000
+ *                 Eco: OK 1000 in 1s 756ms (1.756 ms = 2494066.8 B/s = 2435.6 KiB/s)
  *
- *         tcp con una mss ha le stesse prestazioni:
- *             py tcp_eco.py -m 1 -q 10
- *                 Eco: OK 10 in 8ms (0.793 ms = 1841318.7 B/s = 1798.2 KiB/s)
- *         ma se si aumenta la dimensione prevalgono gli ack e cala il t.put:
- *             py tcp_eco.py -m 3 -q 10
- *                 Eco: OK 10 in 227ms (22.738 ms = 192630.6 B/s = 188.1 KiB/s)
+ *         tcp ha minori prestazioni a causa degli ack:
+ *             py tcp_eco.py -m 1 -q 1000
+ *                 Eco: OK 1000 in 965ms (0.965 ms = 1512495.7 B/s = 1477.0 KiB/s)
+ *             py tcp_eco.py -m 3 -q 1000
+ *                 Eco: OK 1000 in 2s 217ms (2.217 ms = 1975940.5 B/s = 1929.6 KiB/s)
  *
  * Sezioni:
  *     .ethernet	ram per lo stack
@@ -95,6 +94,7 @@ bool NET_iniz(
     const uint8_t * gw) ;
 
 // Dopo questa non usate piu' la rete
+// Dovete definire USA_NET_FINE
 void NET_fine(void) ;
 
 // Strato fisico
@@ -115,6 +115,7 @@ bool PHY_100M(void) ;
 //    LAN8742A 0x0007c13r
 //    LAN8720  0x0007c0fr
 // dove r e' la revisione
+// Se torna 0 occorre invocare NET_iniz()
 uint32_t PHY_id(void) ;
 
 // Callback
