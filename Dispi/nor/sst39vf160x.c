@@ -1,7 +1,6 @@
 #define STAMPA_DBG
 #include "utili.h"
 #include "sst39vf160x.h"
-#include "stm32h7xx_hal.h"
 #include "bsp.h"
 
 #define NOR_AMD_FUJITSU_COMMAND_SET           ( (uint16_t) 0x0002 )
@@ -22,8 +21,6 @@
 #define NOR_CMD_DATA_CHIP_ERASE               ( (uint16_t) 0x0010 )
 
 #define CMD_SECTOR_ERASE                      ( (uint16_t) 0x0050 )
-
-extern NOR_HandleTypeDef hnor1 ;
 
 static uint16_t leggi_mem(uint32_t memad)
 {
@@ -148,24 +145,6 @@ uint16_t * nor_addr(uint32_t ofsW)
     memad += ofsW << 1 ;
 
     return POINTER(memad) ;
-}
-
-bool nor_id(uint8_t * mem)
-{
-    bool esito = false ;
-    NOR_IDTypeDef nid ;
-
-    if ( HAL_OK == HAL_NOR_Read_ID(&hnor1, &nid) ) {
-        DBG_PUTS("NOR") ;
-        DBG_PRINTF("man=%04X/00BF=SST", nid.Manufacturer_Code) ;
-        DBG_PRINTF("dev=%04X/234F=SST39VF1601C", nid.Device_Code1) ;
-        memcpy_(mem, &nid.Manufacturer_Code, 2) ;
-        memcpy_(mem + 2, &nid.Device_Code1, 2) ;
-        esito = true ;
-    }
-    CONTROLLA( HAL_OK == HAL_NOR_ReturnToReadMode(&hnor1) ) ;
-
-    return esito ;
 }
 
 #if 0

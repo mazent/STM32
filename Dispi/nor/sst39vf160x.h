@@ -22,16 +22,16 @@
     hnor1.Init.WriteFifo = FMC_WRITE_FIFO_ENABLE ;
     hnor1.Init.PageSize = FMC_PAGE_SIZE_NONE ;
 
-	// Trc >= 70 ns
-	FMC_NORSRAM_TimingTypeDef Timing = {
-		.AddressSetupTime = 4,    // Toe >= 35 ns
-		.DataSetupTime = 3,
-		.AccessMode = FMC_ACCESS_MODE_B,
-		// inutili (ma evito assert)
-		.AddressHoldTime = 1,
-		.CLKDivision = 2,
-		.DataLatency = 2,
-	} ;
+    // Trc >= 70 ns
+    FMC_NORSRAM_TimingTypeDef Timing = {
+        .AddressSetupTime = 4,    // Toe >= 35 ns
+        .DataSetupTime = 3,
+        .AccessMode = FMC_ACCESS_MODE_B,
+        // inutili (ma evito assert)
+        .AddressHoldTime = 1,
+        .CLKDivision = 2,
+        .DataLatency = 2,
+    } ;
 */
 
 // Organized as 1M x16
@@ -61,9 +61,6 @@ bool nor_program(
     uint16_t data) ;
 
 uint16_t * nor_addr(uint32_t ofsW) ;
-
-// restituisce manuf[2] seguito da dev[2]
-bool nor_id(uint8_t * mem) ;
 
 #else
 #   warning sst39vf160x.h incluso
