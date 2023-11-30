@@ -2,6 +2,7 @@
 #include "utili.h"
 #include "sst39vf160x.h"
 #include "stm32h7xx_hal.h"
+#include "bsp.h"
 
 #define NOR_AMD_FUJITSU_COMMAND_SET           ( (uint16_t) 0x0002 )
 
@@ -10,6 +11,7 @@
 #define NOR_CMD_ADDRESS_THIRD                 ( (uint16_t) 0x0555 )
 #define NOR_CMD_ADDRESS_FOURTH                ( (uint16_t) 0x0555 )
 #define NOR_CMD_ADDRESS_FIFTH                 ( (uint16_t) 0x02AA )
+#define NOR_CMD_ADDRESS_SIXTH                 ( (uint16_t) 0x0555 )
 
 #define NOR_CMD_DATA_FIRST                    ( (uint16_t) 0x00AA )
 #define NOR_CMD_DATA_SECOND                   ( (uint16_t) 0x0055 )
@@ -17,52 +19,63 @@
 #define NOR_CMD_DATA_CHIP_BLOCK_ERASE_FOURTH  ( (uint16_t) 0x00AA )
 #define NOR_CMD_DATA_CHIP_BLOCK_ERASE_FIFTH   ( (uint16_t) 0x0055 )
 #define NOR_CMD_DATA_PROGRAM                  ( (uint16_t) 0x00A0 )
+#define NOR_CMD_DATA_CHIP_ERASE               ( (uint16_t) 0x0010 )
 
 #define CMD_SECTOR_ERASE                      ( (uint16_t) 0x0050 )
 
-bool nor_erase_sector(
-    NOR_HandleTypeDef * hnor,
-    uint32_t sector)
+extern NOR_HandleTypeDef hnor1 ;
+
+static uint16_t leggi_mem(uint32_t memad)
+{
+    // La lettura si sblocca quando RY/BY# torna alto
+    volatile uint16_t * qua = POINTER(memad) ;
+    return *qua ;
+}
+
+bool nor_erase_chip(void)
+{
+    uint32_t memad = NORF_ADDR ;
+
+    NOR_WRITE(NOR_ADDR_SHIFT(memad,
+                             NOR_MEMORY_16B,
+                             NOR_CMD_ADDRESS_FIRST),
+              NOR_CMD_DATA_FIRST) ;
+    NOR_WRITE(NOR_ADDR_SHIFT(memad,
+                             NOR_MEMORY_16B,
+                             NOR_CMD_ADDRESS_SECOND),
+              NOR_CMD_DATA_SECOND) ;
+    NOR_WRITE(NOR_ADDR_SHIFT(memad,
+                             NOR_MEMORY_16B,
+                             NOR_CMD_ADDRESS_THIRD),
+              NOR_CMD_DATA_CHIP_BLOCK_ERASE_THIRD) ;
+    NOR_WRITE(NOR_ADDR_SHIFT(memad,
+                             NOR_MEMORY_16B,
+                             NOR_CMD_ADDRESS_FOURTH),
+              NOR_CMD_DATA_CHIP_BLOCK_ERASE_FOURTH) ;
+    NOR_WRITE(NOR_ADDR_SHIFT(memad,
+                             NOR_MEMORY_16B,
+                             NOR_CMD_ADDRESS_FIFTH),
+              NOR_CMD_DATA_CHIP_BLOCK_ERASE_FIFTH) ;
+    NOR_WRITE(NOR_ADDR_SHIFT(memad,
+                             NOR_MEMORY_16B,
+                             NOR_CMD_ADDRESS_SIXTH),
+              NOR_CMD_DATA_CHIP_ERASE) ;
+
+    // Erase porta tutto a 1
+    return 0xFFFF == leggi_mem(memad) ;
+}
+
+bool nor_erase_sector(uint32_t sector)
 {
     bool esito = false ;
 
     do {
-        /* Check the NOR controller state */
-        if ( hnor->State == HAL_NOR_STATE_BUSY ) {
+        if ( sector >= NOR_SECTORS ) {
             DBG_ERR ;
             break ;
         }
 
-        if ( hnor->State != HAL_NOR_STATE_READY ) {
-            DBG_ERR ;
-            break ;
-        }
-
-        if ( hnor->CommandSet != NOR_AMD_FUJITSU_COMMAND_SET ) {
-            DBG_ERR ;
-            break ;
-        }
-
-        /* Process Locked */
-        __HAL_LOCK(hnor) ;
-
-        /* Update the NOR controller state */
-        hnor->State = HAL_NOR_STATE_BUSY ;
-
-        /* Select the NOR device address */
-        uint32_t memad ;
-        if ( hnor->Init.NSBank == FMC_NORSRAM_BANK1 ) {
-            memad = NOR_MEMORY_ADRESS1 ;
-        }
-        else if ( hnor->Init.NSBank == FMC_NORSRAM_BANK2 ) {
-            memad = NOR_MEMORY_ADRESS2 ;
-        }
-        else if ( hnor->Init.NSBank == FMC_NORSRAM_BANK3 ) {
-            memad = NOR_MEMORY_ADRESS3 ;
-        }
-        else { /* FMC_NORSRAM_BANK4 */
-            memad = NOR_MEMORY_ADRESS4 ;
-        }
+        uint32_t memad = NORF_ADDR ;
 
         // indirizzo in word
         sector *= NOR_SECTOR_SIZE ;
@@ -85,67 +98,26 @@ bool nor_erase_sector(
                   NOR_CMD_DATA_CHIP_BLOCK_ERASE_FIFTH) ;
         NOR_WRITE(sector, CMD_SECTOR_ERASE) ;
 
-        /* Check the NOR memory status and update the controller state */
-        hnor->State = HAL_NOR_STATE_READY ;
-
-        /* Process unlocked */
-        __HAL_UNLOCK(hnor) ;
-
-        esito = true ;
+        // Erase porta tutto a 1
+        esito = 0xFFFF == leggi_mem(sector) ;
     } while ( false ) ;
 
     return esito ;
 }
 
 bool nor_program(
-    NOR_HandleTypeDef * hnor,
     uint32_t ofsW,
     uint16_t data)
 {
     bool esito = false ;
 
     do {
-        /* Check the NOR controller state */
-        if ( hnor->State == HAL_NOR_STATE_BUSY ) {
-            DBG_ERR ;
-            break ;
-        }
-
-        if ( hnor->State != HAL_NOR_STATE_READY ) {
-            DBG_ERR ;
-            break ;
-        }
-
-        if ( hnor->CommandSet != NOR_AMD_FUJITSU_COMMAND_SET ) {
-            DBG_ERR ;
-            break ;
-        }
-
         if ( ofsW >= NOR_SIZE ) {
             DBG_ERR ;
             break ;
         }
 
-        /* Process Locked */
-        __HAL_LOCK(hnor) ;
-
-        /* Update the NOR controller state */
-        hnor->State = HAL_NOR_STATE_BUSY ;
-
-        /* Select the NOR device address */
-        uint32_t memad ;
-        if ( hnor->Init.NSBank == FMC_NORSRAM_BANK1 ) {
-            memad = NOR_MEMORY_ADRESS1 ;
-        }
-        else if ( hnor->Init.NSBank == FMC_NORSRAM_BANK2 ) {
-            memad = NOR_MEMORY_ADRESS2 ;
-        }
-        else if ( hnor->Init.NSBank == FMC_NORSRAM_BANK3 ) {
-            memad = NOR_MEMORY_ADRESS3 ;
-        }
-        else { /* FMC_NORSRAM_BANK4 */
-            memad = NOR_MEMORY_ADRESS4 ;
-        }
+        uint32_t memad = NORF_ADDR ;
 
         // in byte
         uint32_t adr = ofsW << 1 ;
@@ -162,37 +134,87 @@ bool nor_program(
         /* Write the data */
         NOR_WRITE(adr, data) ;
 
-        /* Check the NOR controller state */
-        hnor->State = HAL_NOR_STATE_READY ;
-
-        /* Process unlocked */
-        __HAL_UNLOCK(hnor) ;
-
-        esito = true ;
+        // Uguali?
+        esito = data == leggi_mem(adr) ;
     } while ( false ) ;
 
     return esito ;
 }
 
-uint16_t * nor_addr(
-    NOR_HandleTypeDef * hnor,
-    uint32_t ofsW)
+uint16_t * nor_addr(uint32_t ofsW)
 {
-    uint32_t memad ;
-    if ( hnor->Init.NSBank == FMC_NORSRAM_BANK1 ) {
-        memad = NOR_MEMORY_ADRESS1 ;
-    }
-    else if ( hnor->Init.NSBank == FMC_NORSRAM_BANK2 ) {
-        memad = NOR_MEMORY_ADRESS2 ;
-    }
-    else if ( hnor->Init.NSBank == FMC_NORSRAM_BANK3 ) {
-        memad = NOR_MEMORY_ADRESS3 ;
-    }
-    else { /* FMC_NORSRAM_BANK4 */
-        memad = NOR_MEMORY_ADRESS4 ;
-    }
+    uint32_t memad = NORF_ADDR ;
 
     memad += ofsW << 1 ;
 
     return POINTER(memad) ;
 }
+
+bool nor_id(uint8_t * mem)
+{
+    bool esito = false ;
+    NOR_IDTypeDef nid ;
+
+    if ( HAL_OK == HAL_NOR_Read_ID(&hnor1, &nid) ) {
+        DBG_PUTS("NOR") ;
+        DBG_PRINTF("man=%04X/00BF=SST", nid.Manufacturer_Code) ;
+        DBG_PRINTF("dev=%04X/234F=SST39VF1601C", nid.Device_Code1) ;
+        memcpy_(mem, &nid.Manufacturer_Code, 2) ;
+        memcpy_(mem + 2, &nid.Device_Code1, 2) ;
+        esito = true ;
+    }
+    CONTROLLA( HAL_OK == HAL_NOR_ReturnToReadMode(&hnor1) ) ;
+
+    return esito ;
+}
+
+#if 0
+static const uint16_t roba[] = {
+    0x6A38, 0xFE46, 0x7BE5, 0xA5FC, 0x986E, 0x7AA3, 0xE236, 0x3899,
+    0xBCDA, 0x6295, 0x1B90, 0x7D69, 0x2190, 0xA511, 0xDA2E, 0x69B6,
+    0xBBB7, 0x2C57, 0xC956, 0x1EF7, 0x4BB2, 0x315F, 0xE555, 0x9855,
+    0x0AC1
+} ;
+
+void bl_iniz(void)
+{
+    int ciclo = 0 ;
+
+    DBG_PUTS("elimino tutto") ;
+    ASSERT( nor_erase_chip() ) ;
+
+    while ( true ) {
+        ciclo++ ;
+
+        uint32_t pos = ciclo * 342 /*NOR_SECTOR_SIZE / 6*/ ;
+        if ( pos + sizeof(roba) > NOR_SECTOR_SIZE ) {
+            pos -= NOR_SECTOR_SIZE ;
+        }
+
+        DBG_PRINTF("ciclo %d", ciclo) ;
+
+        for ( uint32_t sector = 0 ;
+              sector < NOR_SECTORS ;
+              sector++ ) {
+            uint32_t ofs = sector * NOR_SECTOR_SIZE + pos ;
+
+            DBG_PRINTF("\t ofs %08X", ofs) ;
+
+            // scrivo
+            for ( size_t i = 0 ; i < DIM_VETT(roba) ; i++ ) {
+                ASSERT( nor_program(ofs + i, roba[i]) ) ;
+            }
+
+            // leggo e confronto
+            uint16_t * mem = nor_addr(ofs) ;
+            for ( size_t i = 0 ; i < DIM_VETT(roba) ; i++ ) {
+                ASSERT(roba[i] == mem[i]) ;
+            }
+
+            // elimino
+            ASSERT( nor_erase_sector(sector) ) ;
+        }
+    }
+}
+
+#endif
