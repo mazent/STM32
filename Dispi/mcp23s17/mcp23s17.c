@@ -12,11 +12,11 @@ static uint8_t rx[MAX_DIM] ;
 bool MCP_iniz(void)
 {
     // al reset HAEN=0 -> the device’s hardware address	is A2 = A1 = A0 = 0
-    tx[0] = 0x40 ;
+    tx[0] = MCP_BASE_IND ;
     tx[1] = MCP_IOCON ;
     tx[2] = MCP_IOCON_HAEN ;
 
-    return mcp_spi_tx(tx, 3) ;
+    return mcp_spi_tx(tx, sizeof(tx)) ;
 }
 
 bool MCP_leggi(

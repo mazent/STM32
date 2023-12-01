@@ -4,6 +4,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#define MCP_BASE_IND     0x40
+
 // Registri
 #define MCP_IODIRA      0x00
 #define MCP_IODIRB      0x01
