@@ -158,6 +158,9 @@ static const uint16_t roba[] = {
 void test(void)
 {
     int ciclo = 0 ;
+    const size_t ELEM_ROBA = DIM_VETT(roba) ;
+    const uint32_t INC_POS = 409 ;
+    uint32_t pos = 0 ;
 
     DBG_PUTS("elimino tutto") ;
     ASSERT( nor_erase_chip() ) ;
@@ -165,9 +168,10 @@ void test(void)
     while ( true ) {
         ciclo++ ;
 
-        uint32_t pos = ciclo * 342 /*NOR_SECTOR_SIZE / 6*/ ;
-        if ( pos + sizeof(roba) > NOR_SECTOR_SIZE ) {
-            pos -= NOR_SECTOR_SIZE ;
+        pos += INC_POS ;
+        if ( pos + ELEM_ROBA > NOR_SECTOR_SIZE ) {
+            // il -1 contribuisce a spostare la zona scritta
+            pos = pos + ELEM_ROBA - NOR_SECTOR_SIZE - 1 ;
         }
 
         DBG_PRINTF("ciclo %d", ciclo) ;
@@ -180,18 +184,23 @@ void test(void)
             DBG_PRINTF("\t ofs %08X", ofs) ;
 
             // scrivo
-            for ( size_t i = 0 ; i < DIM_VETT(roba) ; i++ ) {
+            for ( size_t i = 0 ; i < ELEM_ROBA ; i++ ) {
                 ASSERT( nor_program(ofs + i, roba[i]) ) ;
             }
 
             // leggo e confronto
             uint16_t * mem = nor_addr(ofs) ;
-            for ( size_t i = 0 ; i < DIM_VETT(roba) ; i++ ) {
+            for ( size_t i = 0 ; i < ELEM_ROBA ; i++ ) {
                 ASSERT(roba[i] == mem[i]) ;
             }
 
             // elimino
             ASSERT( nor_erase_sector(sector) ) ;
+
+            // sbiancata?
+            for ( size_t i = 0 ; i < ELEM_ROBA ; i++ ) {
+                ASSERT(0xFFFF == mem[i]) ;
+            }
         }
     }
 }
