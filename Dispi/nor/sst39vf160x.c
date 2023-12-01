@@ -155,7 +155,7 @@ static const uint16_t roba[] = {
     0x0AC1
 } ;
 
-void bl_iniz(void)
+void test(void)
 {
     int ciclo = 0 ;
 
