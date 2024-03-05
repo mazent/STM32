@@ -6,10 +6,10 @@
 #include "net_sock.h"
 #include "lwip/opt.h"
 
+#if LWIP_UDP
+
 //#define DIARIO_LIV_DBG
 #include "../cod/stampe.h"
-
-#if LWIP_UDP
 
 // udp payload 1460 (come TCP_MSS)
 // udp len     1468

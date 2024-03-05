@@ -1,7 +1,3 @@
-/*
- * echoserver.c - A simple connection-based echo server
- * usage: echoserver <port>
- */
 // cfr http://www.cs.cmu.edu/afs/cs/academic/class/15213-f00/www/class24code/echoserver.c
 
 //#define STAMPA_DBG
@@ -10,10 +6,10 @@
 #include "net_sock.h"
 #include "lwip/opt.h"
 
+#if LWIP_TCP
+
 //#define DIARIO_LIV_DBG
 #include "../cod/stampe.h"
-
-#if LWIP_TCP
 
 #define BUFSIZE         TCP_WND
 

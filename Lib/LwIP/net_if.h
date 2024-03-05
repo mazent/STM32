@@ -12,8 +12,8 @@
  *     (il valore di PHYAD0)
  *
  *     Il file bsp.h deve dichiarare la funzione:
- *         void bsp_phy_reset(bool alto) ;
- *     che muove il pin (true => reset)
+ *         void bsp_phy_nrst(bool alto) ;
+ *     che muove il pin
  *
  * MAC
  *     Il numero di descrittori ETH_RX_DESC_CNT e ETH_TX_DESC_CNT si trova in
@@ -84,14 +84,40 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+typedef enum {
+	// Megabit + duplex
+    NET_MODO_10,
+    NET_MODO_10_FD,
+    NET_MODO_100,
+    NET_MODO_100_FD,
+	// Auto negozia
+    NET_MODO_AUTO,
+} NET_MODO ;
+
+typedef enum {
+    NET_MDI_DRITTO,
+    NET_MDI_STORTO,
+    NET_MDI_AUTO,
+} NET_MDI ;
+
+typedef struct {
+    NET_MODO modo ;
+
+    NET_MDI mdi ;
+
+    // Forza anche NET_MODO_100
+    bool far_loopback ;
+
+    // Con dhcp e/o autoip basta il mac
+    const uint8_t * mac ;
+    const uint8_t * ip ;
+    const uint8_t * msk ;
+    const uint8_t * gw ;
+} S_NET_CFG ;
+
 // Partenza
-// Con dhcp e/o autoip basta il mac
 // Se c'e' da abilitare il clock, fatelo prima
-bool NET_iniz(
-    const uint8_t * mac,
-    const uint8_t * ip,
-    const uint8_t * msk,
-    const uint8_t * gw) ;
+bool NET_iniz(const S_NET_CFG *) ;
 
 // Dopo questa non usate piu' la rete
 // Dovete definire USA_NET_FINE
@@ -112,11 +138,13 @@ bool PHY_100M(void) ;
 
 // Identificativo
 // Vengono gestiti due PHY:
-//    LAN8742A 0x0007c13r
-//    LAN8720  0x0007c0fr
+//    LAN8742A 0x0007C13r
+//    LAN8720  0x0007C0Fr
 // dove r e' la revisione
 // Se torna 0 occorre invocare NET_iniz()
 uint32_t PHY_id(void) ;
+
+uint16_t PHY_sym_err_cnt(void) ;
 
 // Callback
 // ------------------------------------

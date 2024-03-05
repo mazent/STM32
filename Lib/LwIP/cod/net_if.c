@@ -170,6 +170,10 @@ static
 __attribute__( ( section(".no_cache") ) )
 ETH_BufferTypeDef txB[ETH_TX_DESC_CNT] ;
 
+static NET_MODO modo ;
+static NET_MDI mdi ;
+static bool far_loopback ;
+
 static uint8_t mac[NETIF_MAX_HWADDR_LEN] ;
 static ip4_addr_t ip ;
 static ip4_addr_t msk ;
@@ -186,6 +190,41 @@ static const ETH_HandleTypeDef eth_cfg = {
     }
 } ;
 static ETH_HandleTypeDef heth ;
+
+static bool cfg_ok(const S_NET_CFG * p)
+{
+    bool esito = false ;
+
+    switch ( p->modo ) {
+    case NET_MODO_10:
+    case NET_MODO_10_FD:
+    case NET_MODO_100:
+    case NET_MODO_100_FD:
+    case NET_MODO_AUTO:
+        break ;
+    default:
+        DBG_ERR ;
+        goto err ;
+    }
+
+    switch ( p->mdi ) {
+    case NET_MDI_DRITTO:
+    case NET_MDI_STORTO:
+    case NET_MDI_AUTO:
+        break ;
+    default:
+        DBG_ERR ;
+        goto err ;
+    }
+
+    esito = true ;
+    modo = p->modo ;
+    mdi = p->mdi ;
+    far_loopback = p->far_loopback ;
+
+err:
+    return esito ;
+}
 
 __WEAK void net_bound(const char * _)
 {
@@ -287,11 +326,7 @@ static void hw_iniz(void)
 
     heth = eth_cfg ;
 
-    /*
-     * In certe schede il reset abilita il clock ETH, per cui
-     * bisogna darlo prima di HAL_ETH_Init() e non
-     * dentro trova()
-     */
+    // Resetto
     phy_reset() ;
 
     // MAC
@@ -314,7 +349,12 @@ static void hw_iniz(void)
     }
 
     // PHY
-    PHY_iniz(PHY_SPEED_AUTO, PHY_DUPLEX_FULL) ;
+    if ( far_loopback ) {
+        PHY_iniz_loopback(mdi) ;
+    }
+    else {
+        PHY_iniz(modo, mdi) ;
+    }
 }
 
 static err_t port_netif_init(struct netif * n_if)
@@ -593,11 +633,7 @@ static void netTHD(void * argument)
     }
 }
 
-bool NET_iniz(
-    const uint8_t * m,
-    const uint8_t * _ip,
-    const uint8_t * _msk,
-    const uint8_t * _gw)
+bool NET_iniz(const S_NET_CFG * p)
 {
     bool esito = false ;
 
@@ -614,6 +650,10 @@ bool NET_iniz(
     do {
         if ( STT_ERR == stato ) {
             DBG_ERR ;
+            break ;
+        }
+
+        if ( !cfg_ok(p) ) {
             break ;
         }
 
@@ -639,37 +679,33 @@ bool NET_iniz(
         }
         stato = STT_Q_ACCESO ;
 
-        if ( NULL == m ) {
+        if ( NULL == p->mac ) {
             DBG_ERR ;
             break ;
         }
-        memcpy(mac, m, NETIF_MAX_HWADDR_LEN) ;
+        memcpy(mac, p->mac, NETIF_MAX_HWADDR_LEN) ;
 #if LWIP_DHCP + LWIP_AUTOIP
-        INUTILE(_ip) ;
-        INUTILE(_msk) ;
-        INUTILE(_gw) ;
-
         ip = ip_addr_any ;
         msk = ip_addr_any ;
         gw = ip_addr_any ;
 #else
-        if ( NULL == _ip ) {
+        if ( NULL == p->ip ) {
             DBG_ERR ;
             break ;
         }
-        memcpy( &ip, _ip, sizeof(ip) ) ;
+        memcpy( &ip, p->ip, sizeof(ip) ) ;
 
-        if ( NULL == _msk ) {
+        if ( NULL == p->msk ) {
             DBG_ERR ;
             break ;
         }
-        memcpy( &msk, _msk, sizeof(msk) ) ;
+        memcpy( &msk, p->msk, sizeof(msk) ) ;
 
-        if ( NULL == _gw ) {
+        if ( NULL == p->gw ) {
             DBG_ERR ;
             break ;
         }
-        memcpy( &gw, _gw, sizeof(gw) ) ;
+        memcpy( &gw, p->gw, sizeof(gw) ) ;
 #endif
 
         LWIP_MEMPOOL_INIT(RX_POOL) ;
@@ -755,7 +791,8 @@ void HAL_ETH_RxAllocateCallback(uint8_t * * buff)
     struct pbuf_custom * p = LWIP_MEMPOOL_ALLOC(RX_POOL) ;
     if ( p ) {
         CONTROLLA( LST_ins( &lstRx.s, UINTEGER(p) ) ) ;
-        DBG_PRN( DBG_LST_RX, ( "%08X -> lst rx = %d", UINTEGER(p), LST_quanti(&lstRx.s) ) ) ;
+        DBG_PRN( DBG_LST_RX,
+                 ( "%08X -> lst rx = %d", UINTEGER(p), LST_quanti(&lstRx.s) ) ) ;
 
         /* Get the buff from the struct pbuf address. */
         *buff = (uint8_t *) p + offsetof(RxBuff_t, buff) ;

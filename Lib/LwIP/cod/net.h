@@ -3,20 +3,10 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include "net_if.h"
 
-typedef enum {
-    PHY_SPEED_10 = 1,
-    PHY_SPEED_100,
-    PHY_SPEED_AUTO,
-} PHY_SPEED ;
-
-typedef enum {
-    PHY_DUPLEX_HALF = 1,
-    PHY_DUPLEX_FULL,
-    PHY_DUPLEX_AUTO,
-} PHY_DUPLEX ;
-
-extern void PHY_iniz(PHY_SPEED /*spid*/, PHY_DUPLEX /*dup*/) ;
+extern void PHY_iniz(NET_MODO, NET_MDI) ;
+extern void PHY_iniz_loopback(NET_MDI) ;
 extern void PHY_isr(void) ;
 extern bool PHY_link(void) ;
 

@@ -10,10 +10,10 @@ extern bool is_net_running(void) ;
 
 #define MAX_RIC     5
 
+#if LWIP_TCP + LWIP_UDP
+
 //#define DIARIO_LIV_DBG
 #include "stampe.h"
-
-#if LWIP_TCP + LWIP_UDP
 
 osPoolDef(ric, MAX_RIC, S_REQUEST_DATA) ;
 static osPoolId ric = NULL ;
@@ -689,6 +689,7 @@ uint32_t NET_risul(
     do {
         ASSERT(pOp) ;
         if ( NULL == pOp ) {
+            DBG_ERR ;
             break ;
         }
 
@@ -697,6 +698,7 @@ uint32_t NET_risul(
 
         ASSERT(pR) ;
         if ( NULL == pR ) {
+            DBG_ERR ;
             break ;
         }
 
@@ -747,20 +749,24 @@ bool NET_socket_ini(
     do {
         assert(op) ;
         if ( NULL == op ) {
+            DBG_ERR ;
             break ;
         }
 
         assert(NULL == op->x) ;
         if ( NULL != op->x ) {
+            DBG_ERR ;
             break ;
         }
 
         if ( !is_net_running() ) {
+            DBG_ERR ;
             break ;
         }
 
         S_DRV_REQ * pR = DRV_alloc(&drv) ;
         if ( NULL == pR ) {
+            DBG_ERR ;
             break ;
         }
 
@@ -772,6 +778,7 @@ bool NET_socket_ini(
         op->x = pR ;
 
         if ( !DRV_send(&drv, pR) ) {
+            DBG_ERR ;
             op->x = NULL ;
             DRV_free(&drv, pR) ;
             break ;
@@ -792,31 +799,37 @@ bool NET_close_ini(
     do {
         assert(op) ;
         if ( NULL == op ) {
+            DBG_ERR ;
             break ;
         }
 
         assert(NULL == op->x) ;
         if ( NULL != op->x ) {
+            DBG_ERR ;
             break ;
         }
 
         if ( sok < 0 ) {
+            DBG_ERR ;
             break ;
         }
         if ( sok >= LWIP_P_NUM_SOCK ) {
             // Potrebbe essere remoto
             int rem = sok & ~ID_SOCK_REM ;
             if ( (rem < 0) || (rem >= LWIP_P_NUM_SOCK) ) {
+                DBG_ERR ;
                 break ;
             }
         }
 
         if ( !is_net_running() ) {
+            DBG_ERR ;
             break ;
         }
 
         S_DRV_REQ * pR = DRV_alloc(&drv) ;
         if ( NULL == pR ) {
+            DBG_ERR ;
             break ;
         }
 
@@ -828,6 +841,7 @@ bool NET_close_ini(
         op->x = pR ;
 
         if ( !DRV_send(&drv, pR) ) {
+            DBG_ERR ;
             op->x = NULL ;
             DRV_free(&drv, pR) ;
             break ;
@@ -849,31 +863,38 @@ bool NET_connect_ini(
     do {
         assert(op) ;
         if ( NULL == op ) {
+            DBG_ERR ;
             break ;
         }
 
         assert(NULL == op->x) ;
         if ( NULL != op->x ) {
+            DBG_ERR ;
             break ;
         }
 
         if ( sok < 0 ) {
+            DBG_ERR ;
             break ;
         }
         if ( sok >= LWIP_P_NUM_SOCK ) {
+            DBG_ERR ;
             break ;
         }
 
         if ( NULL == ind ) {
+            DBG_ERR ;
             break ;
         }
 
         if ( !is_net_running() ) {
+            DBG_ERR ;
             break ;
         }
 
         S_DRV_REQ * pR = DRV_alloc(&drv) ;
         if ( NULL == pR ) {
+            DBG_ERR ;
             break ;
         }
 
@@ -886,6 +907,7 @@ bool NET_connect_ini(
         op->x = pR ;
 
         if ( !DRV_send(&drv, pR) ) {
+            DBG_ERR ;
             op->x = NULL ;
             DRV_free(&drv, pR) ;
             break ;
@@ -907,27 +929,33 @@ bool NET_bind_ini(
     do {
         assert(op) ;
         if ( NULL == op ) {
+            DBG_ERR ;
             break ;
         }
 
         assert(NULL == op->x) ;
         if ( NULL != op->x ) {
+            DBG_ERR ;
             break ;
         }
 
         if ( sok < 0 ) {
+            DBG_ERR ;
             break ;
         }
         if ( sok >= LWIP_P_NUM_SOCK ) {
+            DBG_ERR ;
             break ;
         }
 
         if ( !is_net_running() ) {
+            DBG_ERR ;
             break ;
         }
 
         S_DRV_REQ * pR = DRV_alloc(&drv) ;
         if ( NULL == pR ) {
+            DBG_ERR ;
             break ;
         }
 
@@ -940,6 +968,7 @@ bool NET_bind_ini(
         op->x = pR ;
 
         if ( !DRV_send(&drv, pR) ) {
+            DBG_ERR ;
             op->x = NULL ;
             DRV_free(&drv, pR) ;
             break ;
@@ -966,34 +995,42 @@ bool NET_recvfrom_ini(
     do {
         assert(op) ;
         if ( NULL == op ) {
+            DBG_ERR ;
             break ;
         }
 
         assert(NULL == op->x) ;
         if ( NULL != op->x ) {
+            DBG_ERR ;
             break ;
         }
 
         if ( sok < 0 ) {
+            DBG_ERR ;
             break ;
         }
         if ( sok >= LWIP_P_NUM_SOCK ) {
+            DBG_ERR ;
             break ;
         }
 
         if ( NULL == buf ) {
+            DBG_ERR ;
             break ;
         }
         if ( 0 == len ) {
+            DBG_ERR ;
             break ;
         }
 
         if ( !is_net_running() ) {
+            DBG_ERR ;
             break ;
         }
 
         S_DRV_REQ * pR = DRV_alloc(&drv) ;
         if ( NULL == pR ) {
+            DBG_ERR ;
             break ;
         }
 
@@ -1008,6 +1045,7 @@ bool NET_recvfrom_ini(
         op->x = pR ;
 
         if ( !DRV_send(&drv, pR) ) {
+            DBG_ERR ;
             op->x = NULL ;
             DRV_free(&drv, pR) ;
             break ;
@@ -1031,38 +1069,47 @@ bool NET_sendto_ini(
     do {
         assert(op) ;
         if ( NULL == op ) {
+            DBG_ERR ;
             break ;
         }
 
         assert(NULL == op->x) ;
         if ( NULL != op->x ) {
+            DBG_ERR ;
             break ;
         }
 
         if ( sok < 0 ) {
+            DBG_ERR ;
             break ;
         }
         if ( sok >= LWIP_P_NUM_SOCK ) {
+            DBG_ERR ;
             break ;
         }
 
         if ( NULL == buf ) {
+            DBG_ERR ;
             break ;
         }
         if ( 0 == len ) {
+            DBG_ERR ;
             break ;
         }
 
         if ( NULL == ind ) {
+            DBG_ERR ;
             break ;
         }
 
         if ( !is_net_running() ) {
+            DBG_ERR ;
             break ;
         }
 
         S_DRV_REQ * pR = DRV_alloc(&drv) ;
         if ( NULL == pR ) {
+            DBG_ERR ;
             break ;
         }
 
@@ -1077,6 +1124,7 @@ bool NET_sendto_ini(
         op->x = pR ;
 
         if ( !DRV_send(&drv, pR) ) {
+            DBG_ERR ;
             op->x = NULL ;
             DRV_free(&drv, pR) ;
             break ;
@@ -1101,35 +1149,43 @@ bool NET_listen_ini(
     do {
         assert(op) ;
         if ( NULL == op ) {
+            DBG_ERR ;
             break ;
         }
 
         assert(NULL == op->x) ;
         if ( NULL != op->x ) {
+            DBG_ERR ;
             break ;
         }
 
         if ( sok < 0 ) {
+            DBG_ERR ;
             break ;
         }
         if ( sok >= LWIP_P_NUM_SOCK ) {
+            DBG_ERR ;
             break ;
         }
 
         if ( backlog <= 0 ) {
+            DBG_ERR ;
             break ;
         }
         static_assert(1 == TCP_LISTEN_BACKLOG, "OKKIO") ;
         if ( backlog > TCP_LISTEN_BACKLOG ) {
+            DBG_ERR ;
             break ;
         }
 
         if ( !is_net_running() ) {
+            DBG_ERR ;
             break ;
         }
 
         S_DRV_REQ * pR = DRV_alloc(&drv) ;
         if ( NULL == pR ) {
+            DBG_ERR ;
             break ;
         }
 
@@ -1142,6 +1198,7 @@ bool NET_listen_ini(
         op->x = pR ;
 
         if ( !DRV_send(&drv, pR) ) {
+            DBG_ERR ;
             op->x = NULL ;
             DRV_free(&drv, pR) ;
             break ;
@@ -1163,27 +1220,33 @@ bool NET_accept_ini(
     do {
         assert(op) ;
         if ( NULL == op ) {
+            DBG_ERR ;
             break ;
         }
 
         assert(NULL == op->x) ;
         if ( NULL != op->x ) {
+            DBG_ERR ;
             break ;
         }
 
         if ( sok < 0 ) {
+            DBG_ERR ;
             break ;
         }
         if ( sok >= LWIP_P_NUM_SOCK ) {
+            DBG_ERR ;
             break ;
         }
 
         if ( !is_net_running() ) {
+            DBG_ERR ;
             break ;
         }
 
         S_DRV_REQ * pR = DRV_alloc(&drv) ;
         if ( NULL == pR ) {
+            DBG_ERR ;
             break ;
         }
 
@@ -1196,6 +1259,7 @@ bool NET_accept_ini(
         op->x = pR ;
 
         if ( !DRV_send(&drv, pR) ) {
+            DBG_ERR ;
             op->x = NULL ;
             DRV_free(&drv, pR) ;
             break ;
@@ -1218,38 +1282,46 @@ bool NET_recv_ini(
     do {
         assert(op) ;
         if ( NULL == op ) {
+            DBG_ERR ;
             break ;
         }
 
         assert(NULL == op->x) ;
         if ( NULL != op->x ) {
+            DBG_ERR ;
             break ;
         }
 
         if ( sok < 0 ) {
+            DBG_ERR ;
             break ;
         }
         if ( sok >= LWIP_P_NUM_SOCK ) {
             // Potrebbe essere remoto
             int rem = sok & ~ID_SOCK_REM ;
             if ( (rem < 0) || (rem >= LWIP_P_NUM_SOCK) ) {
+                DBG_ERR ;
                 break ;
             }
         }
 
         if ( NULL == buf ) {
+            DBG_ERR ;
             break ;
         }
         if ( 0 == len ) {
+            DBG_ERR ;
             break ;
         }
 
         if ( !is_net_running() ) {
+            DBG_ERR ;
             break ;
         }
 
         S_DRV_REQ * pR = DRV_alloc(&drv) ;
         if ( NULL == pR ) {
+            DBG_ERR ;
             break ;
         }
 
@@ -1263,6 +1335,7 @@ bool NET_recv_ini(
         op->x = pR ;
 
         if ( !DRV_send(&drv, pR) ) {
+            DBG_ERR ;
             op->x = NULL ;
             DRV_free(&drv, pR) ;
             break ;
@@ -1287,38 +1360,46 @@ bool NET_send_ini(
     do {
         assert(op) ;
         if ( NULL == op ) {
+            DBG_ERR ;
             break ;
         }
 
         assert(NULL == op->x) ;
         if ( NULL != op->x ) {
+            DBG_ERR ;
             break ;
         }
 
         if ( sok < 0 ) {
+            DBG_ERR ;
             break ;
         }
         if ( sok >= LWIP_P_NUM_SOCK ) {
             // Potrebbe essere remoto
             int rem = sok & ~ID_SOCK_REM ;
             if ( (rem < 0) || (rem >= LWIP_P_NUM_SOCK) ) {
+                DBG_ERR ;
                 break ;
             }
         }
 
         if ( NULL == buf ) {
+            DBG_ERR ;
             break ;
         }
         if ( 0 == len ) {
+            DBG_ERR ;
             break ;
         }
 
         if ( !is_net_running() ) {
+            DBG_ERR ;
             break ;
         }
 
         S_DRV_REQ * pR = DRV_alloc(&drv) ;
         if ( NULL == pR ) {
+            DBG_ERR ;
             break ;
         }
 
@@ -1332,6 +1413,7 @@ bool NET_send_ini(
         op->x = pR ;
 
         if ( !DRV_send(&drv, pR) ) {
+            DBG_ERR ;
             op->x = NULL ;
             DRV_free(&drv, pR) ;
             break ;
@@ -1361,15 +1443,18 @@ bool NET_select_ini(
     do {
         assert(op) ;
         if ( NULL == op ) {
+            DBG_ERR ;
             break ;
         }
 
         assert(NULL == op->x) ;
         if ( NULL != op->x ) {
+            DBG_ERR ;
             break ;
         }
 
         if ( nfds < 1 ) {
+            DBG_ERR ;
             break ;
         }
 #if LWIP_TCP
@@ -1391,15 +1476,18 @@ bool NET_select_ini(
         }
 
         if ( (NULL == readfds) && (NULL == writefds) && (NULL == exceptfds) ) {
+            DBG_ERR ;
             break ;
         }
 
         if ( !is_net_running() ) {
+            DBG_ERR ;
             break ;
         }
 
         S_DRV_REQ * pR = DRV_alloc(&drv) ;
         if ( NULL == pR ) {
+            DBG_ERR ;
             break ;
         }
 
@@ -1414,6 +1502,7 @@ bool NET_select_ini(
         op->x = pR ;
 
         if ( !DRV_send(&drv, pR) ) {
+            DBG_ERR ;
             op->x = NULL ;
             DRV_free(&drv, pR) ;
             break ;

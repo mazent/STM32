@@ -1,4 +1,4 @@
-//#define STAMPA_DBG
+#define STAMPA_DBG
 #include "utili.h"
 #include "net.h"
 #include "bsp.h"
@@ -42,6 +42,16 @@
 #define REG_13_MMD_CTRL     13  // MMD Access Control Register E
 #define REG_14_MMD_DATA     14  // MMD Access Address Data Register E
 
+#define REG_26_SEC          26  // Symbol Error Counter Register VS
+#define REG_17_MCS          17  // Mode Control/Status Register VS
+#define REG_27_SCSI         27  // Special Control/Status Indications
+
+#define REG17_FARLOOPBACK   (1 << 9)
+
+#define REG27_AMDIX_DIS     (1 << 15)
+#define REG27_SELECT_MDIX    (1 << 13)
+#define REG27_SQE_OFF       (1 << 11)
+
 #define REG13_ADDR       (0 << 14)
 #define REG13_DATA       (1 << 14)
 #define REG13_PCS        3
@@ -52,10 +62,10 @@
 
 #define REG0_RST        (1 << 15) // Reset
 #define REG0_LBACK      (1 << 14) // Loopback
-#define REG0_SL1        (1 << 13) // Speed Selection (LSB)
+#define REG0_100M       (1 << 13) // Speed Selection
 #define REG0_AN_E       (1 << 12) // Auto-Negotiation Enable
 #define REG0_PDOWN      (1 << 11) // Power Down
-#define REG0_ISO        (1 << 10) // Isolate
+#define REG0_ISO        (1 << 10) // Isolate (electrical isolation of PHY from the RMII)
 #define REG0_R_AN       (1 << 9)  // Restart Auto-Negotiation
 #define REG0_DUPLEX     (1 << 8)  // Duplex Mode
 
@@ -79,7 +89,7 @@
 #define REG4_TA_10_FD    (1 << 6)    // A1 10BASE-T full duplex
 #define REG4_TA_100      (1 << 7)    // A2 100BASE-TX
 #define REG4_TA_100_FD   (1 << 8)    // A3 100BASE-TX full duplex
-#define REG4_TA_100_T4   (1 << 9)    // A4 100BASE-T4
+//#define REG4_TA_100_T4   (1 << 9)    // A4 100BASE-T4
 #define REG4_SF_802_3    1           // 4:0 Selector Field See 28.2.1.2 R/W
 
 const uint32_t lanmsk = LAN87xx_IRQ_LINK_DOWN
@@ -114,21 +124,43 @@ uint32_t PHY_id(void)
     return id_phy ;
 }
 
+uint16_t PHY_sym_err_cnt(void)
+{
+    if ( 0 == id_phy ) {
+        DBG_ERR ;
+        return 0 ;
+    }
+
+    union {
+        uint32_t w ;
+        uint16_t h ;
+    } u ;
+    u.w = reg_leggi(REG_26_SEC) ;
+
+    if ( ERRORE_REG_L == u.w ) {
+        DBG_ERR ;
+        return 0 ;
+    }
+    DBG_PRINTF("sec %08X", u.w) ;
+
+    return u.h ;
+}
+
 void phy_reset(void)
 {
     // Resetto
-    bsp_phy_reset(true) ;
+    bsp_phy_nrst(false) ;
     HAL_Delay(2) ;
 
     // Tolgo reset
-    bsp_phy_reset(false) ;
+    bsp_phy_nrst(true) ;
     HAL_Delay(100) ;
 }
 
 void phy_stop(void)
 {
     // Resetto
-    bsp_phy_reset(true) ;
+    bsp_phy_nrst(false) ;
 
     link = full = m100 = false ;
     ulPhyID = id_phy = 0 ;
@@ -137,7 +169,7 @@ void phy_stop(void)
 static bool trova(void)
 {
     bool trovato = false ;
-    
+
     DBG_FUN ;
 
     // hard reset (vedi port_netif_init())
@@ -244,80 +276,87 @@ static void write_mmd(
     reg_scrivi(REG_14_MMD_DATA, val) ;
 }
 
-static uint32_t configura(
-    PHY_SPEED speed,
-    PHY_DUPLEX duplex)
+static void configura(
+    NET_MODO modo,
+    NET_MDI mdi)
 {
-    uint32_t ulAdvertise = 0 ;
+    /* Always select protocol 802.3u. */
+    uint32_t ulAdvertise = REG4_SF_802_3 ;
 
     DBG_FUN ;
 
-    /* Set advertise register. */
-    if ( (speed == PHY_SPEED_AUTO) &&
-         (duplex == PHY_DUPLEX_AUTO) ) {
-        ulAdvertise = REG4_SF_802_3 | REG4_TA_10 | REG4_TA_10_FD
-                      | REG4_TA_100 | REG4_TA_100_FD ;
-        /* Reset auto-negotiation capability. */
+    switch ( modo ) {
+    case NET_MODO_10:
+        DBG_PUTS("NET_MODO_10") ;
+        ulAdvertise |= REG4_TA_10 ;
+        break ;
+    case NET_MODO_10_FD:
+        DBG_PUTS("NET_MODO_10_FD") ;
+        ulAdvertise |= REG4_TA_10_FD ;
+        break ;
+    case NET_MODO_100:
+        DBG_PUTS("NET_MODO_100") ;
+        ulAdvertise |= REG4_TA_100 ;
+        break ;
+    case NET_MODO_100_FD:
+        DBG_PUTS("NET_MODO_100_FD") ;
+        ulAdvertise |= REG4_TA_100_FD ;
+        break ;
+    default:
+    case NET_MODO_AUTO:
+        DBG_PUTS("NET_MODO_AUTO") ;
+        ulAdvertise |= REG4_TA_10 | REG4_TA_10_FD | REG4_TA_100
+                       | REG4_TA_100_FD ;
+        break ;
     }
-    else {
-        /* Always select protocol 802.3u. */
-        ulAdvertise = REG4_SF_802_3 ;
-
-        if ( speed == PHY_SPEED_AUTO ) {
-            if ( duplex == PHY_DUPLEX_FULL ) {
-                ulAdvertise |= REG4_TA_10_FD | REG4_TA_100_FD ;
-            }
-            else {
-                ulAdvertise |= REG4_TA_10 | REG4_TA_100 ;
-            }
-        }
-        else if ( duplex == PHY_DUPLEX_AUTO ) {
-            if ( speed == PHY_SPEED_10 ) {
-                ulAdvertise |= REG4_TA_10_FD | REG4_TA_10 ;
-            }
-            else {
-                ulAdvertise |= REG4_TA_100_FD | REG4_TA_100 ;
-            }
-        }
-        else if ( speed == PHY_SPEED_100 ) {
-            if ( duplex == PHY_DUPLEX_FULL ) {
-                ulAdvertise |= REG4_TA_100_FD ;
-            }
-            else {
-                ulAdvertise |= REG4_TA_100 ;
-            }
-        }
-        else {
-            if ( duplex == PHY_DUPLEX_FULL ) {
-                ulAdvertise |= REG4_TA_10_FD ;
-            }
-            else {
-                ulAdvertise |= REG4_TA_10 ;
-            }
-        }
-    }
-
-    /* Write advertise register. */
     reg_scrivi(REG__4_AN_A, ulAdvertise) ;
+
+    // Fili
+    uint32_t scsi = 0 ;
+    switch ( mdi ) {
+    case NET_MDI_DRITTO:
+        DBG_PUTS("NET_MDI_DRITTO") ;
+        scsi |= REG27_AMDIX_DIS ;
+        break ;
+    case NET_MDI_STORTO:
+        DBG_PUTS("NET_MDI_STORTO") ;
+        scsi |= REG27_AMDIX_DIS | REG27_SELECT_MDIX ;
+        break ;
+    default:
+    case NET_MDI_AUTO:
+        // Ottimo
+        DBG_PUTS("NET_MDI_AUTO") ;
+        break ;
+    }
+    reg_scrivi(REG_27_SCSI, scsi) ;
 
     /* Read Control register. */
     ulConfig = reg_leggi(REG__0_CTR) ;
 
-    ulConfig &= NEGA(REG0_SL1 | REG0_DUPLEX) ;
-
-    ulConfig |= REG0_AN_E ;
-
-    if ( (speed == PHY_SPEED_100) ||
-         (speed == PHY_SPEED_AUTO) ) {
-        ulConfig |= REG0_SL1 ;
-    }
-
-    if ( (duplex == PHY_DUPLEX_FULL) ||
-         (duplex == PHY_DUPLEX_AUTO) ) {
+    ulConfig &= NEGA(REG0_100M | REG0_DUPLEX | REG0_AN_E | REG0_ISO | REG0_R_AN) ;
+#if 0
+    // Se non autonegozio non ho l'interruzione!
+    switch ( modo ) {
+    case NET_MODO_10:
+        break ;
+    case NET_MODO_10_FD:
         ulConfig |= REG0_DUPLEX ;
+        break ;
+    case NET_MODO_100:
+        ulConfig |= REG0_100M ;
+        break ;
+    case NET_MODO_100_FD:
+        ulConfig |= REG0_100M | REG0_DUPLEX ;
+        break ;
+    default:
+    case NET_MODO_AUTO:
+        ulConfig |= REG0_AN_E ;
+        break ;
     }
-
-    DBG_PRINTF("PHY reg4 %04X config %04X", ulAdvertise, ulConfig) ;
+#else
+    ulConfig |= REG0_AN_E ;
+#endif
+    DBG_PRINTF("PHY reg4 %04X reg0 %04X", ulAdvertise, ulConfig) ;
 
     // Abilito IRQ
     if ( PHY_ID_LAN8742A == ulPhyID ) {
@@ -336,8 +375,6 @@ static uint32_t configura(
                    read_mmd(REG13_PCS, LAN8742A_IND_WUCSR) ) ;
     }
     reg_scrivi(LAN87xx_IRQ_MSK, lanmsk) ;
-
-    return ulAdvertise ;
 }
 
 static void negozia(void)
@@ -346,13 +383,104 @@ static void negozia(void)
     reg_scrivi(REG__0_CTR, ulConfig | REG0_R_AN) ;
 }
 
-void PHY_iniz(
-    PHY_SPEED spid,
-    PHY_DUPLEX dup)
+static void stampa_reg(void)
 {
-    CONTROLLA( trova() ) ;
-    (void) configura(spid, dup) ;
-    negozia() ;
+#if 0
+    DBG_PUTS("registri") ;
+
+    {
+        uint32_t val = reg_leggi(0) ;
+        DBG_PRINTF("     0 = %08X", val) ;
+    }
+    {
+        uint32_t val = reg_leggi(1) ;
+        DBG_PRINTF("     1 = %08X", val) ;
+    }
+    {
+        uint32_t val = reg_leggi(2) ;
+        DBG_PRINTF("     2 = %08X", val) ;
+    }
+    {
+        uint32_t val = reg_leggi(3) ;
+        DBG_PRINTF("     3 = %08X", val) ;
+    }
+    {
+        uint32_t val = reg_leggi(4) ;
+        DBG_PRINTF("     4 = %08X", val) ;
+    }
+    {
+        uint32_t val = reg_leggi(5) ;
+        DBG_PRINTF("     5 = %08X", val) ;
+    }
+    {
+        uint32_t val = reg_leggi(6) ;
+        DBG_PRINTF("     6 = %08X", val) ;
+    }
+    {
+        uint32_t val = reg_leggi(17) ;
+        DBG_PRINTF("    17 = %08X", val) ;
+    }
+    {
+        uint32_t val = reg_leggi(18) ;
+        DBG_PRINTF("    18 = %08X", val) ;
+    }
+    {
+        uint32_t val = reg_leggi(26) ;
+        DBG_PRINTF("    26 = %08X", val) ;
+    }
+    {
+        uint32_t val = reg_leggi(27) ;
+        DBG_PRINTF("    27 = %08X", val) ;
+    }
+    {
+        uint32_t val = reg_leggi(29) ;
+        DBG_PRINTF("    29 = %08X", val) ;
+    }
+    {
+        uint32_t val = reg_leggi(30) ;
+        DBG_PRINTF("    30 = %08X", val) ;
+    }
+    {
+        uint32_t val = reg_leggi(31) ;
+        DBG_PRINTF("    31 = %08X", val) ;
+    }
+#endif
+}
+
+void PHY_iniz(
+    NET_MODO modo,
+    NET_MDI mdi)
+{
+    if ( trova() ) {
+        configura(modo, mdi) ;
+        negozia() ;
+
+        stampa_reg() ;
+    }
+    else {
+        DBG_ERR ;
+    }
+}
+
+void PHY_iniz_loopback(NET_MDI mdi)
+{
+    DBG_FUN ;
+    if ( trova() ) {
+        // far loopback
+        configura(NET_MODO_100, mdi) ;
+
+        ulConfig |= REG0_ISO ;
+        reg_scrivi(REG__0_CTR, ulConfig) ;
+
+        uint32_t mcs = reg_leggi(REG_17_MCS) ;
+        mcs |= REG17_FARLOOPBACK ;
+        reg_scrivi(REG_17_MCS, mcs) ;
+
+        stampa_reg() ;
+    }
+    else {
+        DBG_ERR ;
+    }
 }
 
 void PHY_isr(void)
@@ -378,6 +506,11 @@ void PHY_isr(void)
         DBG_PUTS("\t AUTO_NEGOTIATION_LP_ACKNOWLEDGE") ;
     }
     if ( irq & LAN87xx_IRQ_PARALLEL_DETECTION_FAULT ) {
+        // If the LAN8720A/LAN8720Ai is connected to a device lacking the ability
+        // to auto-negotiate, it is able to determine the speed of the link based
+        // on either 100M MLT-3 symbols or 10M Normal Link Pulses.
+        // In this case the link is presumed to be half duplex per the IEEE standard.
+        // This ability is known as "Parallel Detection"
         DBG_PUTS("\t PARALLEL_DETECTION_FAULT       ") ;
     }
     if ( irq & LAN87xx_IRQ_AUTO_NEGOTIATION_PAGE_RECEIVED ) {
@@ -391,7 +524,7 @@ void PHY_isr(void)
         uint32_t stt = reg_leggi(REG__1_STT) ;
         stt = reg_leggi(REG__1_STT) ;
 
-        DBG_PRINTF("\t stt %04X", stt) ;
+        DBG_PRINTF("\t reg1 %04X", stt) ;
 
         if ( stt & REG1_LS ) {
             // Bene
